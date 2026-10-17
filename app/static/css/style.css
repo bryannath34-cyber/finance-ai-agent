@@ -663,6 +663,55 @@ a:hover {
   font-weight: 800;
 }
 
+/* Eye Toggle Balance Visibility Button */
+.btn-toggle-balance {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.btn-toggle-balance:hover {
+  background: #EAECE7;
+  color: var(--text-primary);
+  border-color: #E2E5DF;
+  transform: scale(1.05);
+}
+
+.btn-toggle-balance:active {
+  transform: scale(0.95);
+  background: #E2E5DF;
+}
+
+.btn-toggle-balance .eye-svg {
+  width: 15px;
+  height: 15px;
+  display: block;
+  stroke: currentColor;
+}
+
+.kpi-card-amount.is-hidden-mask {
+  letter-spacing: 2px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--text-muted) !important;
+  user-select: none;
+}
+
+.acc-balance-num.is-hidden-mask {
+  letter-spacing: 2px;
+  color: var(--text-muted) !important;
+  user-select: none;
+}
+
 /* Quick Action Buttons Row */
 .dashboard-actions-row {
   display: flex;

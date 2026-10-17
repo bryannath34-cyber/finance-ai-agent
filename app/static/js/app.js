@@ -79,6 +79,14 @@ class App {
     // Tab 1: Dashboard Mutasi & Accounts
     this.accountsContainer = document.getElementById('accounts-container');
     this.totalNetWorth = document.getElementById('total-net-worth');
+    this.btnToggleNetWorth = document.getElementById('btn-toggle-net-worth');
+    this.eyeIconOpen = document.getElementById('eye-icon-open');
+    this.eyeIconClosed = document.getElementById('eye-icon-closed');
+    this.isBalanceHidden = false;
+    try {
+      this.isBalanceHidden = localStorage.getItem('hide_net_worth') === 'true';
+    } catch (_) {}
+    this.currentNetWorthValue = 0;
     this.btnRefreshAccounts = document.getElementById('btn-refresh-accounts');
     this.btnRefreshHistory = document.getElementById('btn-refresh-history');
 
@@ -316,6 +324,8 @@ class App {
 
     this.linkOverlayForgot = document.getElementById('link-overlay-forgot');
     this.linkOverlayRegister = document.getElementById('link-overlay-register');
+
+    this.applyBalanceVisibility();
   }
 
   attachEventListeners() {
@@ -359,6 +369,13 @@ class App {
       this.btnDashPeriodMonth.addEventListener('click', () => {
         this.btnDashPeriodMonth.classList.add('active');
         this.btnDashPeriodDay.classList.remove('active');
+      });
+    }
+
+    if (this.btnToggleNetWorth) {
+      this.btnToggleNetWorth.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.toggleBalanceVisibility();
       });
     }
 
@@ -1005,17 +1022,72 @@ class App {
             <span class="acc-subtitle">${acc.type}</span>
           </div>
         </div>
-        <div class="acc-balance-num ${isNegative ? 'negative' : ''}">
-          ${this.formatIDR(bal)}
+        <div class="acc-balance-num ${isNegative ? 'negative' : ''} ${this.isBalanceHidden ? 'is-hidden-mask' : ''}" data-real-balance="${this.formatIDR(bal)}">
+          ${this.isBalanceHidden ? 'Rp ••••••••' : this.formatIDR(bal)}
         </div>
       `;
       this.accountsContainer.appendChild(row);
     });
 
-    if (this.totalNetWorth) {
-      this.totalNetWorth.textContent = this.formatIDR(totalBal);
-      this.totalNetWorth.style.color = totalBal < 0 ? 'var(--accent-rose)' : 'var(--text-primary)';
+    this.currentNetWorthValue = totalBal;
+    this.applyBalanceVisibility();
+  }
+
+  toggleBalanceVisibility() {
+    this.isBalanceHidden = !this.isBalanceHidden;
+    try {
+      localStorage.setItem('hide_net_worth', this.isBalanceHidden ? 'true' : 'false');
+    } catch (_) {}
+    this.applyBalanceVisibility();
+  }
+
+  applyBalanceVisibility() {
+    if (this.eyeIconOpen && this.eyeIconClosed) {
+      if (this.isBalanceHidden) {
+        this.eyeIconOpen.style.display = 'none';
+        this.eyeIconClosed.style.display = 'block';
+        if (this.btnToggleNetWorth) {
+          this.btnToggleNetWorth.setAttribute('title', 'Tampilkan Saldo');
+          this.btnToggleNetWorth.setAttribute('aria-label', 'Tampilkan Saldo');
+        }
+      } else {
+        this.eyeIconOpen.style.display = 'block';
+        this.eyeIconClosed.style.display = 'none';
+        if (this.btnToggleNetWorth) {
+          this.btnToggleNetWorth.setAttribute('title', 'Sembunyikan Saldo');
+          this.btnToggleNetWorth.setAttribute('aria-label', 'Sembunyikan Saldo');
+        }
+      }
     }
+
+    if (this.totalNetWorth) {
+      if (this.isBalanceHidden) {
+        this.totalNetWorth.textContent = 'Rp ••••••••';
+        this.totalNetWorth.style.color = 'var(--text-secondary)';
+        this.totalNetWorth.classList.add('is-hidden-mask');
+      } else {
+        this.totalNetWorth.textContent = this.formatIDR(this.currentNetWorthValue);
+        this.totalNetWorth.style.color = this.currentNetWorthValue < 0 ? 'var(--accent-rose)' : 'var(--text-primary)';
+        this.totalNetWorth.classList.remove('is-hidden-mask');
+      }
+    }
+
+    const accBalanceEls = document.querySelectorAll('.acc-balance-num');
+    accBalanceEls.forEach((el) => {
+      if (this.isBalanceHidden) {
+        if (!el.hasAttribute('data-real-balance')) {
+          el.setAttribute('data-real-balance', el.textContent.trim());
+        }
+        el.textContent = 'Rp ••••••••';
+        el.classList.add('is-hidden-mask');
+      } else {
+        const real = el.getAttribute('data-real-balance');
+        if (real) {
+          el.textContent = real;
+        }
+        el.classList.remove('is-hidden-mask');
+      }
+    });
   }
 
   formatTxDescription(desc, isRev) {
