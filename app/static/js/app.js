@@ -355,7 +355,14 @@ class App {
       this.btnJumpToMutasi.addEventListener('click', () => this.switchTab('tab-mutasi'));
     }
     if (this.btnDashOpenAi) {
-      this.btnDashOpenAi.addEventListener('click', () => this.switchTab('tab-agent'));
+      this.btnDashOpenAi.addEventListener('click', () => {
+        this.switchTab('tab-mutasi');
+        if (this.aiInput) {
+          setTimeout(() => {
+            this.aiInput.focus();
+          }, 150);
+        }
+      });
     }
     if (this.btnDashViewReports) {
       this.btnDashViewReports.addEventListener('click', () => this.switchTab('tab-reports'));
@@ -743,6 +750,12 @@ class App {
   }
 
   switchTab(tabId) {
+    // Fallback defensively jika ID tab tidak ditemukan di DOM agar layar tidak blank putih
+    if (!document.getElementById(tabId)) {
+      console.warn(`[switchTab] Tab '${tabId}' tidak ditemukan di DOM, dialihkan ke 'tab-dashboard'.`);
+      tabId = 'tab-dashboard';
+    }
+
     this.currentTab = tabId;
 
     // Synchronize Titles & Intros
