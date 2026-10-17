@@ -621,21 +621,41 @@ class TransactionService:
                     if not tx:
                         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transaksi tidak ditemukan.")
 
-                    # Cek apakah ada jurnal pembalik yang membalik transaksi ini
-                    cur.execute("SELECT id FROM transactions WHERE reverses_transaction_id = %s AND user_id = %s", (transaction_id, user_id))
-                    rev = cur.fetchone()
-                    if rev:
-                        raise HTTPException(
-                            status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Transaksi ini telah dibalik oleh jurnal pembalik. Hapus transaksi jurnal pembalik terlebih dahulu."
-                        )
-
                     draft_id = tx["draft_id"]
 
-                    # 2. Hapus transaksi anak (misal: ADMIN_FEE yang merujuk parent_transaction_id ini)
+                    # 2. Tangani transaksi anak dan jurnal pembalik secara berantai (cascade cleanup)
+                    # Cari seluruh transaksi anak (misal: ADMIN_FEE pada transfer)
+                    cur.execute("SELECT id FROM transactions WHERE parent_transaction_id = %s AND user_id = %s", (transaction_id, user_id))
+                    child_rows = cur.fetchall()
+                    child_ids = [c["id"] for c in child_rows] if child_rows else []
+                    all_target_ids = [transaction_id] + child_ids
+
+                    # Cari semua jurnal pembalik yang membalik transaksi ini atau anak-anaknya
+                    format_target_ids = ','.join(['%s'] * len(all_target_ids))
+                    cur.execute(f"""
+                        SELECT id FROM transactions 
+                        WHERE reverses_transaction_id IN ({format_target_ids}) AND user_id = %s
+                    """, (*all_target_ids, user_id))
+                    reversal_rows = cur.fetchall()
+                    reversal_ids = [r["id"] for r in reversal_rows] if reversal_rows else []
+
+                    # Jika ada jurnal pembalik, hapus anak pembalik dulu lalu pembaliknya (mencegah fk_tx_parent & fk_tx_reverses)
+                    if reversal_ids:
+                        format_rev_ids = ','.join(['%s'] * len(reversal_ids))
+                        cur.execute(f"""
+                            DELETE FROM transactions 
+                            WHERE parent_transaction_id IN ({format_rev_ids}) AND user_id = %s
+                        """, (*reversal_ids, user_id))
+
+                        cur.execute(f"""
+                            DELETE FROM transactions 
+                            WHERE reverses_transaction_id IN ({format_target_ids}) AND user_id = %s
+                        """, (*all_target_ids, user_id))
+
+                    # 3. Hapus transaksi anak (misal: ADMIN_FEE yang merujuk parent_transaction_id ini)
                     cur.execute("DELETE FROM transactions WHERE parent_transaction_id = %s AND user_id = %s", (transaction_id, user_id))
 
-                    # 3. Hapus transaksi ini
+                    # 4. Hapus transaksi ini
                     cur.execute("DELETE FROM transactions WHERE id = %s AND user_id = %s", (transaction_id, user_id))
 
                     # 4. Hapus draft jika tidak ada lagi transaksi yang menggunakannya (graceful)
