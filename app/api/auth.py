@@ -109,7 +109,7 @@ def login(login_data: LoginRequest, request: Request, response: Response):
         httponly=True,
         samesite="lax",
         secure=is_production,
-        path=f"{settings.APP_PREFIX}"
+        path="/"
     )
 
     # Set Cookie CSRF (Dapat dibaca JS frontend untuk dikirim via header X-CSRF-Token)
@@ -120,7 +120,7 @@ def login(login_data: LoginRequest, request: Request, response: Response):
         httponly=False,
         samesite="lax",
         secure=is_production,
-        path=f"{settings.APP_PREFIX}"
+        path="/"
     )
 
     logger.info("Pengguna '%s' berhasil login (Session ID diterbitkan)", user["username"])
@@ -144,10 +144,11 @@ def logout(request: Request, response: Response):
     if session_token:
         invalidate_user_session(session_token)
 
-    response.delete_cookie(key=settings.SESSION_COOKIE_NAME, path=f"{settings.APP_PREFIX}")
-    response.delete_cookie(key=settings.CSRF_COOKIE_NAME, path=f"{settings.APP_PREFIX}")
+    response.delete_cookie(key=settings.SESSION_COOKIE_NAME, path="/")
+    response.delete_cookie(key=settings.CSRF_COOKIE_NAME, path="/")
 
     return BaseResponse(success=True, message="Logout berhasil. Sesi telah dicabut.")
+
 
 @router.get("/me", response_model=DataResponse[UserProfile])
 def get_current_user_profile(user: dict = Depends(get_current_user)):

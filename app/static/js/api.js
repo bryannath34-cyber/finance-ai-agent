@@ -5,11 +5,17 @@
 
 const API_BASE = window.location.pathname.startsWith('/finance') ? '/finance/api' : '/api';
 
+let memoryCsrfToken = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('pf_csrf') : null;
+
 function getCookie(name) {
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${name}=`);
   if (parts.length === 2) return parts.pop().split(';').shift();
   return null;
+}
+
+function getCsrfToken() {
+  return getCookie('pf_csrf') || getCookie('csrf_token') || memoryCsrfToken || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('pf_csrf') : null);
 }
 
 async function request(endpoint, options = {}) {
@@ -19,7 +25,7 @@ async function request(endpoint, options = {}) {
   // Attach CSRF Token for mutation methods
   const method = (options.method || 'GET').toUpperCase();
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
-    const csrfToken = getCookie('csrf_token');
+    const csrfToken = getCsrfToken();
     if (csrfToken) {
       headers['X-CSRF-Token'] = csrfToken;
     }
@@ -54,14 +60,25 @@ async function request(endpoint, options = {}) {
 export const api = {
   // Authentication
   auth: {
-    login: (username, password) =>
-      request('/auth/login', {
+    login: async (username, password) => {
+      const res = await request('/auth/login', {
         method: 'POST',
         body: JSON.stringify({ username, password }),
-      }),
-    logout: () => request('/auth/logout', { method: 'POST' }),
+      });
+      if (res && res.csrf_token) {
+        memoryCsrfToken = res.csrf_token;
+        sessionStorage.setItem('pf_csrf', res.csrf_token);
+      }
+      return res;
+    },
+    logout: () => {
+      memoryCsrfToken = null;
+      sessionStorage.removeItem('pf_csrf');
+      return request('/auth/logout', { method: 'POST' });
+    },
     getMe: () => request('/auth/me'),
   },
+
 
   // Accounts
   accounts: {

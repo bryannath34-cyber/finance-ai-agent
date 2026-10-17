@@ -140,7 +140,11 @@ def verify_csrf(request: Request):
     ):
         return
 
-    cookie_csrf = request.cookies.get(settings.CSRF_COOKIE_NAME)
+    cookie_csrf = (
+        request.cookies.get(settings.CSRF_COOKIE_NAME) or 
+        request.cookies.get("pf_csrf") or 
+        request.cookies.get("csrf_token")
+    )
     header_csrf = request.headers.get("X-CSRF-Token")
 
     if not cookie_csrf or not header_csrf:
