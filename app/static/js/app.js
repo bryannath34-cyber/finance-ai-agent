@@ -70,6 +70,7 @@ class App {
 
     this.pageTitle = document.getElementById('page-title');
     this.pageIntro = document.getElementById('page-intro');
+    this.pageTitlesContainer = document.querySelector('.page-titles');
 
     // Navigation Tabs (Both Feature Pills and Sidebar Links)
     this.tabBtns = document.querySelectorAll('.tab-btn');
@@ -840,7 +841,7 @@ class App {
 
     // Synchronize Titles & Intros
     const titles = {
-      'tab-dashboard': { title: 'Dashboard Finansial', intro: 'Ringkasan kekayaan bersih, rekening aktif, pagu anggaran, dan mutasi terkini.' },
+      'tab-dashboard': null, // Dihapus sesuai permintaan pengguna agar tidak duplikasi dengan judul Dashboard di bawahnya
       'tab-mutasi': { title: 'Mutasi & Suara AI', intro: 'Catat transaksi lewat teks atau suara, periksa draft, lalu konfirmasi ke buku besar.' },
       'tab-planning': { title: 'Anggaran & Tabungan', intro: 'Atur pagu bulanan dan pantau progres tujuan tabungan.' },
       'tab-copilot': { title: 'Penasihat Finansial AI', intro: 'Tanyakan rencana pembelian, evaluasi kelayakan anggaran, dan pantau pola pengeluaran berbasis AI.' },
@@ -849,8 +850,17 @@ class App {
       'tab-auth': { title: 'Akun pengguna', intro: 'Rancangan layar daftar akun dan reset kata sandi.' }
     };
 
-    if (this.pageTitle && titles[tabId]) this.pageTitle.textContent = titles[tabId].title;
-    if (this.pageIntro && titles[tabId]) this.pageIntro.textContent = titles[tabId].intro;
+    if (this.pageTitlesContainer) {
+      if (tabId === 'tab-dashboard' || !titles[tabId]) {
+        this.pageTitlesContainer.style.display = 'none';
+        if (this.pageTitle) this.pageTitle.textContent = '';
+        if (this.pageIntro) this.pageIntro.textContent = '';
+      } else {
+        this.pageTitlesContainer.style.display = 'flex';
+        if (this.pageTitle) this.pageTitle.textContent = titles[tabId].title;
+        if (this.pageIntro) this.pageIntro.textContent = titles[tabId].intro;
+      }
+    }
 
     // Synchronize Top Feature Tabs
     this.tabBtns.forEach((b) => {
