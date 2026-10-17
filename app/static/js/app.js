@@ -1,7 +1,8 @@
 /**
  * Personal Finance AI Agent - Main Application Logic v2.3
- * Single Page Application state management, UI rendering, OCI Speech polling,
- * Financial Planning & AI Advisory Copilot (Phase 7).
+ * Figma 1:1 Design System Integration (Nordic / Apple Minimalist).
+ * Multi-account balances, Voice & AI Command, Draft Approval, Ledger,
+ * Financial Planning, and AI Advisory Copilot.
  */
 
 import { api } from './api.js';
@@ -32,41 +33,63 @@ class App {
   }
 
   initElements() {
-    // Auth & Navigation
+    // Auth & User Profile
     this.authOverlay = document.getElementById('auth-overlay');
     this.loginForm = document.getElementById('login-form');
     this.loginUsername = document.getElementById('login-username');
     this.loginPassword = document.getElementById('login-password');
     this.loginError = document.getElementById('login-error');
 
-    this.userPill = document.getElementById('user-pill');
     this.usernameDisplay = document.getElementById('username-display');
+    this.userAvatarInitial = document.getElementById('user-avatar-initial');
     this.btnLogout = document.getElementById('btn-logout');
 
+    // Navigation Tabs (Both Feature Pills and Sidebar Links)
     this.tabBtns = document.querySelectorAll('.tab-btn');
+    this.sidebarNavBtns = document.querySelectorAll('.sidebar-nav-btn[data-tab]');
     this.tabContents = document.querySelectorAll('.tab-content');
 
     // Tab 1: Dashboard Mutasi & Accounts
     this.accountsContainer = document.getElementById('accounts-container');
     this.totalNetWorth = document.getElementById('total-net-worth');
+    this.btnRefreshAccounts = document.getElementById('btn-refresh-accounts');
+    this.btnRefreshHistory = document.getElementById('btn-refresh-history');
 
+    // AI Command Center
     this.aiInput = document.getElementById('ai-input');
     this.btnParse = document.getElementById('btn-parse');
     this.btnRecord = document.getElementById('btn-record');
     this.recordStatus = document.getElementById('record-status');
 
+    // Staging Drafts
     this.draftSection = document.getElementById('draft-section');
     this.draftBatchId = document.getElementById('draft-batch-id');
     this.draftTableBody = document.getElementById('draft-table-body');
     this.btnConfirmBatch = document.getElementById('btn-confirm-batch');
 
+    // Immutable Ledger History
     this.historyTableBody = document.getElementById('history-table-body');
     this.alertBox = document.getElementById('alert-box');
 
+    // Right Column Mini Cards
+    this.budgetCapVal = document.getElementById('budget-cap-val');
+    this.budgetUsedVal = document.getElementById('budget-used-val');
+    this.budgetFillBar = document.getElementById('budget-fill-bar');
+    this.budgetRemainderVal = document.getElementById('budget-remainder-val');
+    this.budgetPeriodMini = document.getElementById('budget-period-mini');
+
+    this.summaryIncomeVal = document.getElementById('summary-income-val');
+    this.summaryExpenseVal = document.getElementById('summary-expense-val');
+    this.summarySurplusVal = document.getElementById('summary-surplus-val');
+
+    this.btnJumpToCopilot = document.getElementById('btn-jump-to-copilot');
+
     // Tab 2: Planning & Budgets
     this.btnOpenSetBudget = document.getElementById('btn-open-set-budget');
+    this.btnOpenSetBudgetNav = document.getElementById('btn-open-set-budget-nav');
     this.btnOpenCatBudget = document.getElementById('btn-open-cat-budget');
     this.btnOpenCreateGoal = document.getElementById('btn-open-create-goal');
+    this.btnOpenCreateGoalMini = document.getElementById('btn-open-create-goal-mini');
 
     this.budgetPeriodLabel = document.getElementById('budget-period-label');
     this.budgetTotalLimit = document.getElementById('budget-total-limit');
@@ -76,6 +99,23 @@ class App {
     this.budgetProgressBar = document.getElementById('budget-progress-bar');
     this.categoryBudgetsList = document.getElementById('category-budgets-list');
     this.savingsGoalsContainer = document.getElementById('savings-goals-container');
+
+    // Tab 3: Copilot & Advisory
+    this.copilotInput = document.getElementById('copilot-input');
+    this.copilotAccountSelect = document.getElementById('copilot-account-select');
+    this.btnConsultCopilot = document.getElementById('btn-consult-copilot');
+    this.copilotResult = document.getElementById('copilot-result');
+    this.copilotVerdictBox = document.getElementById('copilot-verdict-box');
+    this.copilotVerdictBadge = document.getElementById('copilot-verdict-badge');
+    this.copilotItemCost = document.getElementById('copilot-item-cost');
+    this.copilotAdviceText = document.getElementById('copilot-advice-text');
+    this.copilotSnapshotGrid = document.getElementById('copilot-snapshot-grid');
+
+    this.btnAnalyzePatterns = document.getElementById('btn-analyze-patterns');
+    this.patternResult = document.getElementById('pattern-result');
+    this.patternAiText = document.getElementById('pattern-ai-text');
+    this.patternTableBody = document.getElementById('pattern-table-body');
+    this.scenariosList = document.getElementById('scenarios-list');
 
     // Modals
     this.modalSetBudget = document.getElementById('modal-set-budget');
@@ -94,37 +134,42 @@ class App {
     this.inputGoalTarget = document.getElementById('input-goal-target');
     this.inputGoalDate = document.getElementById('input-goal-date');
 
-    // Tab 3: Copilot & Advisory
-    this.copilotInput = document.getElementById('copilot-input');
-    this.copilotAccountSelect = document.getElementById('copilot-account-select');
-    this.btnConsultCopilot = document.getElementById('btn-consult-copilot');
-    this.copilotResult = document.getElementById('copilot-result');
-    this.copilotVerdictBox = document.getElementById('copilot-verdict-box');
-    this.copilotVerdictBadge = document.getElementById('copilot-verdict-badge');
-    this.copilotItemCost = document.getElementById('copilot-item-cost');
-    this.copilotAdviceText = document.getElementById('copilot-advice-text');
-    this.copilotSnapshotGrid = document.getElementById('copilot-snapshot-grid');
-
-    this.btnAnalyzePatterns = document.getElementById('btn-analyze-patterns');
-    this.patternResult = document.getElementById('pattern-result');
-    this.patternAiText = document.getElementById('pattern-ai-text');
-    this.patternTableBody = document.getElementById('pattern-table-body');
-    this.scenariosList = document.getElementById('scenarios-list');
+    this.modalAbout = document.getElementById('modal-about');
+    this.btnOpenAbout = document.getElementById('btn-open-about');
+    this.btnOpenHelp = document.getElementById('btn-open-help');
   }
 
   attachEventListeners() {
+    // Authentication
     this.loginForm.addEventListener('submit', (e) => this.handleLogin(e));
     this.btnLogout.addEventListener('click', () => this.handleLogout());
 
-    // Tab Navigation
+    // Tab Navigation (Pills & Sidebar)
+    const handleTabClick = (targetTab) => {
+      this.switchTab(targetTab);
+    };
+
     this.tabBtns.forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const tab = btn.getAttribute('data-tab');
-        this.switchTab(tab);
-      });
+      btn.addEventListener('click', () => handleTabClick(btn.getAttribute('data-tab')));
     });
 
-    // Tab 1 Events
+    this.sidebarNavBtns.forEach((btn) => {
+      btn.addEventListener('click', () => handleTabClick(btn.getAttribute('data-tab')));
+    });
+
+    if (this.btnJumpToCopilot) {
+      this.btnJumpToCopilot.addEventListener('click', () => this.switchTab('tab-copilot'));
+    }
+
+    // Refresh Buttons
+    if (this.btnRefreshAccounts) {
+      this.btnRefreshAccounts.addEventListener('click', () => this.loadAccounts());
+    }
+    if (this.btnRefreshHistory) {
+      this.btnRefreshHistory.addEventListener('click', () => this.loadHistory());
+    }
+
+    // Tab 1 Events (AI Parse & Voice)
     this.btnParse.addEventListener('click', () => this.handleAIParse());
     this.btnRecord.addEventListener('click', () => this.toggleRecording());
     this.btnConfirmBatch.addEventListener('click', () => this.handleConfirmBatch());
@@ -135,24 +180,25 @@ class App {
       }
     });
 
-    // Tab 2 Events & Modals
-    if (this.btnOpenSetBudget) {
-      this.btnOpenSetBudget.addEventListener('click', () => this.openModal(this.modalSetBudget));
-    }
-    if (this.btnOpenCatBudget) {
-      this.btnOpenCatBudget.addEventListener('click', () => {
-        this.populateCatSelect();
-        this.openModal(this.modalSetCatBudget);
-      });
-    }
-    if (this.btnOpenCreateGoal) {
-      this.btnOpenCreateGoal.addEventListener('click', () => {
-        this.populateGoalAccSelect();
-        this.openModal(this.modalCreateGoal);
-      });
-    }
+    // Modal Triggers
+    const bindOpenModal = (btn, modal, onOpen = null) => {
+      if (btn) {
+        btn.addEventListener('click', () => {
+          if (onOpen) onOpen();
+          this.openModal(modal);
+        });
+      }
+    };
 
-    // Modal Close Triggers
+    bindOpenModal(this.btnOpenSetBudget, this.modalSetBudget);
+    bindOpenModal(this.btnOpenSetBudgetNav, this.modalSetBudget);
+    bindOpenModal(this.btnOpenCatBudget, this.modalSetCatBudget, () => this.populateCatSelect());
+    bindOpenModal(this.btnOpenCreateGoal, this.modalCreateGoal, () => this.populateGoalAccSelect());
+    bindOpenModal(this.btnOpenCreateGoalMini, this.modalCreateGoal, () => this.populateGoalAccSelect());
+    bindOpenModal(this.btnOpenAbout, this.modalAbout);
+    bindOpenModal(this.btnOpenHelp, this.modalAbout);
+
+    // Modal Close
     document.querySelectorAll('.btn-close-modal').forEach((btn) => {
       btn.addEventListener('click', () => this.closeModals());
     });
@@ -173,7 +219,7 @@ class App {
       this.formCreateGoal.addEventListener('submit', (e) => this.handleCreateGoal(e));
     }
 
-    // Tab 3 Events
+    // Tab 3 Events (Copilot & Patterns)
     if (this.btnConsultCopilot) {
       this.btnConsultCopilot.addEventListener('click', () => this.handleConsultCopilot());
     }
@@ -191,10 +237,20 @@ class App {
 
   switchTab(tabId) {
     this.currentTab = tabId;
+
+    // Synchronize Top Feature Tabs
     this.tabBtns.forEach((b) => {
       if (b.getAttribute('data-tab') === tabId) b.classList.add('active');
       else b.classList.remove('active');
     });
+
+    // Synchronize Sidebar Nav Items
+    this.sidebarNavBtns.forEach((b) => {
+      if (b.getAttribute('data-tab') === tabId) b.classList.add('active');
+      else b.classList.remove('active');
+    });
+
+    // Show Selected Tab Content
     this.tabContents.forEach((c) => {
       if (c.id === tabId) c.classList.add('active');
       else c.classList.remove('active');
@@ -212,9 +268,9 @@ class App {
   }
 
   closeModals() {
-    if (this.modalSetBudget) this.modalSetBudget.style.display = 'none';
-    if (this.modalSetCatBudget) this.modalSetCatBudget.style.display = 'none';
-    if (this.modalCreateGoal) this.modalCreateGoal.style.display = 'none';
+    document.querySelectorAll('.modal-overlay').forEach((m) => {
+      if (m.id !== 'auth-overlay') m.style.display = 'none';
+    });
   }
 
   showAlert(message, type = 'success') {
@@ -257,7 +313,9 @@ class App {
 
   showDashboard() {
     this.authOverlay.style.display = 'none';
-    this.usernameDisplay.textContent = this.currentUser.username;
+    const username = this.currentUser ? this.currentUser.username : 'bryan';
+    if (this.usernameDisplay) this.usernameDisplay.textContent = username;
+    if (this.userAvatarInitial) this.userAvatarInitial.textContent = username.charAt(0).toUpperCase();
     this.loadInitialData();
   }
 
@@ -300,6 +358,7 @@ class App {
       this.loadAccounts(),
       this.loadCategories(),
       this.loadHistory(),
+      this.loadBudgetOverview(),
     ]);
   }
 
@@ -325,54 +384,100 @@ class App {
 
   async loadHistory() {
     try {
-      const res = await api.transactions.list(30, 0);
+      const res = await api.transactions.list(50, 0);
       this.transactions = res.data || [];
       this.renderHistory();
+      this.calculateMonthlySummary();
     } catch (err) {
       console.warn('Gagal memuat riwayat:', err);
     }
   }
 
+  // Calculate Realized Monthly Summary from Transactions
+  calculateMonthlySummary() {
+    let income = 0;
+    let expense = 0;
+
+    this.transactions.forEach((tx) => {
+      if (tx.is_reversal) return;
+      const amt = parseFloat(tx.amount) || 0;
+      if (tx.type === 'INCOME') income += amt;
+      else if (tx.type === 'EXPENSE') expense += amt;
+    });
+
+    const surplus = income - expense;
+    if (this.summaryIncomeVal) this.summaryIncomeVal.textContent = this.formatIDR(income);
+    if (this.summaryExpenseVal) this.summaryExpenseVal.textContent = this.formatIDR(expense);
+    if (this.summarySurplusVal) {
+      this.summarySurplusVal.textContent = this.formatIDR(surplus);
+      this.summarySurplusVal.style.color = surplus < 0 ? 'var(--accent-rose)' : 'var(--text-primary)';
+    }
+  }
+
+  // Render Accounts in Figma Style (Monograms KT, BCA, GP)
   renderAccounts() {
     this.accountsContainer.innerHTML = '';
     let totalBal = 0;
 
+    if (this.accounts.length === 0) {
+      this.accountsContainer.innerHTML = `
+        <div style="color: var(--text-muted); font-size: 9px; padding: 10px 0;">Belum ada rekening aktif.</div>
+      `;
+      return;
+    }
+
     this.accounts.forEach((acc) => {
-      const bal = parseFloat(acc.current_balance);
+      const bal = parseFloat(acc.current_balance) || 0;
       totalBal += bal;
 
-      const isNegative = bal < 0;
-      const card = document.createElement('div');
-      card.className = 'account-card';
+      const nameLower = acc.name.toLowerCase();
+      let monogramClass = 'monogram-cash';
+      let monogramText = 'KT';
 
-      card.innerHTML = `
-        <div class="account-top">
-          <span class="account-name">
-            ${acc.name}
-            <span class="account-type-tag">${acc.type}</span>
-          </span>
+      if (nameLower.includes('bca') || acc.type === 'BANK') {
+        monogramClass = 'monogram-bank';
+        monogramText = 'BCA';
+      } else if (nameLower.includes('gopay') || acc.type === 'EWALLET') {
+        monogramClass = 'monogram-ewallet';
+        monogramText = 'GP';
+      } else if (nameLower.includes('kas') || acc.type === 'CASH') {
+        monogramClass = 'monogram-cash';
+        monogramText = 'KT';
+      } else {
+        monogramText = acc.name.substring(0, 3).toUpperCase();
+      }
+
+      const isNegative = bal < 0;
+      const row = document.createElement('div');
+      row.className = 'account-row';
+
+      row.innerHTML = `
+        <div class="account-left-side">
+          <div class="account-monogram ${monogramClass}">${monogramText}</div>
+          <div class="account-info-col">
+            <span class="acc-title">${acc.name}</span>
+            <span class="acc-subtitle">${acc.type}</span>
+          </div>
         </div>
-        <div class="account-balance ${isNegative ? 'negative' : ''}">
+        <div class="acc-balance-num ${isNegative ? 'negative' : ''}">
           ${this.formatIDR(bal)}
         </div>
-        ${isNegative ? `
-          <div class="warning-pill">
-            ⚠️ Perhatian: Saldo Akun Negatif
-          </div>
-        ` : ''}
       `;
-      this.accountsContainer.appendChild(card);
+      this.accountsContainer.appendChild(row);
     });
 
-    this.totalNetWorth.textContent = this.formatIDR(totalBal);
-    this.totalNetWorth.className = totalBal < 0 ? 'account-balance negative' : 'account-balance';
+    if (this.totalNetWorth) {
+      this.totalNetWorth.textContent = this.formatIDR(totalBal);
+      this.totalNetWorth.style.color = totalBal < 0 ? 'var(--accent-rose)' : 'var(--text-primary)';
+    }
   }
 
+  // Render Ledger History in Figma Table Style
   renderHistory() {
     this.historyTableBody.innerHTML = '';
     if (this.transactions.length === 0) {
       this.historyTableBody.innerHTML = `
-        <tr><td colspan="7" style="text-align: center; color: var(--text-dim); padding: 2rem;">
+        <tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 18px;">
           Belum ada transaksi di buku besar.
         </td></tr>
       `;
@@ -384,26 +489,37 @@ class App {
       const isRev = tx.is_reversal;
       const role = tx.ledger_role;
 
-      let badgeClass = 'badge-expense';
-      if (isRev) badgeClass = 'badge-reversal';
-      else if (tx.type === 'INCOME') badgeClass = 'badge-income';
-      else if (tx.type === 'TRANSFER') badgeClass = 'badge-transfer';
+      let pillClass = 'cat-blue';
+      let statusLabel = tx.type;
+
+      if (isRev) {
+        pillClass = 'cat-rose';
+        statusLabel = 'REVERSAL';
+      } else if (tx.type === 'INCOME') {
+        pillClass = 'cat-green';
+        statusLabel = 'INCOME';
+      } else if (tx.type === 'TRANSFER') {
+        pillClass = 'cat-amber';
+        statusLabel = 'TRANSFER';
+      }
 
       let accountsDisplay = '-';
       if (tx.type === 'EXPENSE') accountsDisplay = `${tx.source_account_name || 'Rekening'}`;
       else if (tx.type === 'INCOME') accountsDisplay = `${tx.destination_account_name || 'Rekening'}`;
       else if (tx.type === 'TRANSFER') accountsDisplay = `${tx.source_account_name} ➔ ${tx.destination_account_name}`;
 
+      const dateShort = tx.transaction_date ? tx.transaction_date.slice(5) : '-';
+
       tr.innerHTML = `
-        <td><span class="badge ${badgeClass}">${isRev ? 'REVERSAL' : tx.type}</span></td>
-        <td><strong>${this.formatIDR(tx.amount)}</strong></td>
-        <td>${accountsDisplay}</td>
-        <td>${tx.category_name || '-'}</td>
-        <td>${tx.description || '-'}</td>
-        <td style="font-size: 0.8rem; color: var(--text-muted);">${tx.transaction_date}</td>
-        <td>
+        <td style="color: var(--text-secondary); font-size: 8.5px;">${dateShort}</td>
+        <td><strong>${tx.description || '-'}</strong></td>
+        <td>${this.formatIDR(tx.amount)}</td>
+        <td><span class="badge-cat-pill ${pillClass}">${tx.category_name || '-'}</span></td>
+        <td style="color: var(--text-secondary); font-size: 8.5px;">${accountsDisplay}</td>
+        <td><span class="badge-cat-pill ${pillClass}">${statusLabel}</span></td>
+        <td style="text-align: right;">
           ${!isRev && role !== 'ADMIN_FEE' ? `
-            <button class="btn btn-danger btn-reverse" style="padding: 3px 8px; font-size: 0.75rem;" data-id="${tx.id}">
+            <button class="btn-reverse-action btn-reverse" data-id="${tx.id}">
               Balikkan
             </button>
           ` : '-'}
@@ -426,8 +542,7 @@ class App {
     try {
       const res = await api.transactions.reverse(txId, reason);
       this.showAlert(res.message || 'Jurnal pembalik berhasil diterbitkan.', 'success');
-      await Promise.all([this.loadAccounts(), this.loadHistory()]);
-      if (this.currentTab === 'tab-planning') this.loadPlanningData();
+      await Promise.all([this.loadAccounts(), this.loadHistory(), this.loadBudgetOverview()]);
     } catch (err) {
       this.showAlert(`Gagal membalik transaksi: ${err.message}`, 'error');
     }
@@ -458,7 +573,7 @@ class App {
       this.showAlert(`Gagal menganalisis kalimat: ${err.message}`, 'error');
     } finally {
       this.btnParse.disabled = false;
-      this.btnParse.innerHTML = `✨ Proses Mutasi AI`;
+      this.btnParse.innerHTML = `<span>✦</span><span>Proses Mutasi AI</span>`;
     }
   }
 
@@ -468,34 +583,34 @@ class App {
       return;
     }
 
-    this.draftSection.style.display = 'block';
-    this.draftBatchId.textContent = `Batch ID: ${this.currentBatch.batch_id.slice(0, 8)}...`;
-    this.draftTableBody.innerHTML = '';
-
     const pendingDrafts = this.currentBatch.drafts.filter((d) => d.status === 'PENDING');
     if (pendingDrafts.length === 0) {
       this.draftSection.style.display = 'none';
       return;
     }
 
-    pendingDrafts.forEach((d) => {
+    this.draftSection.style.display = 'block';
+    this.draftBatchId.textContent = `${pendingDrafts.length} Draft Siap`;
+    this.draftTableBody.innerHTML = '';
+
+    pendingDrafts.forEach((d, idx) => {
       const tr = document.createElement('tr');
-      const badgeClass = d.type === 'INCOME' ? 'badge-income' : (d.type === 'TRANSFER' ? 'badge-transfer' : 'badge-expense');
+      const pillClass = d.type === 'INCOME' ? 'cat-green' : (d.type === 'TRANSFER' ? 'cat-amber' : 'cat-blue');
 
       let accText = '-';
-      if (d.type === 'EXPENSE') accText = `Dari: ${d.source_account_name || 'Default'}`;
-      else if (d.type === 'INCOME') accText = `Ke: ${d.destination_account_name || 'Default'}`;
-      else if (d.type === 'TRANSFER') accText = `${d.source_account_name} ➔ ${d.destination_account_name} (Admin: ${this.formatIDR(d.admin_fee)})`;
+      if (d.type === 'EXPENSE') accText = `${d.source_account_name || 'Rekening'}`;
+      else if (d.type === 'INCOME') accText = `${d.destination_account_name || 'Rekening'}`;
+      else if (d.type === 'TRANSFER') accText = `${d.source_account_name} ➔ ${d.destination_account_name}`;
 
       tr.innerHTML = `
-        <td><span class="badge ${badgeClass}">${d.type}</span></td>
+        <td style="color: var(--text-secondary);">${idx + 1}</td>
+        <td><strong>${d.description || d.type}</strong></td>
+        <td><span class="badge-cat-pill ${pillClass}">${d.category_name || '-'}</span></td>
         <td><strong>${this.formatIDR(d.amount)}</strong></td>
-        <td>${accText}</td>
-        <td>${d.category_name || '-'}</td>
-        <td>${d.description || '-'}</td>
-        <td style="font-size: 0.8rem; color: var(--text-muted);">${d.transaction_date}</td>
+        <td style="color: var(--text-secondary); font-size: 8.5px;">${accText}</td>
+        <td><span class="ready-status-dot">Siap</span></td>
         <td>
-          <button class="btn btn-secondary btn-cancel-draft" style="padding: 2px 7px; font-size: 0.75rem;" data-id="${d.id}">
+          <button class="btn-reverse-action btn-cancel-draft" data-id="${d.id}" style="color: var(--accent-rose);">
             Batal
           </button>
         </td>
@@ -511,7 +626,7 @@ class App {
       await api.transactions.cancelDraft(draftId);
       this.currentBatch.drafts = this.currentBatch.drafts.filter((d) => d.id !== draftId);
       this.renderDrafts();
-      this.showAlert('Draft item dibatalkan.', 'info');
+      this.showAlert('Draft transaksi dibatalkan.', 'info');
     } catch (err) {
       this.showAlert(`Gagal membatalkan draft: ${err.message}`, 'error');
     }
@@ -530,17 +645,16 @@ class App {
       this.draftSection.style.display = 'none';
       this.aiInput.value = '';
 
-      await Promise.all([this.loadAccounts(), this.loadHistory()]);
-      if (this.currentTab === 'tab-planning') this.loadPlanningData();
+      await Promise.all([this.loadAccounts(), this.loadHistory(), this.loadBudgetOverview()]);
     } catch (err) {
       this.showAlert(`Gagal konfirmasi batch: ${err.message}`, 'error');
     } finally {
       this.btnConfirmBatch.disabled = false;
-      this.btnConfirmBatch.innerHTML = `✅ Konfirmasi Seluruh Transaksi`;
+      this.btnConfirmBatch.innerHTML = `<span>✓</span><span>Konfirmasi Seluruh Transaksi</span>`;
     }
   }
 
-  // Voice Recording Flow
+  // Voice Recording
   async toggleRecording() {
     if (this.recorder.isRecording) {
       this.stopRecordingAndTranscribe();
@@ -560,11 +674,11 @@ class App {
   handleRecordingState(isRecording) {
     if (isRecording) {
       this.btnRecord.classList.add('recording');
-      this.btnRecord.innerHTML = `⏹ Berhenti Merekam`;
-      this.recordStatus.textContent = 'Merekam suara (Maksimal 30 detik)...';
+      this.btnRecord.innerHTML = `<span>⏹</span><span>Berhenti Rekam</span>`;
+      this.recordStatus.textContent = 'Merekam suara (Maks 30s)...';
     } else {
       this.btnRecord.classList.remove('recording');
-      this.btnRecord.innerHTML = `🎤 Rekam Suara`;
+      this.btnRecord.innerHTML = `<span>🎤</span><span>Rekam Suara</span>`;
       this.recordStatus.textContent = '';
     }
   }
@@ -590,14 +704,14 @@ class App {
   async pollTranscription(jobId) {
     const startTime = Date.now();
     const maxPollTimeMs = 90 * 1000;
-    this.recordStatus.innerHTML = `<span class="loading-spinner"></span> Menerjemahkan suara (OCI Whisper Medium)...`;
+    this.recordStatus.innerHTML = `<span class="loading-spinner"></span> Menerjemahkan suara (OCI Whisper)...`;
 
     const pollInterval = setInterval(async () => {
       if (Date.now() - startTime > maxPollTimeMs) {
         clearInterval(pollInterval);
         this.recordStatus.textContent = '';
         this.btnRecord.disabled = false;
-        this.showAlert('Transkripsi suara timeout (melebihi 90 detik). Silakan coba lagi.', 'error');
+        this.showAlert('Transkripsi suara timeout. Silakan coba lagi.', 'error');
         return;
       }
 
@@ -613,7 +727,7 @@ class App {
           const transcript = data.transcript || '';
           if (transcript) {
             this.aiInput.value = transcript;
-            this.showAlert('Suara berhasil ditranskrip! Silakan tinjau sebelum menekan tombol Proses.', 'success');
+            this.showAlert('Suara berhasil ditranskrip! Silakan tinjau teks lalu klik Proses.', 'success');
             this.aiInput.focus();
           } else {
             this.showAlert('Tidak ada suara terdeteksi dalam rekaman.', 'warning');
@@ -631,7 +745,7 @@ class App {
   }
 
   // ==========================================
-  // TAB 2: ANGGARAN & TARGET TABUNGAN (FASE 7)
+  // TAB 2: ANGGARAN & TARGET TABUNGAN
   // ==========================================
   async loadPlanningData() {
     await Promise.all([
@@ -646,7 +760,7 @@ class App {
       this.budgetData = res.data;
       this.renderBudgetOverview();
     } catch (err) {
-      this.showAlert(`Gagal memuat anggaran: ${err.message}`, 'error');
+      console.warn('Gagal memuat anggaran:', err);
     }
   }
 
@@ -657,66 +771,74 @@ class App {
       '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
       'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
     ];
+    const monthNamesShort = [
+      '', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
+    ];
 
+    // Update Right Column Mini Card
+    if (this.budgetPeriodMini) {
+      this.budgetPeriodMini.textContent = `${monthNamesShort[b.period_month] || b.period_month} ${b.period_year}`;
+    }
+    if (this.budgetCapVal) this.budgetCapVal.textContent = this.formatIDR(b.total_limit);
+    if (this.budgetUsedVal) this.budgetUsedVal.textContent = this.formatIDR(b.total_spent);
+    if (this.budgetRemainderVal) {
+      this.budgetRemainderVal.textContent = b.is_over 
+        ? `⚠️ Melebihi plafon sebesar ${this.formatIDR(b.total_spent - b.total_limit)}`
+        : `Sisa plafon: ${this.formatIDR(b.total_remaining)}`;
+      this.budgetRemainderVal.style.color = b.is_over ? 'var(--accent-rose)' : 'var(--accent-green)';
+    }
+
+    const pct = Math.min(Math.round(b.percentage_spent || 0), 100);
+    if (this.budgetFillBar) {
+      this.budgetFillBar.style.width = `${pct}%`;
+      this.budgetFillBar.style.background = b.is_over ? 'var(--accent-rose)' : '#659678';
+    }
+
+    // Update Tab 2 Expanded Planning View
     if (this.budgetPeriodLabel) {
       this.budgetPeriodLabel.textContent = `Periode: ${monthNames[b.period_month] || b.period_month} ${b.period_year}`;
     }
-
     if (this.budgetTotalLimit) this.budgetTotalLimit.textContent = this.formatIDR(b.total_limit);
     if (this.budgetTotalSpent) this.budgetTotalSpent.textContent = this.formatIDR(b.total_spent);
     if (this.budgetTotalRemaining) {
       this.budgetTotalRemaining.textContent = this.formatIDR(b.total_remaining);
-      this.budgetTotalRemaining.style.color = b.is_over ? '#f43f5e' : '#10b981';
+      this.budgetTotalRemaining.style.color = b.is_over ? 'var(--accent-rose)' : 'var(--accent-green)';
     }
-
-    const pct = Math.min(Math.round(b.percentage_spent || 0), 100);
     if (this.budgetPercentLabel) this.budgetPercentLabel.textContent = `${b.percentage_spent}%`;
-
     if (this.budgetProgressBar) {
       this.budgetProgressBar.style.width = `${pct}%`;
-      this.budgetProgressBar.className = 'progress-fill';
-      if (b.percentage_spent > 100) {
-        this.budgetProgressBar.classList.add('fill-danger');
-      } else if (b.percentage_spent >= 80) {
-        this.budgetProgressBar.classList.add('fill-warning');
-      } else {
-        this.budgetProgressBar.classList.add('fill-safe');
-      }
+      this.budgetProgressBar.style.background = b.is_over ? 'var(--accent-rose)' : '#659678';
     }
 
-    // Breakdown Kategori
+    // Category Breakdown in Tab 2
     if (this.categoryBudgetsList) {
       this.categoryBudgetsList.innerHTML = '';
       if (!b.categories || b.categories.length === 0) {
         this.categoryBudgetsList.innerHTML = `
-          <div style="color: var(--text-dim); font-size: 0.85rem;">
-            Belum ada batas per kategori. Klik tombol <strong>"➕ Limit Kategori"</strong> di atas untuk menambahkan pembatasan.
+          <div style="color: var(--text-muted); font-size: 10px;">
+            Belum ada batas per kategori. Klik tombol <strong>"➕ Limit Kategori"</strong> di atas.
           </div>
         `;
       } else {
         b.categories.forEach((cat) => {
           const catPct = Math.min(Math.round(cat.percentage_spent || 0), 100);
-          let catFillClass = 'fill-safe';
-          if (cat.percentage_spent > 100) catFillClass = 'fill-danger';
-          else if (cat.percentage_spent >= 80) catFillClass = 'fill-warning';
-
           const row = document.createElement('div');
-          row.className = 'glass-panel';
-          row.style.padding = '0.85rem 1.15rem';
-          row.style.background = 'rgba(12, 17, 29, 0.5)';
+          row.className = 'figma-card';
+          row.style.padding = '10px 14px';
+          row.style.background = 'var(--bg-input)';
 
           row.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-              <span style="font-weight: 600; font-size: 0.9rem;">${cat.category_name}</span>
-              <span style="font-size: 0.82rem; color: var(--text-muted);">
-                ${this.formatIDR(cat.spent_amount)} / <strong>${this.formatIDR(cat.limit_amount)}</strong>
-                (${cat.percentage_spent}%)
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <span style="font-weight: 600; font-size: 11px;">${cat.category_name}</span>
+              <span style="font-size: 10px; color: var(--text-secondary);">
+                ${this.formatIDR(cat.spent_amount)} / <strong>${this.formatIDR(cat.limit_amount)}</strong> (${cat.percentage_spent}%)
               </span>
             </div>
-            <div class="progress-container" style="height: 8px;">
-              <div class="progress-fill ${catFillClass}" style="width: ${catPct}%;"></div>
+            <div class="budget-progress-track" style="height: 6px; margin-top: 2px;">
+              <div class="budget-progress-fill" style="width: ${catPct}%; background: ${cat.is_over ? 'var(--accent-rose)' : '#68A382'};"></div>
             </div>
-            ${cat.is_over ? `<div style="font-size: 0.75rem; color: #f43f5e; margin-top: 0.3rem;">⚠️ Melebihi batas anggaran sebesar ${this.formatIDR(cat.spent_amount - cat.limit_amount)}</div>` : ''}
+            ${cat.is_over ? `<div style="font-size: 9px; color: var(--accent-rose); margin-top: 3px;">⚠️ Melebihi plafon sebesar ${this.formatIDR(cat.spent_amount - cat.limit_amount)}</div>` : ''}
           `;
           this.categoryBudgetsList.appendChild(row);
         });
@@ -740,7 +862,7 @@ class App {
 
     if (this.savingsGoals.length === 0) {
       this.savingsGoalsContainer.innerHTML = `
-        <div style="color: var(--text-dim); font-size: 0.85rem; grid-column: 1 / -1; padding: 1rem 0;">
+        <div style="color: var(--text-muted); font-size: 10px; grid-column: 1 / -1; padding: 12px 0;">
           Belum ada target tabungan yang dibuat. Tekan tombol <strong>"➕ Target Baru"</strong> untuk memantau tabungan impian Anda secara otomatis!
         </div>
       `;
@@ -749,47 +871,46 @@ class App {
 
     this.savingsGoals.forEach((g) => {
       const card = document.createElement('div');
-      card.className = 'goal-card';
+      card.className = 'figma-card';
+      card.style.padding = '14px 16px';
       const pct = Math.min(Math.round(g.progress_percent || 0), 100);
 
-      let statusTag = '';
+      let statusBadge = '<span class="badge-cat-pill cat-green">BERJALAN</span>';
       if (g.status === 'ACHIEVED' || g.is_achieved) {
-        statusTag = '<span class="goal-tag tag-achieved">🎉 TERCAPAI</span>';
+        statusBadge = '<span class="badge-cat-pill cat-green">🎉 TERCAPAI</span>';
       } else if (g.status === 'CANCELLED') {
-        statusTag = '<span class="goal-tag" style="background: rgba(244, 63, 94, 0.2); color: #f43f5e;">DIBATALKAN</span>';
-      } else {
-        statusTag = '<span class="goal-tag tag-active">BERJALAN</span>';
+        statusBadge = '<span class="badge-cat-pill cat-rose">DIBATALKAN</span>';
       }
 
       card.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
           <div>
-            <h4 style="font-size: 1.05rem; margin-bottom: 0.2rem;">${g.name}</h4>
-            <span style="font-size: 0.78rem; color: var(--text-dim);">Rekening: <strong>${g.account_name}</strong></span>
+            <h4 style="font-size: 13px; font-weight: 600; margin-bottom: 2px;">${g.name}</h4>
+            <span style="font-size: 9px; color: var(--text-secondary);">Rekening: <strong>${g.account_name}</strong></span>
           </div>
-          ${statusTag}
+          ${statusBadge}
         </div>
 
-        <div style="margin-top: 0.75rem; margin-bottom: 0.75rem;">
-          <div style="display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 0.25rem;">
-            <span style="color: var(--text-muted);">Terkumpul: <strong>${this.formatIDR(g.current_balance)}</strong></span>
-            <span style="color: var(--text-dim);">Sasaran: <strong>${this.formatIDR(g.target_amount)}</strong></span>
+        <div style="margin-top: 10px; margin-bottom: 8px;">
+          <div style="display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 4px;">
+            <span style="color: var(--text-secondary);">Terkumpul: <strong>${this.formatIDR(g.current_balance)}</strong></span>
+            <span style="color: var(--text-muted);">Sasaran: <strong>${this.formatIDR(g.target_amount)}</strong></span>
           </div>
-          <div class="progress-container" style="height: 10px;">
-            <div class="progress-fill ${g.is_achieved ? 'fill-safe' : 'fill-warning'}" style="width: ${pct}%;"></div>
+          <div class="goal-progress-track">
+            <div class="goal-progress-fill" style="width: ${pct}%;"></div>
           </div>
-          <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-dim); margin-top: 0.35rem;">
+          <div style="display: flex; justify-content: space-between; font-size: 9px; color: var(--text-secondary); margin-top: 4px;">
             <span>Progres: ${g.progress_percent}%</span>
             ${g.target_date ? `<span>Tenggat: ${g.target_date}</span>` : '<span>Tanpa batas waktu</span>'}
           </div>
         </div>
 
         ${g.status === 'ACTIVE' ? `
-          <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.75rem;">
-            <button class="btn btn-secondary btn-mark-achieved" data-id="${g.id}" style="padding: 3px 8px; font-size: 0.75rem;">
+          <div style="display: flex; justify-content: flex-end; gap: 6px; margin-top: 10px;">
+            <button class="btn-reverse-action btn-mark-achieved" data-id="${g.id}">
               Tandai Tercapai
             </button>
-            <button class="btn btn-danger btn-cancel-goal" data-id="${g.id}" style="padding: 3px 8px; font-size: 0.75rem;">
+            <button class="btn-reverse-action btn-cancel-goal" data-id="${g.id}" style="color: var(--accent-rose);">
               Batalkan
             </button>
           </div>
@@ -815,7 +936,7 @@ class App {
       this.showAlert(`Status target berhasil diubah ke ${newStatus}.`, 'success');
       await this.loadSavingsGoals();
     } catch (err) {
-      this.showAlert(`Gagal mengubah status target: ${err.message}`, 'error');
+      this.showAlert(`Gagal mengubah status: ${err.message}`, 'error');
     }
   }
 
@@ -903,7 +1024,7 @@ class App {
   }
 
   // ==========================================
-  // TAB 3: PENASIHAT KEUANGAN AI & ADVISORY
+  // TAB 3: PENASIHAT KEUANGAN AI & COPILOT
   // ==========================================
   async loadCopilotData() {
     this.populateCopilotAccSelect();
@@ -927,7 +1048,7 @@ class App {
       this.scenarios = res.data || [];
       this.renderScenarios();
     } catch (err) {
-      console.warn('Gagal memuat riwayat skenario:', err);
+      console.warn('Gagal memuat memori skenario:', err);
     }
   }
 
@@ -937,7 +1058,7 @@ class App {
 
     if (this.scenarios.length === 0) {
       this.scenariosList.innerHTML = `
-        <div style="color: var(--text-dim); font-size: 0.85rem; padding: 0.5rem 0;">
+        <div style="color: var(--text-muted); font-size: 10px;">
           Belum ada riwayat skenario pembelian yang tersimpan.
         </div>
       `;
@@ -946,20 +1067,20 @@ class App {
 
     this.scenarios.forEach((s) => {
       const row = document.createElement('div');
-      row.className = 'glass-panel';
-      row.style.padding = '0.85rem 1rem';
-      row.style.background = 'rgba(12, 17, 29, 0.55)';
+      row.className = 'figma-card';
+      row.style.padding = '12px 14px';
+      row.style.background = 'var(--bg-input)';
 
       const dateStr = s.created_at ? s.created_at.slice(0, 16).replace('T', ' ') : '-';
       row.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-          <strong style="font-size: 0.95rem;">${s.item_name}</strong>
-          <span style="font-weight: 600; color: #f43f5e;">${this.formatIDR(s.estimated_cost)}</span>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+          <strong style="font-size: 12px;">${s.item_name}</strong>
+          <span style="font-weight: 600; font-size: 11px; color: var(--accent-rose);">${this.formatIDR(s.estimated_cost)}</span>
         </div>
-        <p style="font-size: 0.85rem; color: var(--text-main); line-height: 1.5; margin-bottom: 0.4rem; white-space: pre-line;">
+        <p style="font-size: 10px; color: var(--text-primary); line-height: 1.5; margin-bottom: 4px; white-space: pre-line;">
           ${s.ai_summary_advice}
         </p>
-        <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-dim);">
+        <div style="display: flex; justify-content: space-between; font-size: 8.5px; color: var(--text-muted);">
           <span>Rekening: ${s.target_account_name || 'Utama'}</span>
           <span>${dateStr}</span>
         </div>
@@ -977,7 +1098,7 @@ class App {
 
     const targetAccId = this.copilotAccountSelect.value ? parseInt(this.copilotAccountSelect.value) : null;
     this.btnConsultCopilot.disabled = true;
-    this.btnConsultCopilot.innerHTML = `<span class="loading-spinner"></span> Menganalisis Dampak Finansial...`;
+    this.btnConsultCopilot.innerHTML = `<span class="loading-spinner"></span> Menganalisis...`;
 
     try {
       const res = await api.planning.consultPurchase(query, targetAccId);
@@ -1027,7 +1148,7 @@ class App {
         </div>
         <div class="snapshot-card">
           <span class="snapshot-label">Saldo Pasca Beli</span>
-          <span class="snapshot-val" style="color: ${snap.saldo_setelah_beli < 0 ? '#f43f5e' : '#10b981'}">
+          <span class="snapshot-val" style="color: ${snap.saldo_setelah_beli < 0 ? 'var(--accent-rose)' : 'var(--accent-green)'}">
             ${this.formatIDR(snap.saldo_setelah_beli)}
           </span>
         </div>
@@ -1037,7 +1158,7 @@ class App {
         </div>
         <div class="snapshot-card">
           <span class="snapshot-label">Sisa Anggaran Pasca Beli</span>
-          <span class="snapshot-val" style="color: ${snap.sisa_anggaran_setelah_beli < 0 ? '#f43f5e' : '#10b981'}">
+          <span class="snapshot-val" style="color: ${snap.sisa_anggaran_setelah_beli < 0 ? 'var(--accent-rose)' : 'var(--accent-green)'}">
             ${this.formatIDR(snap.sisa_anggaran_setelah_beli)}
           </span>
         </div>
@@ -1051,7 +1172,7 @@ class App {
 
   async handleAnalyzePatterns() {
     this.btnAnalyzePatterns.disabled = true;
-    this.btnAnalyzePatterns.innerHTML = `<span class="loading-spinner"></span> Mendeteksi Pola Pengeluaran...`;
+    this.btnAnalyzePatterns.innerHTML = `<span class="loading-spinner"></span> Mendeteksi Pola...`;
 
     try {
       const res = await api.planning.getSpendingPatterns();
@@ -1063,7 +1184,7 @@ class App {
         this.patternTableBody.innerHTML = '';
         if (!d.category_comparisons || d.category_comparisons.length === 0) {
           this.patternTableBody.innerHTML = `
-            <tr><td colspan="5" style="text-align: center; color: var(--text-dim); padding: 1.5rem;">
+            <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 14px;">
               Belum cukup transaksi untuk perbandingan pola pengeluaran.
             </td></tr>
           `;
@@ -1073,7 +1194,7 @@ class App {
             const diff = parseFloat(c.diff) || 0;
             const pct = c.percentage_change || 0;
             const isIncrease = diff > 0;
-            const changeColor = diff === 0 ? 'var(--text-muted)' : (isIncrease ? '#f43f5e' : '#10b981');
+            const changeColor = diff === 0 ? 'var(--text-secondary)' : (isIncrease ? 'var(--accent-rose)' : 'var(--accent-green)');
             const arrow = diff === 0 ? '➖' : (isIncrease ? '📈 Naik' : '📉 Turun');
 
             tr.innerHTML = `
@@ -1081,13 +1202,13 @@ class App {
               <td>${this.formatIDR(c.prev_spent)}</td>
               <td>${this.formatIDR(c.curr_spent)}</td>
               <td style="color: ${changeColor}">${diff > 0 ? '+' : ''}${this.formatIDR(diff)}</td>
-              <td style="color: ${changeColor}; font-size: 0.82rem;">${arrow} ${pct}%</td>
+              <td style="color: ${changeColor}; font-size: 8.5px;">${arrow} ${pct}%</td>
             `;
             this.patternTableBody.appendChild(tr);
           });
         }
       }
-      this.showAlert('Analisis perbandingan pengeluaran berhasil disusun!', 'success');
+      this.showAlert('Analisis perbandingan pengeluaran berhasil!', 'success');
     } catch (err) {
       this.showAlert(`Gagal analisis pola: ${err.message}`, 'error');
     } finally {

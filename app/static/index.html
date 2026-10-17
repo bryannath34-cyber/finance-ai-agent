@@ -3,364 +3,715 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Personal Finance AI Agent v2.3 - Sistem Keuangan Pribadi Mandiri Berbasis OCI Native AI (Cohere Command A & Whisper Medium) dan HeatWave DB System.">
-  <meta name="theme-color" content="#0a0e17">
+  <meta name="description" content="Personal Finance AI Agent v2.3 - Sistem Keuangan Pribadi Mandiri Berbasis OCI Native AI (Cohere Command A & Whisper Medium).">
+  <meta name="theme-color" content="#FAFAF8">
   <base href="/finance/">
-  <title>Personal Finance AI Agent v2.3</title>
+  <title>Personal Finance Dashboard - Finance AI Agent v2.3</title>
   <link rel="stylesheet" href="css/style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💎</text></svg>">
 </head>
 <body>
 
-  <!-- App Header -->
-  <header class="app-header">
-    <div class="header-container">
-      <div class="brand">
-        <div class="brand-icon">💎</div>
-        <div class="brand-title">
-          Finance AI Agent
-          <span class="brand-badge">v2.3 OCI Native</span>
+  <div class="app-shell">
+
+    <!-- ====================================================================
+         1. SIDEBAR NAVIGATION (Width: 218px)
+         ==================================================================== -->
+    <aside class="sidebar">
+      <div>
+        <!-- Brand Group -->
+        <div class="sidebar-brand">
+          <div class="brand-icon-tile">✦</div>
+          <div class="brand-text-group">
+            <span class="brand-name">Finance AI Agent</span>
+            <span class="brand-subtitle">v2.3 OCI Native</span>
+          </div>
+        </div>
+
+        <!-- Primary Navigation -->
+        <ul class="sidebar-nav">
+          <li>
+            <button type="button" class="sidebar-nav-btn active" data-tab="tab-mutasi">
+              <span class="nav-icon">⊞</span>
+              <span>Dashboard</span>
+            </button>
+          </li>
+          <li>
+            <button type="button" class="sidebar-nav-btn" data-tab="tab-mutasi">
+              <span class="nav-icon">⇄</span>
+              <span>Mutasi & Suara AI</span>
+            </button>
+          </li>
+          <li>
+            <button type="button" class="sidebar-nav-btn" data-tab="tab-planning">
+              <span class="nav-icon">📊</span>
+              <span>Anggaran & Tabungan</span>
+            </button>
+          </li>
+          <li>
+            <button type="button" class="sidebar-nav-btn" data-tab="tab-copilot">
+              <span class="nav-icon">✨</span>
+              <span>Penasihat Finansial AI</span>
+            </button>
+          </li>
+        </ul>
+
+        <div class="sidebar-divider"></div>
+
+        <!-- Secondary Navigation -->
+        <ul class="sidebar-nav">
+          <li>
+            <button type="button" class="sidebar-nav-btn" id="btn-open-set-budget-nav">
+              <span class="nav-icon">⚙</span>
+              <span>Atur Anggaran</span>
+            </button>
+          </li>
+          <li>
+            <button type="button" class="sidebar-nav-btn" id="btn-open-help">
+              <span class="nav-icon">?</span>
+              <span>Bantuan</span>
+            </button>
+          </li>
+          <li>
+            <button type="button" class="sidebar-nav-btn" id="btn-open-about">
+              <span class="nav-icon">ℹ</span>
+              <span>Tentang Aplikasi</span>
+            </button>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Sidebar Footer -->
+      <div class="sidebar-footer">
+        <div class="product-version">
+          Personal Finance v2.3<br>
+          <span style="font-size: 8.5px; color: var(--text-muted);">OCI Osaka & Singapore Region</span>
         </div>
       </div>
-      <div class="user-status">
-        <div class="user-pill" id="user-pill">
-          <span>Pengguna:</span>
-          <strong id="username-display">-</strong>
+    </aside>
+
+    <!-- ====================================================================
+         2. MAIN WORKSPACE AREA
+         ==================================================================== -->
+    <main class="main-area">
+
+      <!-- Top Application Header -->
+      <header class="top-header">
+        <div class="page-titles">
+          <h1 class="page-title">Personal Finance Dashboard</h1>
+          <p class="page-intro">Kelola mutasi, anggaran, dan konsultasi cerdas berbasis OCI Native AI</p>
         </div>
-        <button class="btn btn-secondary" id="btn-logout" style="padding: 0.35rem 0.85rem; font-size: 0.8rem;">
-          Keluar
-        </button>
+
+        <div class="header-actions">
+          <!-- OCI Connected Badge -->
+          <div class="oci-badge">
+            <span class="oci-dot"></span>
+            <span>OCI Connected</span>
+          </div>
+
+          <!-- Notification Bell Button -->
+          <button type="button" class="icon-btn" title="Notifikasi Sistem" id="btn-notification">
+            🔔
+          </button>
+
+          <!-- User Profile & Logout -->
+          <div class="user-profile-badge">
+            <div class="avatar-circle" id="user-avatar-initial">B</div>
+            <span class="user-name-text" id="username-display">bryan</span>
+            <button type="button" class="logout-pill-btn" id="btn-logout">
+              Keluar
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Centered Feature Navigation Segmented Pills -->
+      <div class="feature-nav-wrapper">
+        <nav class="feature-nav">
+          <button type="button" class="tab-btn active" data-tab="tab-mutasi">
+            <span class="tab-icon">⇄</span>
+            <span>Mutasi & Suara AI</span>
+          </button>
+          <button type="button" class="tab-btn" data-tab="tab-planning">
+            <span class="tab-icon">📊</span>
+            <span>Anggaran & Tabungan</span>
+          </button>
+          <button type="button" class="tab-btn" data-tab="tab-copilot">
+            <span class="tab-icon">✨</span>
+            <span>Penasihat Finansial AI</span>
+          </button>
+        </nav>
       </div>
-    </div>
-  </header>
 
-  <!-- Main Workspace -->
-  <main class="main-container">
+      <!-- Global Alert / Status Notification -->
+      <div id="alert-box" class="alert-box" style="display: none;"></div>
 
-    <!-- Global Alert / Notification Banner -->
-    <div id="alert-box" class="alert-box" style="display: none;"></div>
+      <!-- ================================================================
+           TAB 1: MUTASI & SUARA AI (DASHBOARD UTAMA FIGMA 3-COLUMN)
+           ================================================================ -->
+      <div id="tab-mutasi" class="tab-content active">
+        <div class="figma-dashboard-grid">
 
-    <!-- Tab Navigation -->
-    <div class="tab-nav">
-      <button type="button" class="tab-btn active" data-tab="tab-mutasi">
-        <span>💎</span> Mutasi & Suara AI
-      </button>
-      <button type="button" class="tab-btn" data-tab="tab-planning">
-        <span>📊</span> Anggaran & Tabungan
-      </button>
-      <button type="button" class="tab-btn" data-tab="tab-copilot">
-        <span>🤖</span> Penasihat Finansial AI
-      </button>
-    </div>
+          <!-- ------------------------------------------------------------
+               KOLOM 1 (KIRI ~280px): KEKAYAAN BERSIH, REKENING, GOALS
+               ------------------------------------------------------------ -->
+          <div class="grid-col grid-col-left">
+            
+            <!-- Card / Kekayaan bersih -->
+            <div class="figma-card">
+              <div class="card-header-row">
+                <span class="card-section-title">Total Kekayaan Bersih</span>
+                <span style="font-size: 13px; color: var(--text-muted); cursor: pointer;" title="Tampilkan/Sembunyikan">👁</span>
+              </div>
+              <div class="net-worth-amount" id="total-net-worth">Rp 0</div>
+              <div class="net-worth-change">
+                <span>↗</span>
+                <span>Arus kas aktif buku besar</span>
+              </div>
 
-    <!-- TAB 1: MUTASI & SUARA AI (DASHBOARD UTAMA) -->
-    <div id="tab-mutasi" class="tab-content active">
-      <div class="dashboard-grid">
-        
-        <!-- Left Column: Accounts & Net Worth -->
-        <aside>
-          <!-- Total Net Worth Card -->
-          <div class="glass-panel" style="padding: 1.5rem; margin-bottom: 1.5rem;">
-            <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.25rem;">Total Kekayaan Bersih</div>
-            <div id="total-net-worth" class="account-balance">Rp 0</div>
+              <!-- Sparkline Visual Chart -->
+              <div class="sparkline-container">
+                <svg class="sparkline-svg" viewBox="0 0 240 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M 0 38 Q 30 32, 60 30 T 120 22 T 180 14 T 240 6" stroke="#5C9A78" stroke-width="2" fill="none" />
+                  <path d="M 0 38 Q 30 32, 60 30 T 120 22 T 180 14 T 240 6 L 240 48 L 0 48 Z" fill="url(#sparkline-grad)" opacity="0.4" />
+                  <circle cx="238" cy="6" r="3.5" fill="#2D7653" stroke="#FFFFFF" stroke-width="1.5" />
+                  <defs>
+                    <linearGradient id="sparkline-grad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#EAF4EE" />
+                      <stop offset="100%" stop-color="#EAF4EE" stop-opacity="0" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <div class="sparkline-months">
+                  <span>Jun</span>
+                  <span>Jul</span>
+                  <span>Agu</span>
+                  <span>Sep</span>
+                  <span>Okt</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card / Rekening dan kantong -->
+            <div class="figma-card">
+              <div class="card-header-row">
+                <span class="card-section-title">Rekening & Kantong</span>
+                <button type="button" class="card-action-link" id="btn-refresh-accounts">Segarkan</button>
+              </div>
+              <div class="accounts-stack" id="accounts-container">
+                <div style="color: var(--text-muted); font-size: 9px; padding: 12px 0;">Memuat rekening...</div>
+              </div>
+            </div>
+
+            <!-- Card / Tujuan tabungan -->
+            <div class="figma-card">
+              <div class="card-header-row">
+                <span class="card-section-title">Tujuan Tabungan</span>
+                <button type="button" class="card-action-link" id="btn-open-create-goal-mini">+ Tambah</button>
+              </div>
+              <div class="card-subtitle-text">Pantau akumulasi dana pada rekening terpilih</div>
+              <div id="savings-goals-mini-list">
+                <!-- Fallback / Demo goal row matching Figma -->
+                <div class="goal-item-row">
+                  <div class="goal-top-line">
+                    <div class="goal-name-group">
+                      <span style="font-size: 11px;">🛡</span>
+                      <span class="goal-name-text">Dana Darurat</span>
+                    </div>
+                    <span class="goal-pct-pill" id="goal-dana-darurat-pct">75%</span>
+                  </div>
+                  <div class="goal-account-text">Rekening: Bank BCA</div>
+                  <div class="goal-amount-text">Rp 7.500.000 / Rp 10.000.000</div>
+                  <div class="goal-progress-track">
+                    <div class="goal-progress-fill" style="width: 75%;"></div>
+                  </div>
+                  <div class="goal-due-date-row">
+                    <span>📅</span>
+                    <span>Tenggat: 31 Des 2026</span>
+                  </div>
+                </div>
+
+                <div class="goal-item-row">
+                  <div class="goal-top-line">
+                    <div class="goal-name-group">
+                      <span style="font-size: 11px;">✈</span>
+                      <span class="goal-name-text">Liburan Akhir Tahun</span>
+                    </div>
+                    <span class="goal-pct-pill">40%</span>
+                  </div>
+                  <div class="goal-account-text">Rekening: GoPay</div>
+                  <div class="goal-amount-text">Rp 2.000.000 / Rp 5.000.000</div>
+                  <div class="goal-progress-track">
+                    <div class="goal-progress-fill" style="width: 40%;"></div>
+                  </div>
+                  <div class="goal-due-date-row">
+                    <span>📅</span>
+                    <span>Tenggat: 15 Nov 2026</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
 
-          <!-- Accounts List -->
-          <div class="glass-panel" style="padding: 1.5rem;">
-            <div class="card-title">
-              <span>Rekening & Kantong Dana</span>
-            </div>
-            <div id="accounts-container" class="accounts-list">
-              <div style="color: var(--text-dim); font-size: 0.85rem;">Memuat daftar rekening...</div>
-            </div>
-          </div>
-        </aside>
+          <!-- ------------------------------------------------------------
+               KOLOM 2 (TENGAH minmax 420px, 1fr): AI INPUT, DRAFTS, LEDGER
+               ------------------------------------------------------------ -->
+          <div class="grid-col grid-col-center">
 
-        <!-- Right Column: AI Command & Draft Workspace -->
-        <section>
-          
-          <!-- AI Input Command Center -->
-          <div class="glass-panel ai-card">
-            <div class="card-title">
-              <span>✨ Asisten Keuangan Cerdas</span>
-              <span style="font-size: 0.75rem; color: var(--text-dim);">Model: Cohere Command A (Osaka)</span>
-            </div>
+            <!-- Card / Asisten AI Command Input -->
+            <div class="figma-card">
+              <div class="card-header-row">
+                <div class="card-title-group">
+                  <span class="card-header-icon">✦</span>
+                  <span class="card-section-title">Asisten AI</span>
+                </div>
+                <div class="ai-online-badge">Online</div>
+              </div>
+              <div class="card-subtitle-text">
+                Ketik atau rekam mutasi dalam bahasa sehari-hari (didukung OCI Cohere Osaka & Whisper)
+              </div>
 
-            <div class="input-container">
               <textarea 
                 id="ai-input" 
                 class="ai-textarea" 
-                placeholder="Ketik atau ucapkan mutasi Anda. Contoh: 'Beli bensin 50rb pake BCA, makan siang 35rb GoPay, tf 100rb ke BCA admin 1000' (Tekan Ctrl+Enter untuk memproses)"
+                placeholder="Contoh: 'Beli bensin 50rb bca, makan siang 25rb gopay, tf 100rb bca ke gopay admin 1000' (Tekan Ctrl+Enter untuk memproses)"
               ></textarea>
-              
-              <div class="ai-actions">
-                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                  <button type="button" id="btn-record" class="btn btn-mic">
-                    🎤 Rekam Suara
+
+              <div class="ai-action-buttons-row">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <button type="button" id="btn-record" class="btn-voice">
+                    <span>🎤</span>
+                    <span>Rekam Suara</span>
                   </button>
-                  <span id="record-status" style="font-size: 0.8rem; color: var(--text-muted);"></span>
+                  <span id="record-status" style="font-size: 9px; color: var(--text-secondary);"></span>
                 </div>
 
-                <button type="button" id="btn-parse" class="btn btn-primary">
-                  ✨ Proses Mutasi AI
+                <button type="button" id="btn-parse" class="btn-process">
+                  <span>✦</span>
+                  <span>Proses Mutasi AI</span>
                 </button>
               </div>
             </div>
 
-            <!-- Draft Review Workspace (Displayed upon extraction) -->
-            <div id="draft-section" class="draft-workspace" style="display: none;">
-              <div class="draft-header">
-                <div>
-                  <strong style="font-size: 1rem;">Tinjau Draft Mutasi</strong>
-                  <span id="draft-batch-id" class="draft-batch-id" style="margin-left: 0.5rem;"></span>
+            <!-- Card / Tinjau Draft Mutasi Staging -->
+            <div class="figma-card" id="draft-section" style="display: none;">
+              <div class="card-header-row">
+                <div class="card-title-group">
+                  <span class="card-header-icon">📄</span>
+                  <span class="card-section-title">Tinjau Draft Mutasi</span>
                 </div>
-                <button type="button" id="btn-confirm-batch" class="btn btn-success">
-                  ✅ Konfirmasi Seluruh Transaksi
-                </button>
+                <div class="ai-online-badge" id="draft-batch-id">Draft Siap</div>
+              </div>
+              <div class="card-subtitle-text">
+                Periksa hasil ekstraksi AI sebelum dibukukan secara permanen ke buku besar
               </div>
 
-              <div class="draft-table-wrapper">
-                <table class="data-table">
+              <div class="figma-table-wrapper">
+                <table class="figma-table">
                   <thead>
                     <tr>
-                      <th>Tipe</th>
-                      <th>Nominal</th>
-                      <th>Alur Rekening</th>
+                      <th style="width: 28px;">No.</th>
+                      <th>Transaksi</th>
                       <th>Kategori</th>
-                      <th>Keterangan</th>
-                      <th>Tanggal</th>
+                      <th>Jumlah</th>
+                      <th>Akun</th>
+                      <th>Status</th>
                       <th>Aksi</th>
                     </tr>
                   </thead>
                   <tbody id="draft-table-body"></tbody>
                 </table>
               </div>
-            </div>
-          </div>
 
-          <!-- Immutable Ledger / Transaction History -->
-          <div class="glass-panel history-card">
-            <div class="card-title">
-              <span>Riwayat Mutasi Buku Besar</span>
-              <span style="font-size: 0.75rem; color: var(--text-dim);">Append-Only Immutable Ledger</span>
-            </div>
-
-            <div class="draft-table-wrapper">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>Tipe</th>
-                    <th>Nominal</th>
-                    <th>Rekening</th>
-                    <th>Kategori</th>
-                    <th>Keterangan</th>
-                    <th>Tanggal</th>
-                    <th>Aksi</th>
-                  </tr>
-                </thead>
-                <tbody id="history-table-body">
-                  <tr><td colspan="7" style="text-align: center; color: var(--text-dim); padding: 2rem;">Memuat riwayat transaksi...</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-        </section>
-
-      </div>
-    </div>
-
-    <!-- TAB 2: ANGGARAN & TARGET TABUNGAN (FASE 7) -->
-    <div id="tab-planning" class="tab-content">
-      <div style="display: flex; flex-direction: column; gap: 1.5rem;">
-        
-        <!-- Pagu Anggaran Bulanan Card -->
-        <div class="glass-panel" style="padding: 1.5rem;">
-          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.25rem;">
-            <div>
-              <h3 style="font-size: 1.25rem;">📊 Pagu Anggaran Bulanan</h3>
-              <p style="font-size: 0.8rem; color: var(--text-muted);" id="budget-period-label">Periode Berjalan</p>
-            </div>
-            <div style="display: flex; gap: 0.5rem;">
-              <button type="button" id="btn-open-set-budget" class="btn btn-secondary" style="padding: 0.4rem 0.85rem; font-size: 0.8rem;">
-                ⚙️ Atur Anggaran Total
-              </button>
-              <button type="button" id="btn-open-cat-budget" class="btn btn-secondary" style="padding: 0.4rem 0.85rem; font-size: 0.8rem;">
-                ➕ Limit Kategori
+              <button type="button" id="btn-confirm-batch" class="btn-confirm-all">
+                <span>✓</span>
+                <span>Konfirmasi Seluruh Transaksi</span>
               </button>
             </div>
-          </div>
 
-          <!-- Summary Numbers -->
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
-            <div class="glass-panel" style="padding: 1rem; background: rgba(12, 17, 29, 0.6);">
-              <div style="font-size: 0.75rem; color: var(--text-dim);">Pagu Total</div>
-              <div id="budget-total-limit" style="font-size: 1.2rem; font-weight: 700; color: #fff;">Rp 0</div>
-            </div>
-            <div class="glass-panel" style="padding: 1rem; background: rgba(12, 17, 29, 0.6);">
-              <div style="font-size: 0.75rem; color: var(--text-dim);">Realisasi Pengeluaran</div>
-              <div id="budget-total-spent" style="font-size: 1.2rem; font-weight: 700; color: #f43f5e;">Rp 0</div>
-            </div>
-            <div class="glass-panel" style="padding: 1rem; background: rgba(12, 17, 29, 0.6);">
-              <div style="font-size: 0.75rem; color: var(--text-dim);">Sisa Plafon</div>
-              <div id="budget-total-remaining" style="font-size: 1.2rem; font-weight: 700; color: #10b981;">Rp 0</div>
-            </div>
-          </div>
-
-          <!-- Master Progress Bar -->
-          <div style="margin-top: 0.5rem;">
-            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.25rem;">
-              <span>Serapan Anggaran</span>
-              <strong id="budget-percent-label">0%</strong>
-            </div>
-            <div class="progress-container" style="height: 12px;">
-              <div id="budget-progress-bar" class="progress-fill fill-safe" style="width: 0%;"></div>
-            </div>
-          </div>
-
-          <!-- Category Limits Breakdown -->
-          <div style="margin-top: 1.75rem;">
-            <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem; color: var(--text-muted);">Batas per Kategori</h4>
-            <div id="category-budgets-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
-              <div style="color: var(--text-dim); font-size: 0.85rem;">Belum ada limit kategori yang diatur.</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Target Tabungan (Savings Goals) Card -->
-        <div class="glass-panel" style="padding: 1.5rem;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-            <div>
-              <h3 style="font-size: 1.25rem;">🎯 Target Tabungan</h3>
-              <p style="font-size: 0.8rem; color: var(--text-muted);">Pantau akumulasi dana pada rekening terpilih secara otomatis</p>
-            </div>
-            <button type="button" id="btn-open-create-goal" class="btn btn-primary" style="padding: 0.4rem 0.85rem; font-size: 0.8rem;">
-              ➕ Target Baru
-            </button>
-          </div>
-
-          <div id="savings-goals-container" class="goals-grid">
-            <div style="color: var(--text-dim); font-size: 0.85rem;">Memuat daftar target tabungan...</div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- TAB 3: PENASIHAT KEUANGAN AI (COPILOT & SCENARIOS) -->
-    <div id="tab-copilot" class="tab-content">
-      <div style="display: flex; flex-direction: column; gap: 1.5rem;">
-        
-        <!-- Interactive Purchase Decision Advisor -->
-        <div class="glass-panel" style="padding: 1.5rem;">
-          <div class="card-title">
-            <div>
-              <h3 style="font-size: 1.25rem;">🤖 Analisis Keputusan Pembelian Cerdas</h3>
-              <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">
-                Kalkulator dampak arus kas real-time dipadukan dengan penalaran objektif OCI GenAI (Cohere Osaka)
-              </p>
-            </div>
-          </div>
-
-          <div class="input-container" style="margin-top: 1rem;">
-            <textarea 
-              id="copilot-input" 
-              class="ai-textarea" 
-              style="min-height: 85px;"
-              placeholder="Contoh: 'Gue mau beli keyboard mechanical Rp760.000 pake BCA, menurut lu aman nggak buat keuangan gue?'"
-            ></textarea>
-            
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.75rem; flex-wrap: wrap; gap: 0.75rem;">
-              <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <label for="copilot-account-select" style="font-size: 0.8rem; color: var(--text-muted);">Rekening Rencana:</label>
-                <select id="copilot-account-select" class="auth-input" style="padding: 0.35rem 0.75rem; font-size: 0.85rem; width: auto;">
-                  <option value="">Otomatis (Pilih Terbaik)</option>
-                </select>
+            <!-- Card / Riwayat Transaksi Buku Besar -->
+            <div class="figma-card">
+              <div class="card-header-row">
+                <div class="card-title-group">
+                  <span class="card-header-icon">⏱</span>
+                  <span class="card-section-title">Riwayat Transaksi</span>
+                </div>
+                <button type="button" class="card-action-link" id="btn-refresh-history">Segarkan</button>
+              </div>
+              <div class="card-subtitle-text">
+                Buku besar nir-ubah (immutable append-only ledger)
               </div>
 
-              <button type="button" id="btn-consult-copilot" class="btn btn-primary">
-                ✨ Minta Pertimbangan AI
+              <div class="figma-table-wrapper">
+                <table class="figma-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 70px;">Tanggal</th>
+                      <th>Deskripsi</th>
+                      <th>Jumlah</th>
+                      <th>Kategori</th>
+                      <th>Akun</th>
+                      <th>Status</th>
+                      <th style="text-align: right;">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody id="history-table-body">
+                    <tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 18px;">Memuat transaksi...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- ------------------------------------------------------------
+               KOLOM 3 (KANAN ~351px): INSIGHT, ANGGARAN, RINGKASAN, COPILOT
+               ------------------------------------------------------------ -->
+          <div class="grid-col grid-col-right">
+
+            <!-- Card / Insight Finansial -->
+            <div class="figma-card">
+              <div class="card-header-row">
+                <div class="card-title-group">
+                  <span class="card-header-icon">💡</span>
+                  <span class="card-section-title">Insight Finansial</span>
+                </div>
+              </div>
+              <div class="insight-highlight">Pengeluaran stabil di bawah batas rata-rata</div>
+              <div class="insight-detail">Realisasi belanja terkontrol dengan baik minggu ini. Pagu anggaran Anda masih dalam zona aman.</div>
+
+              <!-- 10 Bar Chart matching Figma -->
+              <div class="insight-bars-row">
+                <div class="insight-bar" style="height: 19px;"></div>
+                <div class="insight-bar" style="height: 27px;"></div>
+                <div class="insight-bar" style="height: 22px;"></div>
+                <div class="insight-bar" style="height: 35px;"></div>
+                <div class="insight-bar" style="height: 28px;"></div>
+                <div class="insight-bar" style="height: 42px;"></div>
+                <div class="insight-bar" style="height: 31px;"></div>
+                <div class="insight-bar" style="height: 50px;"></div>
+                <div class="insight-bar" style="height: 38px;"></div>
+                <div class="insight-bar highlight-green" style="height: 47px;"></div>
+              </div>
+            </div>
+
+            <!-- Card / Anggaran Bulanan -->
+            <div class="figma-card">
+              <div class="card-header-row">
+                <div class="card-title-group">
+                  <span class="card-header-icon">📅</span>
+                  <span class="card-section-title">Pagu Anggaran Bulanan</span>
+                </div>
+                <span style="font-size: 10px; color: var(--text-secondary);" id="budget-period-mini">Okt 2026</span>
+              </div>
+
+              <div class="budget-cap-row">
+                <div class="budget-metric-block">
+                  <span class="budget-metric-label">Pagu Anggaran</span>
+                  <span class="budget-metric-val" id="budget-cap-val">Rp 5.000.000</span>
+                </div>
+                <div class="budget-metric-block" style="text-align: right;">
+                  <span class="budget-metric-label">Terpakai</span>
+                  <span class="budget-metric-val" id="budget-used-val">Rp 0</span>
+                </div>
+              </div>
+
+              <div class="budget-progress-track">
+                <div class="budget-progress-fill" id="budget-fill-bar" style="width: 0%;"></div>
+              </div>
+
+              <div class="budget-remainder-text" id="budget-remainder-val">
+                Sisa plafon: Rp 5.000.000
+              </div>
+            </div>
+
+            <!-- Card / Ringkasan Bulanan -->
+            <div class="figma-card">
+              <div class="card-header-row">
+                <div class="card-title-group">
+                  <span class="card-header-icon">📊</span>
+                  <span class="card-section-title">Ringkasan Bulanan</span>
+                </div>
+                <span style="font-size: 10px; color: var(--text-secondary);">Periode Aktif</span>
+              </div>
+
+              <div style="border-top: 1px solid var(--border-main); padding-top: 6px;">
+                <div class="summary-line-row">
+                  <span class="summary-label">Total Pemasukan</span>
+                  <span class="summary-amount green" id="summary-income-val">Rp 0</span>
+                </div>
+                <div class="summary-line-row">
+                  <span class="summary-label">Total Pengeluaran</span>
+                  <span class="summary-amount" id="summary-expense-val">Rp 0</span>
+                </div>
+                <div style="height: 1px; background: var(--border-main); margin: 4px 0;"></div>
+                <div class="summary-line-row">
+                  <span class="summary-label" style="font-weight: 500;">Surplus Bersih</span>
+                  <span class="summary-amount bold" id="summary-surplus-val">Rp 0</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card / Pola Pengeluaran -->
+            <div class="figma-card">
+              <div class="card-header-row">
+                <div class="card-title-group">
+                  <span class="card-header-icon">📶</span>
+                  <span class="card-section-title">Pola Pengeluaran</span>
+                </div>
+              </div>
+              <div class="card-subtitle-text">Distribusi pos pengeluaran bulan ini</div>
+
+              <div class="spend-pattern-item">
+                <div class="spend-pattern-header">
+                  <span class="spend-cat-name">Makanan & Minuman</span>
+                  <span class="spend-cat-pct">34%</span>
+                </div>
+                <div class="spend-track"><div class="spend-fill fill-0" style="width: 34%;"></div></div>
+              </div>
+
+              <div class="spend-pattern-item">
+                <div class="spend-pattern-header">
+                  <span class="spend-cat-name">Transportasi</span>
+                  <span class="spend-cat-pct">28%</span>
+                </div>
+                <div class="spend-track"><div class="spend-fill fill-1" style="width: 28%;"></div></div>
+              </div>
+
+              <div class="spend-pattern-item">
+                <div class="spend-pattern-header">
+                  <span class="spend-cat-name">Belanja & Hiburan</span>
+                  <span class="spend-cat-pct">18%</span>
+                </div>
+                <div class="spend-track"><div class="spend-fill fill-2" style="width: 18%;"></div></div>
+              </div>
+
+              <div class="spend-pattern-item">
+                <div class="spend-pattern-header">
+                  <span class="spend-cat-name">Tagihan & Utilitas</span>
+                  <span class="spend-cat-pct">20%</span>
+                </div>
+                <div class="spend-track"><div class="spend-fill fill-3" style="width: 20%;"></div></div>
+              </div>
+            </div>
+
+            <!-- Card / Penasihat Finansial AI Shortcut -->
+            <div class="figma-card">
+              <div class="card-header-row">
+                <div class="card-title-group">
+                  <span class="card-header-icon">✨</span>
+                  <span class="card-section-title">Penasihat Finansial AI</span>
+                </div>
+              </div>
+              <div class="card-subtitle-text">
+                Konsultasikan rencana belanja barang untuk mengetahui kelayakan anggaran secara objektif.
+              </div>
+              <button type="button" class="advisor-card-btn" id="btn-jump-to-copilot">
+                Tanya AI Copilot ➔
               </button>
             </div>
+
           </div>
 
-          <!-- Copilot Advice Result Area (Hidden initially) -->
-          <div id="copilot-result" style="display: none; margin-top: 1.5rem; animation: fadeIn 0.3s ease;">
-            <div id="copilot-verdict-box" class="verdict-box">
-              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
-                <strong id="copilot-verdict-badge" style="font-size: 1.05rem;">VONIS</strong>
-                <span id="copilot-item-cost" style="font-size: 0.9rem; font-weight: 600;"></span>
-              </div>
-              <p id="copilot-advice-text" style="font-size: 0.92rem; line-height: 1.6; white-space: pre-line;"></p>
-
-              <!-- Snapshot Breakdown -->
-              <div class="snapshot-grid" id="copilot-snapshot-grid"></div>
-            </div>
-          </div>
         </div>
-
-        <!-- Spending Pattern Detective Card -->
-        <div class="glass-panel" style="padding: 1.5rem;">
-          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
-            <div>
-              <h3 style="font-size: 1.25rem;">🔍 Detektif Pola Pengeluaran</h3>
-              <p style="font-size: 0.8rem; color: var(--text-muted);">Bandingkan pengeluaran bulan berjalan dengan bulan lalu per kategori</p>
-            </div>
-            <button type="button" id="btn-analyze-patterns" class="btn btn-secondary" style="padding: 0.4rem 0.85rem; font-size: 0.8rem;">
-              🔄 Analisis Perubahan Pola
-            </button>
-          </div>
-
-          <div id="pattern-result" style="display: none;">
-            <div id="pattern-ai-box" class="glass-panel" style="padding: 1.25rem; background: rgba(12, 17, 29, 0.7); margin-bottom: 1rem;">
-              <p id="pattern-ai-text" style="font-size: 0.9rem; line-height: 1.6; color: var(--text-main); white-space: pre-line;"></p>
-            </div>
-
-            <div class="draft-table-wrapper">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>Kategori</th>
-                    <th>Bulan Lalu</th>
-                    <th>Bulan Ini</th>
-                    <th>Selisih</th>
-                    <th>Perubahan</th>
-                  </tr>
-                </thead>
-                <tbody id="pattern-table-body"></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <!-- Past Scenarios Memory Card -->
-        <div class="glass-panel" style="padding: 1.5rem;">
-          <h3 style="font-size: 1.25rem; margin-bottom: 0.25rem;">📜 Memori Skenario Pembelian Terdahulu</h3>
-          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">Riwayat pertimbangan yang pernah dikonsultasikan kepada asisten</p>
-
-          <div id="scenarios-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
-            <div style="color: var(--text-dim); font-size: 0.85rem;">Belum ada skenario yang tersimpan.</div>
-          </div>
-        </div>
-
       </div>
-    </div>
 
-  </main>
+      <!-- ================================================================
+           TAB 2: ANGGARAN & TARGET TABUNGAN (EXPANDED FINANCIAL PLANNING)
+           ================================================================ -->
+      <div id="tab-planning" class="tab-content">
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+          
+          <!-- Master Budget Card -->
+          <div class="figma-card" style="padding: 22px;">
+            <div class="card-header-row">
+              <div>
+                <h3 style="font-size: 16px; font-weight: 600;">📊 Pagu Anggaran Bulanan</h3>
+                <p style="font-size: 10px; color: var(--text-secondary);" id="budget-period-label">Periode Berjalan</p>
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <button type="button" id="btn-open-set-budget" class="btn-secondary-light">
+                  ⚙️ Atur Anggaran Total
+                </button>
+                <button type="button" id="btn-open-cat-budget" class="btn-secondary-light">
+                  ➕ Limit Kategori
+                </button>
+              </div>
+            </div>
 
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin: 16px 0;">
+              <div class="figma-card" style="background: var(--bg-input); padding: 14px;">
+                <span class="budget-metric-label">Pagu Total</span>
+                <div id="budget-total-limit" style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin-top: 4px;">Rp 0</div>
+              </div>
+              <div class="figma-card" style="background: var(--bg-input); padding: 14px;">
+                <span class="budget-metric-label">Realisasi Pengeluaran</span>
+                <div id="budget-total-spent" style="font-size: 18px; font-weight: 700; color: var(--accent-rose); margin-top: 4px;">Rp 0</div>
+              </div>
+              <div class="figma-card" style="background: var(--bg-input); padding: 14px;">
+                <span class="budget-metric-label">Sisa Plafon</span>
+                <div id="budget-total-remaining" style="font-size: 18px; font-weight: 700; color: var(--accent-green); margin-top: 4px;">Rp 0</div>
+              </div>
+            </div>
+
+            <div style="margin-top: 8px;">
+              <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--text-secondary); margin-bottom: 4px;">
+                <span>Serapan Anggaran</span>
+                <strong id="budget-percent-label">0%</strong>
+              </div>
+              <div class="budget-progress-track" style="height: 9px;">
+                <div id="budget-progress-bar" class="budget-progress-fill" style="width: 0%;"></div>
+              </div>
+            </div>
+
+            <div style="margin-top: 24px;">
+              <h4 style="font-size: 12px; font-weight: 600; margin-bottom: 10px; color: var(--text-secondary);">Batas per Kategori</h4>
+              <div id="category-budgets-list" style="display: flex; flex-direction: column; gap: 8px;">
+                <div style="color: var(--text-muted); font-size: 10px;">Belum ada limit kategori yang diatur.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Savings Goals Detailed Grid -->
+          <div class="figma-card" style="padding: 22px;">
+            <div class="card-header-row">
+              <div>
+                <h3 style="font-size: 16px; font-weight: 600;">🎯 Target Tabungan</h3>
+                <p style="font-size: 10px; color: var(--text-secondary);">Pantau akumulasi dana pada rekening terpilih secara otomatis</p>
+              </div>
+              <button type="button" id="btn-open-create-goal" class="btn-primary-dark">
+                ➕ Target Baru
+              </button>
+            </div>
+
+            <div id="savings-goals-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 14px;">
+              <div style="color: var(--text-muted); font-size: 10px;">Memuat target tabungan...</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ================================================================
+           TAB 3: PENASIHAT KEUANGAN AI (COPILOT & SCENARIOS)
+           ================================================================ -->
+      <div id="tab-copilot" class="tab-content">
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+          
+          <!-- Interactive Copilot Consultation Box -->
+          <div class="figma-card" style="padding: 22px;">
+            <div class="card-header-row">
+              <div>
+                <h3 style="font-size: 16px; font-weight: 600;">🤖 Analisis Keputusan Pembelian Cerdas</h3>
+                <p style="font-size: 10px; color: var(--text-secondary); margin-top: 2px;">
+                  Kalkulator arus kas real-time dipadukan dengan penalaran objektif OCI GenAI (Cohere Osaka)
+                </p>
+              </div>
+            </div>
+
+            <div style="margin-top: 12px;">
+              <textarea 
+                id="copilot-input" 
+                class="ai-textarea" 
+                style="height: 75px;" 
+                placeholder="Contoh: 'Gue mau beli keyboard mechanical Rp760.000 pake BCA, menurut lu aman nggak buat keuangan gue?'"
+              ></textarea>
+              
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <label for="copilot-account-select" style="font-size: 10px; color: var(--text-secondary);">Rekening Rencana:</label>
+                  <select id="copilot-account-select" class="auth-input" style="width: auto; height: 32px; font-size: 11px;">
+                    <option value="">Otomatis (Pilih Terbaik)</option>
+                  </select>
+                </div>
+
+                <button type="button" id="btn-consult-copilot" class="btn-primary-dark">
+                  ✨ Minta Pertimbangan AI
+                </button>
+              </div>
+            </div>
+
+            <!-- Verdict Card Result Area -->
+            <div id="copilot-result" style="display: none; margin-top: 18px;">
+              <div id="copilot-verdict-box" class="verdict-box">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                  <strong id="copilot-verdict-badge" style="font-size: 12px;">VONIS</strong>
+                  <span id="copilot-item-cost" style="font-size: 11px; font-weight: 600;"></span>
+                </div>
+                <p id="copilot-advice-text" style="font-size: 11px; line-height: 1.5; white-space: pre-line; color: var(--text-primary);"></p>
+
+                <div class="snapshot-grid" id="copilot-snapshot-grid"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Spending Pattern Detective -->
+          <div class="figma-card" style="padding: 22px;">
+            <div class="card-header-row">
+              <div>
+                <h3 style="font-size: 16px; font-weight: 600;">🔍 Detektif Pola Pengeluaran</h3>
+                <p style="font-size: 10px; color: var(--text-secondary);">Bandingkan mutasi bulan berjalan dengan bulan sebelumnya per kategori</p>
+              </div>
+              <button type="button" id="btn-analyze-patterns" class="btn-secondary-light">
+                🔄 Analisis Perubahan Pola
+              </button>
+            </div>
+
+            <div id="pattern-result" style="display: none; margin-top: 12px;">
+              <div class="figma-card" style="background: var(--bg-input); padding: 14px; margin-bottom: 14px;">
+                <p id="pattern-ai-text" style="font-size: 11px; line-height: 1.5; color: var(--text-primary); white-space: pre-line;"></p>
+              </div>
+
+              <div class="figma-table-wrapper">
+                <table class="figma-table">
+                  <thead>
+                    <tr>
+                      <th>Kategori</th>
+                      <th>Bulan Lalu</th>
+                      <th>Bulan Ini</th>
+                      <th>Selisih</th>
+                      <th>Perubahan</th>
+                    </tr>
+                  </thead>
+                  <tbody id="pattern-table-body"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Past Scenarios Memory -->
+          <div class="figma-card" style="padding: 22px;">
+            <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 4px;">📜 Memori Skenario Pembelian Terdahulu</h3>
+            <p style="font-size: 10px; color: var(--text-secondary); margin-bottom: 14px;">Riwayat pertimbangan yang pernah dikonsultasikan kepada asisten</p>
+
+            <div id="scenarios-list" style="display: flex; flex-direction: column; gap: 10px;">
+              <div style="color: var(--text-muted); font-size: 10px;">Belum ada skenario yang tersimpan.</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ====================================================================
+       MODALS SYSTEM (Clean White Cards, Soft Drop-Shadow)
+       ==================================================================== -->
   <!-- MODAL: Set Total Monthly Budget -->
   <div id="modal-set-budget" class="modal-overlay" style="display: none;">
-    <div class="glass-panel modal-content">
-      <h3 style="margin-bottom: 0.5rem;">⚙️ Atur Anggaran Total Bulanan</h3>
-      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.25rem;">Tentukan batas total pengeluaran untuk bulan berjalan.</p>
+    <div class="modal-content">
+      <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 4px;">⚙️ Atur Anggaran Total Bulanan</h3>
+      <p style="font-size: 10px; color: var(--text-secondary); margin-bottom: 16px;">Tentukan batas total pengeluaran untuk bulan berjalan.</p>
       <form id="form-set-budget">
-        <div style="margin-bottom: 1rem;">
-          <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Pagu Total Anggaran (Rp)</label>
+        <div style="margin-bottom: 14px;">
+          <label style="font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Pagu Total Anggaran (Rp)</label>
           <input type="number" id="input-budget-limit" class="auth-input" placeholder="5000000" min="10000" step="10000" required>
         </div>
-        <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
-          <button type="button" class="btn btn-secondary btn-close-modal">Batal</button>
-          <button type="submit" class="btn btn-primary">Simpan Anggaran</button>
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+          <button type="button" class="btn-secondary-light btn-close-modal">Batal</button>
+          <button type="submit" class="btn-primary-dark">Simpan Anggaran</button>
         </div>
       </form>
     </div>
@@ -368,21 +719,21 @@
 
   <!-- MODAL: Set Category Budget -->
   <div id="modal-set-cat-budget" class="modal-overlay" style="display: none;">
-    <div class="glass-panel modal-content">
-      <h3 style="margin-bottom: 0.5rem;">➕ Atur Limit Anggaran Kategori</h3>
-      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.25rem;">Tetapkan batas pengeluaran spesifik per kategori.</p>
+    <div class="modal-content">
+      <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 4px;">➕ Atur Limit Anggaran Kategori</h3>
+      <p style="font-size: 10px; color: var(--text-secondary); margin-bottom: 16px;">Tetapkan batas pengeluaran spesifik per kategori.</p>
       <form id="form-set-cat-budget">
-        <div style="margin-bottom: 1rem;">
-          <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Kategori Pengeluaran</label>
+        <div style="margin-bottom: 12px;">
+          <label style="font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Kategori Pengeluaran</label>
           <select id="select-cat-budget" class="auth-input" required></select>
         </div>
-        <div style="margin-bottom: 1rem;">
-          <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Batas Plafon (Rp)</label>
+        <div style="margin-bottom: 14px;">
+          <label style="font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Batas Plafon (Rp)</label>
           <input type="number" id="input-cat-budget-limit" class="auth-input" placeholder="800000" min="10000" step="10000" required>
         </div>
-        <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
-          <button type="button" class="btn btn-secondary btn-close-modal">Batal</button>
-          <button type="submit" class="btn btn-primary">Simpan Limit</button>
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+          <button type="button" class="btn-secondary-light btn-close-modal">Batal</button>
+          <button type="submit" class="btn-primary-dark">Simpan Limit</button>
         </div>
       </form>
     </div>
@@ -390,59 +741,76 @@
 
   <!-- MODAL: Create Savings Goal -->
   <div id="modal-create-goal" class="modal-overlay" style="display: none;">
-    <div class="glass-panel modal-content">
-      <h3 style="margin-bottom: 0.5rem;">🎯 Buat Target Tabungan Baru</h3>
-      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.25rem;">Tautkan sasaran dana dengan satu rekening khusus.</p>
+    <div class="modal-content">
+      <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 4px;">🎯 Buat Target Tabungan Baru</h3>
+      <p style="font-size: 10px; color: var(--text-secondary); margin-bottom: 16px;">Tautkan sasaran dana dengan satu rekening khusus.</p>
       <form id="form-create-goal">
-        <div style="margin-bottom: 0.85rem;">
-          <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Nama Sasaran Dana</label>
+        <div style="margin-bottom: 10px;">
+          <label style="font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Nama Sasaran Dana</label>
           <input type="text" id="input-goal-name" class="auth-input" placeholder="Dana Darurat / Liburan Jepang" required>
         </div>
-        <div style="margin-bottom: 0.85rem;">
-          <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Rekening yang Didedikasikan</label>
+        <div style="margin-bottom: 10px;">
+          <label style="font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Rekening yang Didedikasikan</label>
           <select id="select-goal-account" class="auth-input" required></select>
         </div>
-        <div style="margin-bottom: 0.85rem;">
-          <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Target Nominal (Rp)</label>
+        <div style="margin-bottom: 10px;">
+          <label style="font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Target Nominal (Rp)</label>
           <input type="number" id="input-goal-target" class="auth-input" placeholder="10000000" min="50000" step="50000" required>
         </div>
-        <div style="margin-bottom: 1.25rem;">
-          <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Tenggat Waktu (Opsional)</label>
+        <div style="margin-bottom: 16px;">
+          <label style="font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Tenggat Waktu (Opsional)</label>
           <input type="date" id="input-goal-date" class="auth-input">
         </div>
-        <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
-          <button type="button" class="btn btn-secondary btn-close-modal">Batal</button>
-          <button type="submit" class="btn btn-primary">Buat Target</button>
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+          <button type="button" class="btn-secondary-light btn-close-modal">Batal</button>
+          <button type="submit" class="btn-primary-dark">Buat Target</button>
         </div>
       </form>
     </div>
   </div>
 
+  <!-- MODAL: Tentang Aplikasi & Bantuan -->
+  <div id="modal-about" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+      <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 8px;">ℹ️ Tentang Personal Finance AI Agent</h3>
+      <p style="font-size: 11px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 12px;">
+        Aplikasi manajemen keuangan mandiri berbasis cloud enterprise <strong>Oracle Cloud Infrastructure (OCI)</strong>.
+      </p>
+      <ul style="font-size: 10px; color: var(--text-primary); line-height: 1.6; margin-left: 16px; margin-bottom: 16px;">
+        <li><strong>Arsitektur AI Hibrida:</strong> OCI GenAI Cohere Command A (Osaka) & Whisper Medium Speech.</li>
+        <li><strong>Basis Data Mandiri:</strong> MySQL DB System Privat dengan buku besar nir-ubah (immutable ledger).</li>
+        <li><strong>Keamanan:</strong> Argon2id password hash, proteksi CSRF, cookie HttpOnly, anti-IDOR.</li>
+      </ul>
+      <div style="display: flex; justify-content: flex-end;">
+        <button type="button" class="btn-primary-dark btn-close-modal">Tutup</button>
+      </div>
+    </div>
+  </div>
 
-  <!-- Login Modal Overlay -->
-  <div id="auth-overlay" class="auth-overlay" style="display: none;">
-    <div class="glass-panel auth-card">
-      <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">💎</div>
-      <h2>Masuk ke Akun</h2>
-      <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem;">
+  <!-- MODAL: Login Overlay -->
+  <div id="auth-overlay" class="modal-overlay" style="display: none;">
+    <div class="modal-content" style="max-width: 360px; text-align: center;">
+      <div style="width: 42px; height: 42px; background: var(--brand-dark); border-radius: 12px; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 20px;">
+        ✦
+      </div>
+      <h2 style="font-size: 18px; font-weight: 700; color: var(--text-primary);">Masuk ke Akun</h2>
+      <p style="font-size: 11px; color: var(--text-secondary); margin: 4px 0 16px 0;">
         Personal Finance AI Agent v2.3
       </p>
 
-      <form id="login-form">
-        <div class="auth-input-group">
-          <div>
-            <label for="login-username" style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Username</label>
-            <input type="text" id="login-username" class="auth-input" placeholder="bryan" required autocomplete="username">
-          </div>
-          <div>
-            <label for="login-password" style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Password</label>
-            <input type="password" id="login-password" class="auth-input" placeholder="••••••••" required autocomplete="current-password">
-          </div>
+      <form id="login-form" style="text-align: left;">
+        <div style="margin-bottom: 12px;">
+          <label for="login-username" style="font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Username</label>
+          <input type="text" id="login-username" class="auth-input" placeholder="bryan" required autocomplete="username">
+        </div>
+        <div style="margin-bottom: 14px;">
+          <label for="login-password" style="font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Password</label>
+          <input type="password" id="login-password" class="auth-input" placeholder="••••••••" required autocomplete="current-password">
         </div>
 
-        <div id="login-error" class="alert-box alert-error" style="display: none; margin-bottom: 1rem; padding: 0.5rem 0.75rem; font-size: 0.8rem;"></div>
+        <div id="login-error" class="alert-box alert-error" style="display: none; margin-bottom: 12px;"></div>
 
-        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem;">
+        <button type="submit" class="btn-primary-dark" style="width: 100%; height: 38px;">
           Masuk ke Dashboard
         </button>
       </form>
