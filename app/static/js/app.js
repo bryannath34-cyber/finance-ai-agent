@@ -327,6 +327,22 @@ class App {
     this.linkOverlayForgot = document.getElementById('link-overlay-forgot');
     this.linkOverlayRegister = document.getElementById('link-overlay-register');
 
+    // Modal: Pemilih Periode Bulan & Tahun (Month/Year Picker)
+    this.modalMonthPicker = document.getElementById('modal-month-picker');
+    this.monthPickerModalTitle = document.getElementById('month-picker-modal-title');
+    this.pickerPrevYear = document.getElementById('picker-prev-year');
+    this.pickerNextYear = document.getElementById('picker-next-year');
+    this.pickerSelectedYear = document.getElementById('picker-selected-year');
+    this.pickerMonthsGrid = document.getElementById('picker-months-grid');
+    this.pickerBtnCurrentMonth = document.getElementById('picker-btn-current-month');
+    this.pickerContext = 'planning'; // 'planning' | 'reports'
+    const initDate = new Date();
+    this.pickerYear = initDate.getFullYear();
+    this.selectedPlanningYear = initDate.getFullYear();
+    this.selectedPlanningMonth = initDate.getMonth() + 1;
+    this.selectedReportYear = initDate.getFullYear();
+    this.selectedReportMonth = initDate.getMonth() + 1;
+
     this.applyBalanceVisibility();
   }
 
@@ -522,26 +538,34 @@ class App {
     if (this.btnExportReport) {
       this.btnExportReport.addEventListener('click', () => this.handleExportReport());
     }
-    const pickReportMonth = () => {
-      const currentM = this.selectedReportMonth || (new Date().getMonth() + 1);
-      const choice = prompt('Pilih nomor bulan yang ingin ditampilkan (1 = Jan, 10 = Okt, 12 = Des):', String(currentM));
-      if (choice) {
-        const m = parseInt(choice, 10);
-        if (m >= 1 && m <= 12) {
-          this.loadReportsData(this.selectedReportYear, m);
-        } else {
-          this.showAlert('Nomor bulan tidak valid (1 - 12).', 'error');
-        }
-      }
-    };
+    // Month / Year Picker Controls (Replaces native prompt)
+    if (this.btnPlanningPeriodPicker) {
+      this.btnPlanningPeriodPicker.addEventListener('click', () => this.openMonthPicker('planning'));
+    }
     if (this.btnReportMonthPicker) {
-      this.btnReportMonthPicker.addEventListener('click', pickReportMonth);
+      this.btnReportMonthPicker.addEventListener('click', () => this.openMonthPicker('reports'));
     }
     if (this.btnReportSelectMonth) {
-      this.btnReportSelectMonth.addEventListener('click', pickReportMonth);
+      this.btnReportSelectMonth.addEventListener('click', () => this.openMonthPicker('reports'));
     }
-    if (this.btnPlanningPeriodPicker) {
-      this.btnPlanningPeriodPicker.addEventListener('click', pickReportMonth);
+    if (this.pickerPrevYear) {
+      this.pickerPrevYear.addEventListener('click', () => {
+        this.pickerYear--;
+        this.renderMonthPickerGrid();
+      });
+    }
+    if (this.pickerNextYear) {
+      this.pickerNextYear.addEventListener('click', () => {
+        this.pickerYear++;
+        this.renderMonthPickerGrid();
+      });
+    }
+    if (this.pickerBtnCurrentMonth) {
+      this.pickerBtnCurrentMonth.addEventListener('click', () => {
+        const now = new Date();
+        this.pickerYear = now.getFullYear();
+        this.selectMonthFromPicker(now.getMonth() + 1);
+      });
     }
 
     // Additional action links
@@ -1929,18 +1953,115 @@ class App {
   }
 
   // ==========================================
+  // MONTH & YEAR PICKER MODAL
+  // ==========================================
+  openMonthPicker(context = 'planning') {
+    this.pickerContext = context;
+    const now = new Date();
+
+    if (context === 'planning') {
+      this.pickerYear = this.selectedPlanningYear || now.getFullYear();
+      if (this.monthPickerModalTitle) {
+        this.monthPickerModalTitle.textContent = 'Pilih Periode Anggaran & Tabungan';
+      }
+    } else {
+      this.pickerYear = this.selectedReportYear || now.getFullYear();
+      if (this.monthPickerModalTitle) {
+        this.monthPickerModalTitle.textContent = 'Pilih Periode Laporan Keuangan';
+      }
+    }
+
+    this.renderMonthPickerGrid();
+
+    if (this.modalMonthPicker) {
+      this.modalMonthPicker.style.display = 'flex';
+    }
+  }
+
+  renderMonthPickerGrid() {
+    if (!this.pickerMonthsGrid) return;
+    if (this.pickerSelectedYear) {
+      this.pickerSelectedYear.textContent = this.pickerYear;
+    }
+
+    const monthNames = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+    ];
+
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+
+    const activeYear = this.pickerContext === 'planning' ? this.selectedPlanningYear : this.selectedReportYear;
+    const activeMonth = this.pickerContext === 'planning' ? this.selectedPlanningMonth : this.selectedReportMonth;
+
+    this.pickerMonthsGrid.innerHTML = '';
+
+    monthNames.forEach((name, idx) => {
+      const monthNum = idx + 1;
+      const isSelected = (this.pickerYear === activeYear && monthNum === activeMonth);
+      const isThisMonth = (this.pickerYear === currentYear && monthNum === currentMonth);
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `month-picker-btn${isSelected ? ' active' : ''}${isThisMonth ? ' is-current-month' : ''}`;
+      btn.setAttribute('data-month', monthNum);
+      btn.innerHTML = `
+        <span class="month-num">${String(monthNum).padStart(2, '0')}</span>
+        <span class="month-name">${name}</span>
+      `;
+
+      btn.addEventListener('click', () => {
+        this.selectMonthFromPicker(monthNum);
+      });
+
+      this.pickerMonthsGrid.appendChild(btn);
+    });
+  }
+
+  selectMonthFromPicker(monthNum) {
+    const monthNames = [
+      '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+    ];
+    const monthName = monthNames[monthNum] || `Bulan ${monthNum}`;
+    const selectedYr = this.pickerYear;
+
+    this.closeModals();
+
+    if (this.pickerContext === 'planning') {
+      this.selectedPlanningYear = selectedYr;
+      this.selectedPlanningMonth = monthNum;
+      this.loadBudgetOverview(selectedYr, monthNum);
+      this.showAlert(`Periode anggaran beralih ke ${monthName} ${selectedYr}`, 'success');
+    } else {
+      this.selectedReportYear = selectedYr;
+      this.selectedReportMonth = monthNum;
+      this.loadReportsData(selectedYr, monthNum);
+      this.showAlert(`Laporan beralih ke ${monthName} ${selectedYr}`, 'success');
+    }
+  }
+
+  // ==========================================
   // TAB 3: ANGGARAN & TARGET TABUNGAN
   // ==========================================
   async loadPlanningData() {
     await Promise.all([
-      this.loadBudgetOverview(),
+      this.loadBudgetOverview(this.selectedPlanningYear, this.selectedPlanningMonth),
       this.loadSavingsGoals(),
     ]);
   }
 
-  async loadBudgetOverview() {
+  async loadBudgetOverview(targetYear = null, targetMonth = null) {
+    const now = new Date();
+    const yr = targetYear || this.selectedPlanningYear || now.getFullYear();
+    const mo = targetMonth || this.selectedPlanningMonth || (now.getMonth() + 1);
+    this.selectedPlanningYear = yr;
+    this.selectedPlanningMonth = mo;
+
     try {
-      const res = await api.planning.getBudget();
+      const res = await api.planning.getBudget(yr, mo);
       this.budgetData = res.data;
       this.renderBudgetOverview();
     } catch (err) {
@@ -1960,7 +2081,9 @@ class App {
       'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
     ];
 
-    const currentMonthText = `${monthNames[b.period_month] || 'Oktober'} ${b.period_year || 2026}`;
+    const currentYear = b.period_year || this.selectedPlanningYear || 2026;
+    const currentMonth = b.period_month || this.selectedPlanningMonth || (new Date().getMonth() + 1);
+    const currentMonthText = `${monthNames[currentMonth] || 'Oktober'} ${currentYear}`;
 
     // Update Top Month Picker Label (Screen 03)
     if (this.planningCurrentMonthLabel) {
@@ -1969,7 +2092,7 @@ class App {
 
     // Update Right Column Mini Card on Dashboard (Screen 01)
     if (this.budgetPeriodMini) {
-      this.budgetPeriodMini.textContent = `${monthNamesShort[b.period_month] || b.period_month} ${b.period_year}`;
+      this.budgetPeriodMini.textContent = `${monthNamesShort[currentMonth] || currentMonth} ${currentYear}`;
     }
 
     const totLimit = b.total_limit !== undefined && b.total_limit !== null ? parseFloat(b.total_limit) : 0;
@@ -2217,12 +2340,13 @@ class App {
     const val = parseFloat(this.inputBudgetLimit.value);
     if (!val || val <= 0) return;
 
-    const now = new Date();
+    const yr = this.selectedPlanningYear || new Date().getFullYear();
+    const mo = this.selectedPlanningMonth || (new Date().getMonth() + 1);
     try {
-      await api.planning.setMonthlyBudget(now.getFullYear(), now.getMonth() + 1, val);
+      await api.planning.setMonthlyBudget(yr, mo, val);
       this.closeModals();
       this.showAlert('Pagu anggaran total bulanan berhasil disimpan!', 'success');
-      await this.loadBudgetOverview();
+      await this.loadBudgetOverview(yr, mo);
     } catch (err) {
       this.showAlert(`Gagal menyimpan anggaran: ${err.message}`, 'error');
     }
@@ -2234,12 +2358,13 @@ class App {
     const val = parseFloat(this.inputCatBudgetLimit.value);
     if (!catId || !val || val <= 0) return;
 
-    const now = new Date();
+    const yr = this.selectedPlanningYear || new Date().getFullYear();
+    const mo = this.selectedPlanningMonth || (new Date().getMonth() + 1);
     try {
-      await api.planning.setCategoryBudget(catId, now.getFullYear(), now.getMonth() + 1, val);
+      await api.planning.setCategoryBudget(catId, yr, mo, val);
       this.closeModals();
       this.showAlert('Batas anggaran kategori berhasil disimpan!', 'success');
-      await this.loadBudgetOverview();
+      await this.loadBudgetOverview(yr, mo);
     } catch (err) {
       this.showAlert(`Gagal menyimpan limit kategori: ${err.message}`, 'error');
     }
