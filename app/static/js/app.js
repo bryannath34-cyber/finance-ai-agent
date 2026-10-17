@@ -8,6 +8,22 @@
 import { api } from './api.js';
 import { AudioRecorder } from './audio_recorder.js';
 
+const Icons = {
+  eye: `<svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`,
+  eyeOff: `<svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`,
+  mic: `<svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>`,
+  stop: `<svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>`,
+  check: `<svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+  arrowRight: `<svg class="ui-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>`,
+  bank: `<svg class="ui-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="21" x2="21" y2="21"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="12 3 3 8 21 8"/><line x1="6" y1="10" x2="6" y2="21"/><line x1="10" y1="10" x2="10" y2="21"/><line x1="14" y1="10" x2="14" y2="21"/><line x1="18" y1="10" x2="18" y2="21"/></svg>`,
+  phone: `<svg class="ui-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>`,
+  cash: `<svg class="ui-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><line x1="6" y1="12" x2="6.01" y2="12"/><line x1="18" y1="12" x2="18.01" y2="12"/></svg>`,
+  shield: `<svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+  plane: `<svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>`,
+  target: `<svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`,
+  alert: `<svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B38600" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`
+};
+
 class App {
   constructor() {
     this.currentUser = null;
@@ -460,7 +476,7 @@ class App {
       this.btnToggleLoginPassword.addEventListener('click', () => {
         const isPassword = this.loginPassword.type === 'password';
         this.loginPassword.type = isPassword ? 'text' : 'password';
-        this.btnToggleLoginPassword.textContent = isPassword ? '👁‍🗨' : '👁';
+        this.btnToggleLoginPassword.innerHTML = isPassword ? Icons.eyeOff : Icons.eye;
       });
     }
 
@@ -849,7 +865,7 @@ class App {
       let accountsDisplay = '-';
       if (tx.type === 'EXPENSE') accountsDisplay = `${tx.source_account_name || 'Rekening'}`;
       else if (tx.type === 'INCOME') accountsDisplay = `${tx.destination_account_name || 'Rekening'}`;
-      else if (tx.type === 'TRANSFER') accountsDisplay = `${tx.source_account_name || 'Sumber'} ➔ ${tx.destination_account_name || 'Tujuan'}`;
+      else if (tx.type === 'TRANSFER') accountsDisplay = `${tx.source_account_name || 'Sumber'} ${Icons.arrowRight} ${tx.destination_account_name || 'Tujuan'}`;
 
       const dateStr = this.formatDateID(tx.transaction_date);
       const sign = isIncome ? '+' : '-';
@@ -979,7 +995,7 @@ class App {
       let accText = '-';
       if (d.type === 'EXPENSE') accText = `${d.source_account_name || 'Rekening'}`;
       else if (d.type === 'INCOME') accText = `${d.destination_account_name || 'Rekening'}`;
-      else if (d.type === 'TRANSFER') accText = `${d.source_account_name} ➔ ${d.destination_account_name}`;
+      else if (d.type === 'TRANSFER') accText = `${d.source_account_name} ${Icons.arrowRight} ${d.destination_account_name}`;
 
       if (d.type === 'EXPENSE') totalExpense += parseFloat(d.amount) || 0;
 
@@ -1053,7 +1069,7 @@ class App {
       this.showAlert(`Gagal konfirmasi batch: ${err.message}`, 'error');
     } finally {
       this.btnConfirmBatch.disabled = false;
-      this.btnConfirmBatch.innerHTML = `<span>✓</span><span>Konfirmasi semua draft</span>`;
+      this.btnConfirmBatch.innerHTML = `${Icons.check}<span>Konfirmasi semua draft</span>`;
     }
   }
 
@@ -1077,11 +1093,11 @@ class App {
   handleRecordingState(isRecording) {
     if (isRecording) {
       this.btnRecord.classList.add('recording');
-      this.btnRecord.innerHTML = `<span>⏹</span><span>Berhenti Rekam</span>`;
+      this.btnRecord.innerHTML = `${Icons.stop}<span>Berhenti Rekam</span>`;
       this.recordStatus.textContent = 'Merekam suara (Maks 30s)...';
     } else {
       this.btnRecord.classList.remove('recording');
-      this.btnRecord.innerHTML = `<span>🎤</span><span>Rekam suara</span>`;
+      this.btnRecord.innerHTML = `${Icons.mic}<span>Rekam suara</span>`;
       this.recordStatus.textContent = 'Bahasa Indonesia · hasil transkripsi ditinjau sebelum diproses';
     }
   }
@@ -1199,8 +1215,8 @@ class App {
     if (this.budgetCapVal) this.budgetCapVal.textContent = this.formatIDR(totLimit);
     if (this.budgetUsedVal) this.budgetUsedVal.textContent = this.formatIDR(totSpent);
     if (this.budgetRemainderVal) {
-      this.budgetRemainderVal.textContent = b.is_over 
-        ? `⚠️ Melebihi plafon sebesar ${this.formatIDR(totSpent - totLimit)}`
+      this.budgetRemainderVal.innerHTML = b.is_over 
+        ? `${Icons.alert} Melebihi plafon sebesar ${this.formatIDR(totSpent - totLimit)}`
         : `Sisa plafon: ${this.formatIDR(totRem)}`;
       this.budgetRemainderVal.style.color = b.is_over ? 'var(--accent-rose)' : 'var(--accent-green)';
     }
@@ -1309,20 +1325,21 @@ class App {
     this.savingsGoalsList.innerHTML = '';
 
     const goalsToRender = (this.savingsGoals && this.savingsGoals.length > 0) ? this.savingsGoals : [
-      { id: 1, name: 'Emergency Fund', account_name: 'Bank BCA', current_balance: 3000000, target_amount: 4000000, progress_percent: 75, target_date: '31 Des 2026', icon: '🛡' },
-      { id: 2, name: 'Japan Trip', account_name: 'GoPay', current_balance: 7500000, target_amount: 10000000, progress_percent: 75, target_date: '30 Jun 2027', icon: '✈️' },
+      { id: 1, name: 'Emergency Fund', account_name: 'Bank BCA', current_balance: 3000000, target_amount: 4000000, progress_percent: 75, target_date: '31 Des 2026', icon: 'shield' },
+      { id: 2, name: 'Japan Trip', account_name: 'GoPay', current_balance: 7500000, target_amount: 10000000, progress_percent: 75, target_date: '30 Jun 2027', icon: 'plane' },
     ];
 
     goalsToRender.forEach((g) => {
       const card = document.createElement('div');
       card.className = 'goal-card-box';
       const pct = Math.min(Math.round(g.progress_percent || 0), 100);
-      const icon = g.icon || (g.name.toLowerCase().includes('darurat') || g.name.toLowerCase().includes('emergency') ? '🛡' : '✈️');
+      const isEmergency = (g.name.toLowerCase().includes('darurat') || g.name.toLowerCase().includes('emergency') || g.icon === 'shield');
+      const goalIconSvg = isEmergency ? Icons.shield : Icons.plane;
 
       card.innerHTML = `
         <div class="goal-card-top">
           <div class="goal-card-title-group">
-            <span style="font-size: 13px;">${icon}</span>
+            <span style="display: inline-flex; align-items: center;">${goalIconSvg}</span>
             <span class="goal-card-name">${g.name}</span>
           </div>
           <span class="goal-card-badge">${pct}%</span>
@@ -1490,13 +1507,21 @@ class App {
     if (!data) return;
 
     if (this.copilotVerdictBadge) {
-      this.copilotVerdictBadge.textContent = data.verdict_badge || '🟢 Relatif Aman untuk Dibeli';
-      this.copilotVerdictBadge.className = 'verdict-badge-pill';
+      let dotClass = 'dot-green';
+      let badgeText = data.verdict_badge || 'Relatif Aman untuk Dibeli';
+      badgeText = badgeText.replace(/^[🟢🟡🔴⚠️]\s*/, '');
+
       if (data.verdict === 'PERLU_PERTIMBANGAN') {
-        this.copilotVerdictBadge.classList.add('waspada');
+        dotClass = 'dot-yellow';
+        this.copilotVerdictBadge.className = 'verdict-badge-pill waspada';
       } else if (data.verdict === 'BERISIKO') {
-        this.copilotVerdictBadge.classList.add('berisiko');
+        dotClass = 'dot-red';
+        this.copilotVerdictBadge.className = 'verdict-badge-pill berisiko';
+      } else {
+        this.copilotVerdictBadge.className = 'verdict-badge-pill';
       }
+
+      this.copilotVerdictBadge.innerHTML = `<span class="verdict-dot ${dotClass}"></span> ${badgeText}`;
     }
 
     if (this.copilotItemCost) {
@@ -1726,14 +1751,14 @@ class App {
     if (this.accounts && this.accounts.length > 0 && this.settingsAccountsList) {
       this.settingsAccountsList.innerHTML = '';
       this.accounts.forEach((acc, idx) => {
-        let iconChar = '🏦';
+        let iconSvg = Icons.bank;
         let iconClass = 'bca';
         const nameLower = (acc.name || '').toLowerCase();
         if (nameLower.includes('gopay') || nameLower.includes('ovo') || nameLower.includes('dana')) {
-          iconChar = '📱';
+          iconSvg = Icons.phone;
           iconClass = 'gopay';
         } else if (nameLower.includes('kas') || nameLower.includes('tunai') || nameLower.includes('cash')) {
-          iconChar = '💵';
+          iconSvg = Icons.cash;
           iconClass = 'cash';
         }
 
@@ -1741,7 +1766,7 @@ class App {
         row.className = 'connected-acc-row';
         row.innerHTML = `
           <div class="connected-acc-left">
-            <div class="connected-acc-icon ${iconClass}">${iconChar}</div>
+            <div class="connected-acc-icon ${iconClass}">${iconSvg}</div>
             <div>
               <div class="connected-acc-type">${acc.name}</div>
               <div class="connected-acc-nickname">${acc.type || 'Rekening aktif'} · ${this.formatIDR(acc.balance || 0)}</div>
