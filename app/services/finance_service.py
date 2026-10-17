@@ -130,14 +130,13 @@ class FinanceService:
         """
         with get_db_connection() as conn:
             with conn.cursor() as cur:
-                # 1. Kunci dan baca transaksi target
+                # 1. Baca transaksi target (tanpa FOR UPDATE agar mematuhi hak akses SELECT-only tabel immutable ledger)
                 cur.execute("""
                     SELECT id, user_id, type, amount, source_account_id, destination_account_id,
                            category_id, description, transaction_date, ledger_role, is_reversal,
                            parent_transaction_id, reverses_transaction_id
                     FROM transactions
                     WHERE id = %s AND user_id = %s
-                    FOR UPDATE
                 """, (transaction_id, user_id))
                 target_tx = cur.fetchone()
 
@@ -146,6 +145,20 @@ class FinanceService:
 
                 if target_tx["is_reversal"]:
                     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Transaksi jurnal pembalik tidak dapat dibalik kembali.")
+
+                # Jika pengguna/skrip membalik baris ADMIN_FEE secara langsung, alihkan ke transaksi PRIMARY induknya
+                if target_tx["ledger_role"] == "ADMIN_FEE" and target_tx["parent_transaction_id"]:
+                    cur.execute("""
+                        SELECT id, user_id, type, amount, source_account_id, destination_account_id,
+                               category_id, description, transaction_date, ledger_role, is_reversal,
+                               parent_transaction_id, reverses_transaction_id
+                        FROM transactions
+                        WHERE id = %s AND user_id = %s
+                    """, (target_tx["parent_transaction_id"], user_id))
+                    parent_tx = cur.fetchone()
+                    if parent_tx:
+                        target_tx = parent_tx
+                        transaction_id = target_tx["id"]
 
                 # 2. Cek apakah transaksi ini sudah pernah dibalik
                 cur.execute("SELECT id FROM transactions WHERE user_id = %s AND reverses_transaction_id = %s", (user_id, transaction_id))
@@ -160,7 +173,6 @@ class FinanceService:
                                category_id, description, transaction_date, ledger_role, is_reversal
                         FROM transactions
                         WHERE parent_transaction_id = %s AND user_id = %s AND ledger_role = 'ADMIN_FEE'
-                        FOR UPDATE
                     """, (transaction_id, user_id))
                     admin_fee_tx = cur.fetchone()
 

@@ -144,7 +144,8 @@ def run_tests():
     if latest_tx_id:
         s_rev, r_rev = client.request("POST", f"/transactions/{latest_tx_id}/reverse", {"transaction_id": latest_tx_id, "reason": "Uji coba reversal otomatis"})
         passed = (s_rev == 200)
-        print_test("10. Reversal Transaction (/transactions/{id}/reverse)", passed, str(r_rev))
+        detail_rev = r_rev.get("message", str(r_rev)) if isinstance(r_rev, dict) else str(r_rev)
+        print_test("10. Reversal Transaction (/transactions/{id}/reverse)", passed, detail_rev)
 
     print("=" * 65)
     print("🏁 E2E TEST RUN COMPLETED!")
