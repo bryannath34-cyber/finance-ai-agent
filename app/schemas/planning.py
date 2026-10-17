@@ -76,6 +76,7 @@ class PurchaseAdviceResponse(BaseModel):
     advice: str
     financial_snapshot: Dict[str, Any]
     scenario_id: Optional[int] = None
+    is_purchase: bool = True
 
 class PurchaseScenarioItem(BaseModel):
     id: int

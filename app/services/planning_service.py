@@ -1,3 +1,4 @@
+import re
 import json
 import logging
 from typing import List, Dict, Any, Optional
@@ -242,58 +243,78 @@ class PlanningService:
         budget_overview = PlanningService.get_budget_overview(user_id)
         goals = PlanningService.get_savings_goals(user_id)
 
-        # 1. Ekstraksi Item & Nominal Cepat
-        cost = parse_indonesian_amount(query) or Decimal("0.00")
-        item_name = "Barang Rencana Pembelian"
+        # 1. Ekstraksi Nominal dan Klasifikasi Niat Pertanyaan
+        query_clean = query.strip()
+        query_lower = query_clean.lower()
 
-        # Coba minta OCI GenAI mengekstrak entitas pertanyaan pembelian jika nominal belum dapat
+        # Ekstraksi nominal angka jika ada (misal: "350rb", "1,5jt", "500000")
+        cost = parse_indonesian_amount(query_clean) or Decimal("0.00")
+
+        # Cek apakah pengguna mengindikasikan pembelian barang/jasa spesifik (bukan sekadar kata umum "belanja")
+        purchase_intent = bool(re.search(r'\b(beli|membeli|pembelian|checkout|bayar|order|sewa|borong|biaya|tarif|ongkos|harga)\b', query_lower))
+
         client = get_genai_client()
-        extraction_prompt = f"""Kamu adalah parser entitas pembelian.
-Diberikan kalimat pengguna: "{query}"
+        item_name = ""
+        is_purchase = False
+
+        if cost > 0 or purchase_intent:
+            # Skenario Pembelian Barang / Jasa
+            if client and settings.OCI_COMPARTMENT_OCID:
+                try:
+                    chat_models = oci.generative_ai_inference.models
+                    extraction_prompt = f"""Kamu adalah parser entitas pembelian.
+Diberikan kalimat pengguna: "{query_clean}"
 Ekstrak dalam JSON format berikut:
 {{
+  "is_purchase": true,
   "item_name": "<nama barang atau jasa yang ingin dibeli>",
-  "estimated_cost": <angka rupiah tanpa simbol, integer>
+  "estimated_cost": <angka rupiah integer tanpa simbol, isi 0 jika tidak ada harga disebutkan>
 }}
 Hanya balas dengan JSON."""
+                    chat_req = chat_models.CohereChatRequest(
+                        api_format=chat_models.BaseChatRequest.API_FORMAT_COHERE,
+                        message=extraction_prompt,
+                        max_tokens=200,
+                        temperature=0.1
+                    )
+                    chat_details = chat_models.ChatDetails(
+                        compartment_id=settings.OCI_COMPARTMENT_OCID,
+                        serving_mode=chat_models.OnDemandServingMode(model_id=settings.OCI_GENAI_MODEL_ID),
+                        chat_request=chat_req
+                    )
+                    res = client.chat(chat_details)
+                    txt = res.data.chat_response.text.strip()
+                    cleaned = txt.replace("```json", "").replace("```", "").strip()
+                    parsed = json.loads(cleaned)
+                    if parsed.get("item_name") and parsed["item_name"].lower() not in ("tidak ada", "none", "null", ""):
+                        item_name = parsed["item_name"]
+                    if parsed.get("estimated_cost") and cost == 0:
+                        cost = Decimal(str(parsed["estimated_cost"]))
+                    if parsed.get("is_purchase") is False and cost == 0:
+                        is_purchase = False
+                    else:
+                        is_purchase = True
+                except Exception as e:
+                    logger.warning("Gagal ekstraksi cepat AI: %s", e)
+                    is_purchase = (cost > 0)
 
-        if client and settings.OCI_COMPARTMENT_OCID:
-            try:
-                chat_models = oci.generative_ai_inference.models
-                chat_req = chat_models.CohereChatRequest(
-                    api_format=chat_models.BaseChatRequest.API_FORMAT_COHERE,
-                    message=extraction_prompt,
-                    max_tokens=200,
-                    temperature=0.1
-                )
-                chat_details = chat_models.ChatDetails(
-                    compartment_id=settings.OCI_COMPARTMENT_OCID,
-                    serving_mode=chat_models.OnDemandServingMode(model_id=settings.OCI_GENAI_MODEL_ID),
-                    chat_request=chat_req
-                )
-                res = client.chat(chat_details)
-                txt = res.data.chat_response.text.strip()
-                cleaned = txt.replace("```json", "").replace("```", "").strip()
-                parsed = json.loads(cleaned)
-                if parsed.get("item_name"):
-                    item_name = parsed["item_name"]
-                if parsed.get("estimated_cost") and cost == 0:
-                    cost = Decimal(str(parsed["estimated_cost"]))
-            except Exception as e:
-                logger.warning("Gagal ekstraksi cepat AI: %s", e)
-
-        if cost <= 0:
-            cost = Decimal("500000") # Fallback jika nominal tidak terdeteksi
+            if not item_name:
+                item_name = "Rencana Pembelian Barang" if is_purchase else "Konsultasi Strategi Finansial"
+        else:
+            # Skenario Konsultasi Finansial / Perencanaan Tabungan
+            is_purchase = False
+            item_name = "Konsultasi Alokasi Belanja & Tabungan"
+            cost = Decimal("0.00")
 
         # 2. Tentukan Rekening Sasaran
         target_acc = None
         if target_account_id:
             target_acc = next((a for a in accounts if a["id"] == target_account_id), None)
         if not target_acc:
-            # Cari rekening bank dengan saldo tertinggi
-            bank_accs = [a for a in accounts if a["type"] in ("BANK", "EWALLET", "CASH")]
-            bank_accs.sort(key=lambda x: x["current_balance"], reverse=True)
-            target_acc = bank_accs[0] if bank_accs else accounts[0] if accounts else None
+            # Pilih rekening dengan saldo positif tertinggi, atau rekening pertama
+            positive_accs = [a for a in accounts if a["current_balance"] > 0]
+            positive_accs.sort(key=lambda x: x["current_balance"], reverse=True)
+            target_acc = positive_accs[0] if positive_accs else (accounts[0] if accounts else None)
 
         acc_name = target_acc["name"] if target_acc else "Rekening Utama"
         acc_bal = target_acc["current_balance"] if target_acc else Decimal("0.00")
@@ -305,18 +326,33 @@ Hanya balas dengan JSON."""
         budget_after = rem_budget - cost
 
         # 3. Penentuan Vonis Deterministik
-        if bal_after < 0:
-            verdict = "BERISIKO"
-            verdict_badge = "🔴 Sangat Berisiko (Saldo Kurang)"
-        elif tot_limit > 0 and budget_after < 0:
-            verdict = "PERLU_PERTIMBANGAN"
-            verdict_badge = "🟡 Perlu Pertimbangan (Melebihi Anggaran)"
+        if is_purchase and cost > 0:
+            if bal_after < 0:
+                verdict = "BERISIKO"
+                verdict_badge = "🔴 Sangat Berisiko (Saldo Kurang)"
+            elif tot_limit > 0 and budget_after < 0:
+                verdict = "PERLU_PERTIMBANGAN"
+                verdict_badge = "🟡 Perlu Pertimbangan (Melebihi Anggaran)"
+            else:
+                verdict = "AMAN"
+                verdict_badge = "🟢 Relatif Aman untuk Dibeli"
         else:
-            verdict = "AMAN"
-            verdict_badge = "🟢 Relatif Aman untuk Dibeli"
+            # Mode Konsultasi Finansial Umum
+            negative_accs = [a for a in accounts if a["current_balance"] < 0]
+            if negative_accs:
+                verdict = "PERLU_PERTIMBANGAN"
+                verdict_badge = "⚠️ Perlu Penyeimbangan Arus Kas"
+            elif tot_limit > 0 and rem_budget < 0:
+                verdict = "PERLU_PERTIMBANGAN"
+                verdict_badge = "⚠️ Pengeluaran Melebihi Anggaran"
+            else:
+                verdict = "AMAN"
+                verdict_badge = "💡 Panduan Strategi Finansial"
 
-        # 4. Snapshot Finansial
+        # 4. Snapshot Finansial Real-Time
         snapshot = {
+            "query": query_clean,
+            "is_purchase": is_purchase,
             "rekening_terpilih": acc_name,
             "saldo_saat_ini": float(acc_bal),
             "saldo_setelah_beli": float(bal_after),
@@ -325,24 +361,54 @@ Hanya balas dengan JSON."""
             "sisa_anggaran_bulan_ini": float(rem_budget),
             "sisa_anggaran_setelah_beli": float(budget_after),
             "total_kekayaan_bersih": float(sum([a["current_balance"] for a in accounts])),
-            "target_tabungan_aktif": len([g for g in goals if g["status"] == "ACTIVE"])
+            "target_tabungan_aktif": len([g for g in goals if g.get("status") == "ACTIVE"])
         }
+
+        # Format ringkasan akun dan target untuk AI
+        acc_summary_lines = [f"- {a['name']}: Rp {float(a['current_balance']):,.0f}" for a in accounts]
+        accounts_summary = "\n".join(acc_summary_lines)
+
+        goals_summary_lines = []
+        for g in goals:
+            if g.get("status") == "ACTIVE":
+                goals_summary_lines.append(f"- {g['name']}: Target Rp {float(g['target_amount']):,.0f} (Terkumpul Rp {float(g.get('current_balance', 0)):,.0f})")
+        goals_summary = "\n".join(goals_summary_lines) if goals_summary_lines else "Belum ada target tabungan aktif yang diset."
 
         # 5. Penalaran Analitis OCI GenAI (Cohere Command A Osaka)
         advice_text = ""
-        advice_prompt = f"""Kamu adalah Penasihat Keuangan Pribadi (Financial Copilot AI) yang cerdas, empatik, dan rasional.
+        if is_purchase and cost > 0:
+            advice_prompt = f"""Kamu adalah Penasihat Keuangan Pribadi (Financial Copilot AI) yang cerdas, empatik, dan rasional.
 Pengguna berkonsultasi mengenai rencana pembelian barang:
-- Pertanyaan Pengguna: "{query}"
+- Pertanyaan Pengguna: "{query_clean}"
 - Barang yang ingin dibeli: {item_name}
 - Estimasi Harga: Rp {cost:,.0f}
 - Rekening yang dipakai: {acc_name} (Saldo saat ini: Rp {acc_bal:,.0f} -> Sisa setelah beli: Rp {bal_after:,.0f})
 - Anggaran Bulanan: Pagu Rp {tot_limit:,.0f}, Sudah Terpakai Rp {tot_spent:,.0f}, Sisa Anggaran: Rp {rem_budget:,.0f} (Jika dibeli sisa: Rp {budget_after:,.0f})
+- Target Tabungan Pengguna:
+{goals_summary}
 - Vonis Kalkulator Sistem: {verdict}
 
 Berikan analisis keuangan yang objektif dalam 2-3 paragraf berbahasa Indonesia yang bersahabat:
 1. Simpulkan apakah pembelian ini aman dilakukan sekarang atau lebih baik ditunda/dicicil.
 2. Jelaskan dampaknya secara nyata terhadap arus kas dan plafon anggaran bulanannya.
 3. Berikan saran taktis atau alternatif opsi bijak bagi pengguna."""
+        else:
+            advice_prompt = f"""Kamu adalah Penasihat Keuangan Pribadi (Financial Copilot AI) yang cerdas, solutif, dan profesional.
+Pengguna meminta panduan / konsultasi strategi finansial dengan pertanyaan:
+"{query_clean}"
+
+Berikut data posisi keuangan riil pengguna saat ini:
+- Rekening & Saldo Kas:
+{accounts_summary}
+- Pagu Anggaran Bulan Ini: Rp {tot_limit:,.0f} | Realisasi Belanja: Rp {tot_spent:,.0f} | Sisa Anggaran: Rp {rem_budget:,.0f}
+- Target Tabungan:
+{goals_summary}
+
+Instruksi Analisis & Rekomendasi:
+1. Jawab pertanyaan pengguna secara LANGSUNG, terstruktur, dan aplikatif. JANGAN mengarang atau mengasumsikan pembelian barang seharga Rp 500.000 karena pengguna sedang berkonsultasi strategi keuangan.
+2. Hubungkan analisis Anda dengan kondisi finansial riil pengguna di atas (misal: jika ada rekening bersaldo negatif seperti Kas Tunai, berikan saran cara menormalkannya terlebih dahulu).
+3. Berikan pembagian proporsi atau strategi praktis untuk menyeimbangkan alokasi belanja bulanan dengan setoran target tabungan (misal rumus 50/30/20 atau pemanfaatan sisa pagu anggaran).
+4. Sampaikan dalam 2-3 paragraf berbahasa Indonesia yang hangat, memotivasi, dan mudah dijalankan."""
 
         if client and settings.OCI_COMPARTMENT_OCID:
             try:
@@ -350,7 +416,7 @@ Berikan analisis keuangan yang objektif dalam 2-3 paragraf berbahasa Indonesia y
                 chat_req = chat_models.CohereChatRequest(
                     api_format=chat_models.BaseChatRequest.API_FORMAT_COHERE,
                     message=advice_prompt,
-                    max_tokens=600,
+                    max_tokens=650,
                     temperature=0.3
                 )
                 chat_details = chat_models.ChatDetails(
@@ -362,7 +428,10 @@ Berikan analisis keuangan yang objektif dalam 2-3 paragraf berbahasa Indonesia y
                 advice_text = res.data.chat_response.text.strip()
             except Exception as e:
                 logger.error("Gagal mendapatkan saran AI: %s", e)
-                advice_text = f"Pembelian {item_name} sebesar Rp {cost:,.0f} bernilai {verdict}. Sisa saldo rekening Anda akan menjadi Rp {bal_after:,.0f}."
+                if is_purchase and cost > 0:
+                    advice_text = f"Pembelian {item_name} sebesar Rp {cost:,.0f} bernilai {verdict}. Sisa saldo rekening Anda akan menjadi Rp {bal_after:,.0f}."
+                else:
+                    advice_text = f"Berdasarkan evaluasi finansial, sisa pagu anggaran Anda saat ini Rp {rem_budget:,.0f}. Disarankan mengalokasikan 20-30% dari sisa anggaran ke rekening target tabungan secara konsisten."
 
         # 6. Simpan Memori ke purchase_scenarios
         scenario_id = None
@@ -390,7 +459,8 @@ Berikan analisis keuangan yang objektif dalam 2-3 paragraf berbahasa Indonesia y
             "verdict_badge": verdict_badge,
             "advice": advice_text,
             "financial_snapshot": snapshot,
-            "scenario_id": scenario_id
+            "scenario_id": scenario_id,
+            "is_purchase": is_purchase
         }
 
     @staticmethod

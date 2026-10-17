@@ -208,8 +208,26 @@ class App {
     this.copilotVerdictCard = document.getElementById('copilot-verdict-card');
     this.copilotVerdictBadge = document.getElementById('copilot-verdict-badge');
     this.copilotItemCost = document.getElementById('copilot-item-cost');
+    this.copilotItemCostLabel = document.getElementById('copilot-item-cost-label');
     this.copilotAdviceText = document.getElementById('copilot-advice-text');
     this.copilotDetailText = document.getElementById('copilot-detail-text');
+
+    // Modal: Detail Evaluasi Finansial
+    this.modalEvaluationDetail = document.getElementById('modal-evaluation-detail');
+    this.modalEvalQuery = document.getElementById('modal-eval-query');
+    this.modalEvalAccount = document.getElementById('modal-eval-account');
+    this.modalEvalAccountSub = document.getElementById('modal-eval-account-sub');
+    this.modalEvalBudget = document.getElementById('modal-eval-budget');
+    this.modalEvalBudgetSub = document.getElementById('modal-eval-budget-sub');
+    this.modalEvalCost = document.getElementById('modal-eval-cost');
+    this.modalEvalCostSub = document.getElementById('modal-eval-cost-sub');
+    this.modalEvalGoals = document.getElementById('modal-eval-goals');
+    this.modalEvalGoalsSub = document.getElementById('modal-eval-goals-sub');
+    this.modalEvalBadge = document.getElementById('modal-eval-badge');
+    this.modalEvalAdviceText = document.getElementById('modal-eval-advice-text');
+    this.btnCloseModalEval = document.getElementById('btn-close-modal-eval');
+    this.btnEvalGotoPlanning = document.getElementById('btn-eval-goto-planning');
+    this.lastCopilotData = null;
 
     this.snapAccName = document.getElementById('snap-acc-name');
     this.snapAccBal = document.getElementById('snap-acc-bal');
@@ -594,7 +612,18 @@ class App {
     const btnSaveScenarioHistory = document.getElementById('btn-save-scenario-history');
     if (btnSaveScenarioHistory) {
       btnSaveScenarioHistory.addEventListener('click', () => {
-        this.showAlert('Analisis evaluasi disusun oleh OCI GenAI Cohere Command A.', 'info');
+        this.openEvaluationDetailModal();
+      });
+    }
+
+    if (this.btnCloseModalEval) {
+      this.btnCloseModalEval.addEventListener('click', () => this.closeModals());
+    }
+
+    if (this.btnEvalGotoPlanning) {
+      this.btnEvalGotoPlanning.addEventListener('click', () => {
+        this.closeModals();
+        this.switchTab('tab-planning');
       });
     }
 
@@ -2713,11 +2742,12 @@ class App {
 
   renderCopilotAdvice(data) {
     if (!data) return;
+    this.lastCopilotData = data;
 
     if (this.copilotVerdictBadge) {
       let dotClass = 'dot-green';
       let badgeText = data.verdict_badge || 'Relatif Aman untuk Dibeli';
-      badgeText = badgeText.replace(/^[🟢🟡🔴⚠️]\s*/, '');
+      badgeText = badgeText.replace(/^[🟢🟡🔴⚠️💡]\s*/, '');
 
       if (data.verdict === 'PERLU_PERTIMBANGAN') {
         dotClass = 'dot-yellow';
@@ -2726,6 +2756,7 @@ class App {
         dotClass = 'dot-red';
         this.copilotVerdictBadge.className = 'verdict-badge-pill berisiko';
       } else {
+        dotClass = 'dot-green';
         this.copilotVerdictBadge.className = 'verdict-badge-pill';
       }
 
@@ -2733,7 +2764,14 @@ class App {
     }
 
     if (this.copilotItemCost) {
-      this.copilotItemCost.textContent = this.formatIDR(data.estimated_cost || 2850000);
+      const isPurchase = data.is_purchase && (data.estimated_cost > 0);
+      if (isPurchase) {
+        if (this.copilotItemCostLabel) this.copilotItemCostLabel.textContent = 'Estimasi Pengeluaran';
+        this.copilotItemCost.textContent = this.formatIDR(data.estimated_cost);
+      } else {
+        if (this.copilotItemCostLabel) this.copilotItemCostLabel.textContent = 'Topik Evaluasi';
+        this.copilotItemCost.textContent = 'Alokasi & Tabungan';
+      }
     }
 
     if (this.copilotAdviceText) {
@@ -2742,7 +2780,7 @@ class App {
       if (paragraphs.length > 0) {
         this.copilotAdviceText.textContent = paragraphs[0];
         if (this.copilotDetailText) {
-          this.copilotDetailText.textContent = paragraphs.slice(1).join('\n\n') || `Catatan: Pembelian akan menyerap sebagian dari sisa anggaran belanja. Sisa pagu setelah pembelian adalah ${this.formatIDR(data.financial_snapshot?.sisa_anggaran_setelah_beli || 1150000)}.`;
+          this.copilotDetailText.textContent = paragraphs.slice(1).join('\n\n') || (data.is_purchase ? `Catatan: Pembelian akan menyerap sebagian dari sisa anggaran belanja. Sisa pagu setelah pembelian adalah ${this.formatIDR(data.financial_snapshot?.sisa_anggaran_setelah_beli || 1150000)}.` : `Saran: Alokasikan sebagian dari sisa pagu belanja Anda ke pos target tabungan yang masih aktif.`);
         }
       } else {
         this.copilotAdviceText.textContent = advice;
@@ -2765,6 +2803,68 @@ class App {
     if (this.snapGoalsStatus) {
       this.snapGoalsStatus.textContent = `${snap.target_tabungan_aktif || 2} sasaran aman`;
     }
+  }
+
+  openEvaluationDetailModal() {
+    if (!this.modalEvaluationDetail) return;
+    const data = this.lastCopilotData;
+    const snap = data?.financial_snapshot || {};
+    const isPurchase = data?.is_purchase && (data?.estimated_cost > 0);
+    const query = this.copilotInput?.value?.trim() || snap.query || 'Bagaimana cara menyeimbangkan alokasi belanja bulan ini dengan target tabungan?';
+
+    if (this.modalEvalQuery) {
+      this.modalEvalQuery.textContent = query;
+    }
+
+    if (this.modalEvalAccount) {
+      this.modalEvalAccount.textContent = snap.rekening_terpilih || 'Kas Tunai';
+    }
+    if (this.modalEvalAccountSub) {
+      const bal = snap.saldo_saat_ini !== undefined ? snap.saldo_saat_ini : 0;
+      this.modalEvalAccountSub.textContent = `Saldo saat ini: ${this.formatIDR(bal)}`;
+      this.modalEvalAccountSub.style.color = bal < 0 ? 'var(--accent-rose)' : 'var(--text-secondary)';
+    }
+
+    if (this.modalEvalBudget) {
+      this.modalEvalBudget.textContent = `Pagu: ${this.formatIDR(snap.total_anggaran_bulan_ini || 0)}`;
+    }
+    if (this.modalEvalBudgetSub) {
+      this.modalEvalBudgetSub.textContent = `Sisa alokasi belanja: ${this.formatIDR(snap.sisa_anggaran_bulan_ini || 0)}`;
+    }
+
+    if (this.modalEvalCost) {
+      this.modalEvalCost.textContent = isPurchase ? this.formatIDR(data.estimated_cost) : 'Rp 0 (Bukan Pembelian)';
+    }
+    if (this.modalEvalCostSub) {
+      this.modalEvalCostSub.textContent = isPurchase ? `Sisa saldo pasca beli: ${this.formatIDR(snap.saldo_setelah_beli || 0)}` : 'Konsultasi perencanaan anggaran & tabungan';
+    }
+
+    if (this.modalEvalGoals) {
+      const count = snap.target_tabungan_aktif !== undefined ? snap.target_tabungan_aktif : (this.savingsGoals?.length || 0);
+      this.modalEvalGoals.textContent = `${count} Sasaran Aktif`;
+    }
+    if (this.modalEvalGoalsSub) {
+      this.modalEvalGoalsSub.textContent = 'Status alokasi target tabungan';
+    }
+
+    if (this.modalEvalBadge) {
+      let badgeHtml = data?.verdict_badge || '💡 Panduan Strategi Finansial';
+      this.modalEvalBadge.innerHTML = badgeHtml;
+      if (data?.verdict === 'BERISIKO') {
+        this.modalEvalBadge.className = 'verdict-badge-pill berisiko';
+      } else if (data?.verdict === 'PERLU_PERTIMBANGAN') {
+        this.modalEvalBadge.className = 'verdict-badge-pill waspada';
+      } else {
+        this.modalEvalBadge.className = 'verdict-badge-pill';
+      }
+    }
+
+    if (this.modalEvalAdviceText) {
+      const advice = data?.advice || this.copilotAdviceText?.textContent || 'Silakan klik tombol "Minta Pertimbangan AI" untuk menyusun analisis finansial lengkap.';
+      this.modalEvalAdviceText.textContent = advice;
+    }
+
+    this.modalEvaluationDetail.style.display = 'flex';
   }
 
   async handleAnalyzePatterns() {
