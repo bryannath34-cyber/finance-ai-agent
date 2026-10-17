@@ -33,6 +33,7 @@ oci_api_key.pem
 # IDE & OS
 .vscode/
 .idea/
+pyrightconfig.json
 .DS_Store
 Thumbs.db
 *.swp
