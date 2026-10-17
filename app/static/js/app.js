@@ -40,6 +40,9 @@ class App {
     this.loginUsername = document.getElementById('login-username');
     this.loginPassword = document.getElementById('login-password');
     this.loginError = document.getElementById('login-error');
+    this.btnToggleLoginPassword = document.getElementById('btn-toggle-login-password');
+    this.btnGoogleLogin = document.getElementById('btn-google-login');
+    this.loginRememberMe = document.getElementById('login-remember-me');
 
     this.usernameDisplay = document.getElementById('username-display');
     this.userAvatarInitial = document.getElementById('user-avatar-initial');
@@ -452,7 +455,21 @@ class App {
       });
     }
 
-    // Tab 7 Events (Screen 07: Buat Akun & Reset Kata Sandi)
+    // Tab 7 Events (Screen 07: Buat Akun & Reset Kata Sandi & Login Desktop)
+    if (this.btnToggleLoginPassword && this.loginPassword) {
+      this.btnToggleLoginPassword.addEventListener('click', () => {
+        const isPassword = this.loginPassword.type === 'password';
+        this.loginPassword.type = isPassword ? 'text' : 'password';
+        this.btnToggleLoginPassword.textContent = isPassword ? '👁‍🗨' : '👁';
+      });
+    }
+
+    if (this.btnGoogleLogin) {
+      this.btnGoogleLogin.addEventListener('click', () => {
+        this.showAlert('Autentikasi Google OAuth OCI sedang dipersiapkan untuk rilis mendatang.', 'info');
+      });
+    }
+
     if (this.btnJumpLogin) {
       this.btnJumpLogin.addEventListener('click', () => this.showLogin());
     }
@@ -462,14 +479,14 @@ class App {
     if (this.linkOverlayForgot) {
       this.linkOverlayForgot.addEventListener('click', (e) => {
         e.preventDefault();
-        this.closeModals();
+        this.authOverlay.style.display = 'none';
         this.switchTab('tab-auth');
       });
     }
     if (this.linkOverlayRegister) {
       this.linkOverlayRegister.addEventListener('click', (e) => {
         e.preventDefault();
-        this.closeModals();
+        this.authOverlay.style.display = 'none';
         this.switchTab('tab-auth');
       });
     }

@@ -1815,38 +1815,158 @@
     </div>
   </div>
 
-  <!-- MODAL: Login Overlay -->
-  <div id="auth-overlay" class="modal-overlay" style="display: none;">
-    <div class="modal-content" style="max-width: 360px; text-align: center;">
-      <div style="width: 42px; height: 42px; background: var(--brand-dark); border-radius: 12px; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 20px;">
-        ✦
+  <!-- ====================================================================
+       SCREEN: FIGMA 1:1 LOGIN / DESKTOP (Split Screen 1440x900)
+       ==================================================================== -->
+  <div id="auth-overlay" class="desktop-login-overlay" style="display: none;">
+    <div class="desktop-login-container">
+
+      <!-- LEFT PANEL (730px x 900px) -->
+      <div class="desktop-login-left">
+        <div>
+          <!-- Brand Header -->
+          <div class="login-brand-header">
+            <div class="login-brand-icon">✦</div>
+            <div>
+              <div class="login-brand-title">Finance AI Agent</div>
+              <div class="login-brand-tagline">Your Smart Finance Copilot</div>
+            </div>
+          </div>
+
+          <!-- Form Area -->
+          <div class="login-form-wrapper">
+            <h1 class="login-title-h1">Selamat datang kembali</h1>
+            <p class="login-intro-p">Masuk untuk melanjutkan pengelolaan keuangan dan tujuan tabunganmu.</p>
+
+            <form id="login-form">
+              <!-- Email / Username -->
+              <div class="login-field-group">
+                <label for="login-username" class="login-field-label">Email</label>
+                <div class="login-input-box">
+                  <span class="login-input-icon">✉</span>
+                  <input 
+                    type="text" 
+                    id="login-username" 
+                    class="desktop-login-input with-left-icon" 
+                    placeholder="nama@email.com" 
+                    required 
+                    autocomplete="username"
+                  >
+                </div>
+              </div>
+
+              <!-- Password -->
+              <div class="login-field-group">
+                <label for="login-password" class="login-field-label">Kata sandi</label>
+                <div class="login-input-box">
+                  <span class="login-input-icon">🔒</span>
+                  <input 
+                    type="password" 
+                    id="login-password" 
+                    class="desktop-login-input with-both-icons" 
+                    placeholder="Masukkan kata sandi" 
+                    required 
+                    autocomplete="current-password"
+                  >
+                  <button type="button" id="btn-toggle-login-password" class="login-eye-btn" title="Tampilkan/sembunyikan kata sandi">
+                    👁
+                  </button>
+                </div>
+              </div>
+
+              <!-- Meta Row: Remember me & Forgot Password -->
+              <div class="login-row-meta">
+                <label class="login-remember-label">
+                  <input type="checkbox" id="login-remember-me" class="login-checkbox" checked>
+                  <span>Ingat saya</span>
+                </label>
+                <button type="button" id="link-overlay-forgot" class="login-forgot-link">
+                  Lupa kata sandi?
+                </button>
+              </div>
+
+              <div id="login-error" class="alert-box alert-error" style="display: none; margin-bottom: 16px;"></div>
+
+              <!-- Submit Button -->
+              <button type="submit" class="btn-login-submit" id="btn-submit-login">
+                <span>Masuk</span>
+                <span>→</span>
+              </button>
+
+              <!-- Alternative Divider -->
+              <div class="login-alt-divider">atau</div>
+
+              <!-- Google Login Button -->
+              <button type="button" class="btn-google-login" id="btn-google-login">
+                <span>Lanjutkan dengan akun Google</span>
+              </button>
+
+              <!-- Signup Link -->
+              <div class="login-signup-notice">
+                Belum punya akun? <button type="button" id="link-overlay-register" class="auth-link-action" style="font-weight: 500; color: #202420;">Buat akun</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="login-privacy-footer">
+          Privasi dan keamanan akunmu tetap menjadi prioritas.
+        </div>
       </div>
-      <h2 style="font-size: 18px; font-weight: 700; color: var(--text-primary);">Masuk ke Akun</h2>
-      <p style="font-size: 11px; color: var(--text-secondary); margin: 4px 0 16px 0;">
-        Personal Finance AI Agent v2.3
-      </p>
 
-      <form id="login-form" style="text-align: left;">
-        <div style="margin-bottom: 12px;">
-          <label for="login-username" style="font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Username</label>
-          <input type="text" id="login-username" class="auth-input" placeholder="bryan" required autocomplete="username">
+      <!-- RIGHT PANEL (710px x 900px) -->
+      <div class="desktop-login-right">
+        <div>
+          <div class="feature-eyebrow">FINANCE AI AGENT</div>
+          <h2 class="feature-headline">Semua keuanganmu, dalam satu tempat.</h2>
+          <p class="feature-subheading">Pantau transaksi, atur anggaran, dan pahami kebiasaan belanja dengan lebih mudah.</p>
+
+          <!-- Balance preview card -->
+          <div class="balance-preview-card">
+            <div class="preview-label">Total saldo</div>
+            <div class="preview-balance">Rp 45.250.000</div>
+            <div class="preview-trend">↑ 8,2% dari bulan lalu</div>
+
+            <!-- Wave Chart -->
+            <div class="preview-chart-wrapper">
+              <svg viewBox="0 0 510 72" preserveAspectRatio="none" style="width: 100%; height: 72px;">
+                <defs>
+                  <linearGradient id="balanceGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#EAF4EE" stop-opacity="0.9" />
+                    <stop offset="100%" stop-color="#EAF4EE" stop-opacity="0.2" />
+                  </linearGradient>
+                </defs>
+                <path d="M 0,55 Q 60,35 120,48 T 240,25 T 360,38 T 460,20 L 510,12 L 510,72 L 0,72 Z" fill="url(#balanceGrad)" />
+                <path d="M 0,55 Q 60,35 120,48 T 240,25 T 360,38 T 460,20 L 510,12" fill="none" stroke="#5A9976" stroke-width="2" stroke-linecap="round" />
+              </svg>
+            </div>
+
+            <div class="preview-chart-months">
+              <span>Jun</span>
+              <span>Jul</span>
+              <span>Agu</span>
+              <span>Sep</span>
+              <span>Okt</span>
+            </div>
+          </div>
+
+          <!-- Feature info card -->
+          <div class="feature-info-card">
+            <div class="feature-info-icon">🛡️</div>
+            <div>
+              <div class="security-card-title">Akun pribadi dan data keuangan</div>
+              <div class="security-card-body">
+                Setiap transaksi dapat kamu tinjau terlebih dahulu sebelum dikonfirmasi ke buku besar.
+              </div>
+            </div>
+          </div>
         </div>
-        <div style="margin-bottom: 14px;">
-          <label for="login-password" style="font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Password</label>
-          <input type="password" id="login-password" class="auth-input" placeholder="••••••••" required autocomplete="current-password">
+
+        <div class="brand-side-footer">
+          OCI Native · v2.3
         </div>
+      </div>
 
-        <div id="login-error" class="alert-box alert-error" style="display: none; margin-bottom: 12px;"></div>
-
-        <button type="submit" class="btn-primary-dark" style="width: 100%; height: 38px;">
-          Masuk ke Dashboard
-        </button>
-
-        <div style="display: flex; justify-content: space-between; margin-top: 14px; font-size: 10px;">
-          <button type="button" id="link-overlay-forgot" class="auth-link-action">Lupa kata sandi?</button>
-          <button type="button" id="link-overlay-register" class="auth-link-action">Buat akun baru</button>
-        </div>
-      </form>
     </div>
   </div>
 
