@@ -343,6 +343,18 @@ class App {
     this.selectedReportYear = initDate.getFullYear();
     this.selectedReportMonth = initDate.getMonth() + 1;
 
+    // Modal: Rincian Periode (Lihat Periode)
+    this.modalPeriodDetail = document.getElementById('modal-period-detail');
+    this.periodDetailModalTitle = document.getElementById('period-detail-modal-title');
+    this.periodDetailIncome = document.getElementById('period-detail-income');
+    this.periodDetailExpense = document.getElementById('period-detail-expense');
+    this.periodDetailNet = document.getElementById('period-detail-net');
+    this.periodDetailTxBody = document.getElementById('period-detail-tx-body');
+    this.periodDetailBtnGotoMutasi = document.getElementById('period-detail-btn-goto-mutasi');
+    this.periodDetailBtnViewReport = document.getElementById('period-detail-btn-view-report');
+    this.modalPeriodActiveYear = null;
+    this.modalPeriodActiveMonth = null;
+
     this.applyBalanceVisibility();
   }
 
@@ -594,9 +606,41 @@ class App {
     document.querySelectorAll('.btn-view-period').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         const period = e.currentTarget.getAttribute('data-period');
-        this.showAlert(`Membuka rincian periode: ${period}`, 'info');
+        if (period && period.includes('-')) {
+          const [yStr, mStr] = period.split('-');
+          this.openPeriodDetail(parseInt(yStr, 10), parseInt(mStr, 10));
+        } else {
+          const y = parseInt(e.currentTarget.getAttribute('data-year'), 10) || new Date().getFullYear();
+          const m = parseInt(e.currentTarget.getAttribute('data-month'), 10) || (new Date().getMonth() + 1);
+          this.openPeriodDetail(y, m);
+        }
       });
     });
+
+    if (this.periodDetailBtnGotoMutasi) {
+      this.periodDetailBtnGotoMutasi.addEventListener('click', () => {
+        const yr = this.modalPeriodActiveYear;
+        const mo = this.modalPeriodActiveMonth;
+        this.closeModals();
+        if (yr && mo && this.ledgerMonthSelect) {
+          const periodKey = `${yr}-${String(mo).padStart(2, '0')}`;
+          this.ledgerMonthSelect.value = periodKey;
+          this.applyLedgerFilters();
+        }
+        this.switchTab('tab-mutasi');
+      });
+    }
+
+    if (this.periodDetailBtnViewReport) {
+      this.periodDetailBtnViewReport.addEventListener('click', () => {
+        const yr = this.modalPeriodActiveYear;
+        const mo = this.modalPeriodActiveMonth;
+        this.closeModals();
+        this.loadReportsData(yr, mo);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        this.showAlert(`Menampilkan laporan analitik periode ${yr}-${mo}`, 'success');
+      });
+    }
 
     // Tab 6 Events (Pengaturan & Profil)
     if (this.userProfileBadge) {
@@ -2142,6 +2186,92 @@ class App {
   }
 
   // ==========================================
+  // PERIOD DETAIL MODAL (LIHAT PERIODE)
+  // ==========================================
+  openPeriodDetail(year, month) {
+    const yr = parseInt(year, 10);
+    const mo = parseInt(month, 10);
+    if (!yr || !mo) return;
+
+    this.modalPeriodActiveYear = yr;
+    this.modalPeriodActiveMonth = mo;
+
+    const monthNamesFull = [
+      '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    const monthLabel = `${monthNamesFull[mo] || mo} ${yr}`;
+    const periodKey = `${yr}-${String(mo).padStart(2, '0')}`;
+
+    if (this.periodDetailModalTitle) {
+      this.periodDetailModalTitle.textContent = `Rincian Periode: ${monthLabel}`;
+    }
+
+    // Filter transactions for this period
+    let inc = 0;
+    let exp = 0;
+    const periodTxs = [];
+
+    if (this.transactions && this.transactions.length > 0) {
+      this.transactions.forEach((tx) => {
+        if (tx.is_reversal) return;
+        if (!tx.transaction_date || !tx.transaction_date.startsWith(periodKey)) return;
+        const amt = parseFloat(tx.amount) || 0;
+        if (tx.type === 'INCOME') inc += amt;
+        else if (tx.type === 'EXPENSE') exp += amt;
+        periodTxs.push(tx);
+      });
+    }
+
+    const net = inc - exp;
+
+    if (this.periodDetailIncome) this.periodDetailIncome.textContent = this.formatIDR(inc);
+    if (this.periodDetailExpense) this.periodDetailExpense.textContent = this.formatIDR(exp);
+    if (this.periodDetailNet) {
+      this.periodDetailNet.textContent = this.formatIDR(net);
+      this.periodDetailNet.style.color = net < 0 ? 'var(--accent-rose)' : 'var(--text-primary)';
+    }
+
+    // Render transactions table inside modal
+    if (this.periodDetailTxBody) {
+      this.periodDetailTxBody.innerHTML = '';
+      if (periodTxs.length === 0) {
+        this.periodDetailTxBody.innerHTML = `
+          <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 24px 16px;">
+            Belum ada catatan transaksi di buku besar untuk periode ${monthLabel}.
+          </td></tr>
+        `;
+      } else {
+        periodTxs.forEach((tx) => {
+          const tr = document.createElement('tr');
+          const isIncome = tx.type === 'INCOME';
+          const sign = isIncome ? '+' : '-';
+          const amountClass = isIncome ? 'income' : 'expense';
+          const accountsDisplay = tx.type === 'EXPENSE' 
+            ? (tx.source_account_name || 'Rekening')
+            : (tx.type === 'INCOME' ? (tx.destination_account_name || 'Rekening') : `${tx.source_account_name || '-'} → ${tx.destination_account_name || '-'}`);
+
+          tr.innerHTML = `
+            <td style="font-size: 10.5px; white-space: nowrap; color: var(--text-secondary);">${this.formatDateID(tx.transaction_date)}</td>
+            <td style="font-size: 11px; font-weight: 500;">${tx.description || '-'}</td>
+            <td style="font-size: 10.5px; color: var(--text-secondary);">${tx.category_name || '-'}</td>
+            <td style="font-size: 10.5px; color: var(--text-secondary);">${accountsDisplay}</td>
+            <td class="td-amount ${amountClass}" style="text-align: right; font-weight: 600; font-size: 11px;">${sign}${this.formatIDR(tx.amount)}</td>
+          `;
+          this.periodDetailTxBody.appendChild(tr);
+        });
+      }
+    }
+
+    // Load background data for reports
+    this.loadReportsData(yr, mo);
+
+    if (this.modalPeriodDetail) {
+      this.modalPeriodDetail.style.display = 'flex';
+    }
+  }
+
+  // ==========================================
   // TAB 3: ANGGARAN & TARGET TABUNGAN
   // ==========================================
   async loadPlanningData() {
@@ -2841,7 +2971,7 @@ class App {
         tr.querySelector('.btn-view-period').addEventListener('click', (e) => {
           const y = parseInt(e.currentTarget.getAttribute('data-year'), 10);
           const m = parseInt(e.currentTarget.getAttribute('data-month'), 10);
-          this.loadReportsData(y, m);
+          this.openPeriodDetail(y, m);
         });
 
         this.reportsMonthlyTableBody.appendChild(tr);
