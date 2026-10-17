@@ -158,6 +158,12 @@ class App {
 
     this.btnJumpToCopilot = document.getElementById('btn-jump-to-copilot');
     this.btnJumpToMutasi = document.getElementById('btn-jump-to-mutasi');
+    this.btnDashOpenAi = document.getElementById('btn-dash-open-ai');
+    this.btnDashViewReports = document.getElementById('btn-dash-view-reports');
+    this.btnDashGotoPlanning = document.getElementById('btn-dash-goto-planning');
+    this.btnAddAccountDash = document.getElementById('btn-add-account-dash');
+    this.btnDashPeriodDay = document.getElementById('btn-dash-period-day');
+    this.btnDashPeriodMonth = document.getElementById('btn-dash-period-month');
 
     // Tab 3: Planning & Budgets (Screen 03)
     this.statPaguBulanan = document.getElementById('stat-pagu-bulanan');
@@ -335,6 +341,25 @@ class App {
     }
     if (this.btnJumpToMutasi) {
       this.btnJumpToMutasi.addEventListener('click', () => this.switchTab('tab-mutasi'));
+    }
+    if (this.btnDashOpenAi) {
+      this.btnDashOpenAi.addEventListener('click', () => this.switchTab('tab-agent'));
+    }
+    if (this.btnDashViewReports) {
+      this.btnDashViewReports.addEventListener('click', () => this.switchTab('tab-reports'));
+    }
+    if (this.btnDashGotoPlanning) {
+      this.btnDashGotoPlanning.addEventListener('click', () => this.switchTab('tab-planning'));
+    }
+    if (this.btnDashPeriodDay && this.btnDashPeriodMonth) {
+      this.btnDashPeriodDay.addEventListener('click', () => {
+        this.btnDashPeriodDay.classList.add('active');
+        this.btnDashPeriodMonth.classList.remove('active');
+      });
+      this.btnDashPeriodMonth.addEventListener('click', () => {
+        this.btnDashPeriodMonth.classList.add('active');
+        this.btnDashPeriodDay.classList.remove('active');
+      });
     }
 
     // Refresh Buttons
@@ -535,6 +560,7 @@ class App {
     bindOpenModal(this.btnSettingsBackupStatus, this.modalBackupStatus);
     bindOpenModal(this.btnSettingsPrivacyPolicy, this.modalPrivacyPolicy);
     bindOpenModal(this.btnAddAccountSettings, this.modalAddAccount);
+    bindOpenModal(this.btnAddAccountDash, this.modalAddAccount);
 
     if (this.formAddAccount) {
       this.formAddAccount.addEventListener('submit', async (e) => {
@@ -2583,9 +2609,9 @@ class App {
       this.dashboardSparklineMonths.innerHTML = months.map((m) => `<span>${m}</span>`).join('');
     }
 
-    const svgW = 240;
-    const svgH = 48;
-    const padding = 6;
+    const svgW = 600;
+    const svgH = 150;
+    const padding = 16;
     const innerH = svgH - padding * 2;
 
     const numPoints = points.length;
