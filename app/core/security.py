@@ -5,23 +5,29 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any
 from fastapi import Request, HTTPException, status, Depends
-from passlib.hash import argon2
+from passlib.context import CryptContext
 from app.core.config import settings
 from app.core.database import get_db_cursor
 
 logger = logging.getLogger("personal_finance.security")
 
+pwd_context = CryptContext(
+    schemes=["argon2", "pbkdf2_sha256", "bcrypt"],
+    deprecated="auto"
+)
+
 def hash_password(password: str) -> str:
-    """Mengenkripsi password menggunakan Argon2id."""
-    return argon2.hash(password)
+    """Mengenkripsi password menggunakan algoritma hashing standar (Argon2id default)."""
+    return pwd_context.hash(password)
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Memverifikasi kecocokan password dengan hash Argon2id."""
+    """Memverifikasi kecocokan password secara fleksibel terhadap hash yang tersimpan."""
     try:
-        return argon2.verify(plain_password, hashed_password)
+        return pwd_context.verify(plain_password, hashed_password)
     except Exception as e:
         logger.warning("Verifikasi password gagal memicu exception: %s", e)
         return False
+
 
 def generate_secure_token(nbytes: int = 32) -> str:
     """Menghasilkan random cryptographic token URL-safe."""
