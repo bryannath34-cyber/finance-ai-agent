@@ -331,11 +331,11 @@
               </div>
 
               <!-- Sparkline Visual Chart -->
-              <div class="sparkline-container">
-                <svg class="sparkline-svg" viewBox="0 0 240 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M 0 38 Q 30 32, 60 30 T 120 22 T 180 14 T 240 6" stroke="#5C9A78" stroke-width="2" fill="none" />
-                  <path d="M 0 38 Q 30 32, 60 30 T 120 22 T 180 14 T 240 6 L 240 48 L 0 48 Z" fill="url(#sparkline-grad2)" opacity="0.4" />
-                  <circle cx="238" cy="6" r="3.5" fill="#2D7653" stroke="#FFFFFF" stroke-width="1.5" />
+              <div class="sparkline-container" id="dashboard-sparkline-container">
+                <svg class="sparkline-svg" id="dashboard-sparkline-svg" viewBox="0 0 240 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path id="dashboard-sparkline-line" d="M 0 38 Q 30 32, 60 30 T 120 22 T 180 14 T 240 6" stroke="#5C9A78" stroke-width="2" fill="none" />
+                  <path id="dashboard-sparkline-area" d="M 0 38 Q 30 32, 60 30 T 120 22 T 180 14 T 240 6 L 240 48 L 0 48 Z" fill="url(#sparkline-grad2)" opacity="0.4" />
+                  <circle id="dashboard-sparkline-dot" cx="238" cy="6" r="3.5" fill="#2D7653" stroke="#FFFFFF" stroke-width="1.5" />
                   <defs>
                     <linearGradient id="sparkline-grad2" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stop-color="#EAF4EE" />
@@ -343,7 +343,7 @@
                     </linearGradient>
                   </defs>
                 </svg>
-                <div class="sparkline-months">
+                <div class="sparkline-months" id="dashboard-sparkline-months">
                   <span>Jun</span>
                   <span>Jul</span>
                   <span>Agu</span>
@@ -442,9 +442,9 @@
                   <span class="card-section-title">Insight Finansial</span>
                 </div>
               </div>
-              <div class="insight-highlight">Pengeluaran stabil di bawah batas rata-rata</div>
-              <div class="insight-detail">Realisasi belanja terkontrol dengan baik minggu ini. Pagu anggaran Anda masih dalam zona aman.</div>
-              <div class="insight-bars-row">
+              <div class="insight-highlight" id="dashboard-insight-title">Pengeluaran stabil di bawah batas rata-rata</div>
+              <div class="insight-detail" id="dashboard-insight-desc">Realisasi belanja terkontrol dengan baik minggu ini. Pagu anggaran Anda masih dalam zona aman.</div>
+              <div class="insight-bars-row" id="dashboard-insight-bars">
                 <div class="insight-bar" style="height: 19px;"></div>
                 <div class="insight-bar" style="height: 27px;"></div>
                 <div class="insight-bar" style="height: 22px;"></div>
@@ -1081,7 +1081,7 @@
             </div>
             <div class="grouped-chart-baseline"></div>
 
-            <div class="chart-bottom-note">Nov dan Des belum memiliki data aktual.</div>
+            <div class="chart-bottom-note" id="reports-chart-note">Menampilkan data arus kas riil buku besar.</div>
           </div>
 
           <!-- Right Card (404px): Komposisi pengeluaran -->

@@ -96,3 +96,52 @@ class SpendingPatternResponse(BaseModel):
     percentage_change: float
     category_comparisons: List[Dict[str, Any]]
     ai_summary: str
+
+# ==========================================
+# 4. Laporan & Diagram Realtime (Analytics)
+# ==========================================
+class MonthlyCashflowItem(BaseModel):
+    year: int
+    month: int
+    month_label: str
+    income: Decimal
+    expense: Decimal
+    net_cashflow: Decimal
+
+class CategoryCompositionItem(BaseModel):
+    category_name: str
+    spent_amount: Decimal
+    percentage: float
+
+class MonthlyHistoryItem(BaseModel):
+    period_str: str
+    year: int
+    month: int
+    income: Decimal
+    expense: Decimal
+    net_cashflow: Decimal
+    expense_change_percent: float
+
+class DailySpendingItem(BaseModel):
+    date_str: str
+    day_label: str
+    spent_amount: Decimal
+
+class FinancialReportsResponse(BaseModel):
+    period_year: int
+    period_month: int
+    current_income: Decimal
+    current_expense: Decimal
+    current_net: Decimal
+    savings_rate: float
+    income_count: int
+    expense_count: int
+    prev_month_expense: Decimal
+    expense_change_percent: float
+    monthly_cashflow: List[MonthlyCashflowItem]
+    category_composition: List[CategoryCompositionItem]
+    monthly_history: List[MonthlyHistoryItem]
+    daily_spending: List[DailySpendingItem]
+    sparkline_points: List[Decimal]
+    sparkline_months: List[str]
+

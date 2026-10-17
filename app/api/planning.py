@@ -13,6 +13,7 @@ from app.schemas.planning import (
     PurchaseAdviceResponse,
     PurchaseScenarioItem,
     SpendingPatternResponse,
+    FinancialReportsResponse,
 )
 from app.services.planning_service import PlanningService
 
@@ -100,3 +101,24 @@ def analyze_spending_patterns(user: dict = Depends(get_current_user)):
     """
     res = PlanningService.analyze_spending_patterns(user["id"])
     return DataResponse(success=True, message="Analisis pola pengeluaran berhasil.", data=res)
+
+# =============================================================================
+# 4. LAPORAN KEUANGAN & ANALITIK DIAGRAM REALTIME
+# =============================================================================
+@router.get("/reports", response_model=DataResponse[FinancialReportsResponse])
+def get_financial_reports(
+    year: Optional[int] = Query(None, ge=2024, le=2050),
+    month: Optional[int] = Query(None, ge=1, le=12),
+    user: dict = Depends(get_current_user)
+):
+    """
+    Mengambil analitik laporan keuangan riil:
+    - Arus kas 12 bulan (Jan - Des)
+    - Komposisi pengeluaran kategori
+    - Riwayat bulanan
+    - Pengeluaran harian 10 hari terakhir
+    - Titik sparkline kekayaan bersih
+    """
+    reports = PlanningService.get_financial_reports(user["id"], year, month)
+    return DataResponse(success=True, message="Laporan keuangan riil berhasil dimuat.", data=reports)
+

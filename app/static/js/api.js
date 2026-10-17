@@ -183,6 +183,8 @@ export const api = {
       request(`/planning/advisory/scenarios?limit=${limit}`),
     getSpendingPatterns: () =>
       request('/planning/advisory/spending-patterns'),
+    getReports: (year = null, month = null) =>
+      request(`/planning/reports${year && month ? `?year=${year}&month=${month}` : ''}`),
   },
 };
 

@@ -184,6 +184,7 @@ class App {
     // Tab 5: Laporan Keuangan (Screen 05)
     this.btnExportReport = document.getElementById('btn-export-report');
     this.btnReportMonthPicker = document.getElementById('btn-report-month-picker');
+    this.reportCurrentMonthLabel = document.getElementById('report-current-month-label');
     this.reportStatIncome = document.getElementById('report-stat-income');
     this.reportStatIncomeSub = document.getElementById('report-stat-income-sub');
     this.reportStatExpense = document.getElementById('report-stat-expense');
@@ -195,8 +196,20 @@ class App {
     this.reportCompMonth = document.getElementById('report-comp-month');
     this.reportCompTotal = document.getElementById('report-comp-total');
     this.reportsCatProgressContainer = document.getElementById('reports-cat-progress-container');
+    this.reportsBarsContainer = document.getElementById('reports-bars-container');
+    this.reportsChartNote = document.getElementById('reports-chart-note');
     this.reportsMonthlyTableBody = document.getElementById('reports-monthly-table-body');
     this.btnReportSelectMonth = document.getElementById('btn-report-select-month');
+
+    // Dashboard Real-time Visual Charts (Screen 01)
+    this.dashboardSparklineSvg = document.getElementById('dashboard-sparkline-svg');
+    this.dashboardSparklineLine = document.getElementById('dashboard-sparkline-line');
+    this.dashboardSparklineArea = document.getElementById('dashboard-sparkline-area');
+    this.dashboardSparklineDot = document.getElementById('dashboard-sparkline-dot');
+    this.dashboardSparklineMonths = document.getElementById('dashboard-sparkline-months');
+    this.dashboardInsightTitle = document.getElementById('dashboard-insight-title');
+    this.dashboardInsightDesc = document.getElementById('dashboard-insight-desc');
+    this.dashboardInsightBars = document.getElementById('dashboard-insight-bars');
 
     // Tab 6: Pengaturan & Profil (Screen 06)
     this.settingsProfileName = document.getElementById('settings-profile-name');
@@ -370,16 +383,25 @@ class App {
     if (this.btnExportReport) {
       this.btnExportReport.addEventListener('click', () => this.handleExportReport());
     }
+    const pickReportMonth = () => {
+      const currentM = this.selectedReportMonth || (new Date().getMonth() + 1);
+      const choice = prompt('Pilih nomor bulan yang ingin ditampilkan (1 = Jan, 10 = Okt, 12 = Des):', String(currentM));
+      if (choice) {
+        const m = parseInt(choice, 10);
+        if (m >= 1 && m <= 12) {
+          this.loadReportsData(this.selectedReportYear, m);
+        } else {
+          this.showAlert('Nomor bulan tidak valid (1 - 12).', 'error');
+        }
+      }
+    };
     if (this.btnReportMonthPicker) {
-      this.btnReportMonthPicker.addEventListener('click', () => {
-        this.showAlert('Menampilkan periode laporan aktif: Oktober 2026', 'info');
-      });
+      this.btnReportMonthPicker.addEventListener('click', pickReportMonth);
     }
     if (this.btnReportSelectMonth) {
-      this.btnReportSelectMonth.addEventListener('click', () => {
-        this.showAlert('Menampilkan periode laporan aktif: Oktober 2026', 'info');
-      });
+      this.btnReportSelectMonth.addEventListener('click', pickReportMonth);
     }
+
     document.querySelectorAll('.btn-view-period').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         const period = e.currentTarget.getAttribute('data-period');
@@ -574,8 +596,13 @@ class App {
       else c.classList.remove('active');
     });
 
-    if (tabId === 'tab-planning') {
+    if (tabId === 'tab-dashboard') {
+      this.loadAccounts();
+      this.loadBudgetOverview();
+      this.loadReportsData();
+    } else if (tabId === 'tab-planning') {
       this.loadPlanningData();
+      this.loadBudgetOverview();
     } else if (tabId === 'tab-copilot') {
       this.loadCopilotData();
     } else if (tabId === 'tab-reports') {
@@ -696,6 +723,7 @@ class App {
       this.loadCategories(),
       this.loadHistory(),
       this.loadBudgetOverview(),
+      this.loadReportsData(),
     ]);
   }
 
@@ -726,6 +754,7 @@ class App {
       this.filteredTransactions = [...this.transactions];
       this.renderHistory();
       this.calculateMonthlySummary();
+      this.loadReportsData();
     } catch (err) {
       console.warn('Gagal memuat riwayat:', err);
     }
@@ -922,7 +951,7 @@ class App {
     try {
       const res = await api.transactions.reverse(txId, reason);
       this.showAlert(res.message || 'Jurnal pembalik berhasil diterbitkan.', 'success');
-      await Promise.all([this.loadAccounts(), this.loadHistory(), this.loadBudgetOverview()]);
+      await Promise.all([this.loadAccounts(), this.loadHistory(), this.loadBudgetOverview(), this.loadReportsData()]);
     } catch (err) {
       this.showAlert(`Gagal membalik transaksi: ${err.message}`, 'error');
     }
@@ -1064,7 +1093,7 @@ class App {
       this.renderDrafts();
       this.aiInput.value = '';
 
-      await Promise.all([this.loadAccounts(), this.loadHistory(), this.loadBudgetOverview()]);
+      await Promise.all([this.loadAccounts(), this.loadHistory(), this.loadBudgetOverview(), this.loadReportsData()]);
     } catch (err) {
       this.showAlert(`Gagal konfirmasi batch: ${err.message}`, 'error');
     } finally {
@@ -1207,18 +1236,26 @@ class App {
       this.budgetPeriodMini.textContent = `${monthNamesShort[b.period_month] || b.period_month} ${b.period_year}`;
     }
 
-    const totLimit = b.total_limit > 0 ? parseFloat(b.total_limit) : 5000000;
-    const totSpent = b.total_spent > 0 ? parseFloat(b.total_spent) : 2150000;
-    const totRem = b.total_limit > 0 ? parseFloat(b.total_remaining) : (totLimit - totSpent);
-    const pct = Math.min(Math.round(totSpent / totLimit * 100), 100);
+    const totLimit = b.total_limit !== undefined && b.total_limit !== null ? parseFloat(b.total_limit) : 0;
+    const totSpent = b.total_spent !== undefined && b.total_spent !== null ? parseFloat(b.total_spent) : 0;
+    const totRem = totLimit > 0 ? (totLimit - totSpent) : 0;
+    const pct = totLimit > 0 ? Math.min(Math.round((totSpent / totLimit) * 100), 100) : (totSpent > 0 ? 100 : 0);
 
-    if (this.budgetCapVal) this.budgetCapVal.textContent = this.formatIDR(totLimit);
+    if (this.budgetCapVal) {
+      this.budgetCapVal.textContent = totLimit > 0 ? this.formatIDR(totLimit) : 'Belum diatur';
+    }
     if (this.budgetUsedVal) this.budgetUsedVal.textContent = this.formatIDR(totSpent);
     if (this.budgetRemainderVal) {
-      this.budgetRemainderVal.innerHTML = b.is_over 
-        ? `${Icons.alert} Melebihi plafon sebesar ${this.formatIDR(totSpent - totLimit)}`
-        : `Sisa plafon: ${this.formatIDR(totRem)}`;
-      this.budgetRemainderVal.style.color = b.is_over ? 'var(--accent-rose)' : 'var(--accent-green)';
+      if (totLimit === 0) {
+        this.budgetRemainderVal.innerHTML = 'Pagu belum ditetapkan untuk bulan ini';
+        this.budgetRemainderVal.style.color = 'var(--text-muted)';
+      } else if (b.is_over) {
+        this.budgetRemainderVal.innerHTML = `${Icons.alert} Melebihi plafon sebesar ${this.formatIDR(totSpent - totLimit)}`;
+        this.budgetRemainderVal.style.color = 'var(--accent-rose)';
+      } else {
+        this.budgetRemainderVal.innerHTML = `Sisa plafon: ${this.formatIDR(totRem)}`;
+        this.budgetRemainderVal.style.color = 'var(--accent-green)';
+      }
     }
 
     if (this.budgetFillBar) {
@@ -1227,86 +1264,127 @@ class App {
     }
 
     // Update Screen 03 (Anggaran & Tabungan) 4 Top Stat Cards
-    if (this.statPaguBulanan) this.statPaguBulanan.textContent = this.formatIDR(totLimit);
-    if (this.statPaguStatus) this.statPaguStatus.textContent = 'Batas anggaran aktif';
+    if (this.statPaguBulanan) {
+      this.statPaguBulanan.textContent = totLimit > 0 ? this.formatIDR(totLimit) : 'Rp 0';
+    }
+    if (this.statPaguStatus) {
+      this.statPaguStatus.textContent = totLimit > 0 ? 'Batas anggaran aktif' : 'Belum ditetapkan';
+      this.statPaguStatus.className = totLimit > 0 ? 'stat-card-badge green' : 'stat-card-badge amber';
+    }
 
     if (this.statPengeluaran) this.statPengeluaran.textContent = this.formatIDR(totSpent);
     if (this.statPengeluaranStatus) {
-      this.statPengeluaranStatus.textContent = `${pct}% dari pagu`;
-      this.statPengeluaranStatus.className = pct > 80 ? 'stat-card-badge rose' : 'stat-card-badge rose';
+      if (totLimit > 0) {
+        this.statPengeluaranStatus.textContent = `${pct}% dari pagu`;
+        this.statPengeluaranStatus.className = pct > 80 ? 'stat-card-badge rose' : 'stat-card-badge green';
+      } else {
+        this.statPengeluaranStatus.textContent = 'Realisasi berjalan';
+        this.statPengeluaranStatus.className = 'stat-card-badge green';
+      }
     }
 
-    if (this.statSisaAnggaran) this.statSisaAnggaran.textContent = this.formatIDR(totRem);
+    if (this.statSisaAnggaran) {
+      this.statSisaAnggaran.textContent = totLimit > 0 ? this.formatIDR(totRem) : 'Rp 0';
+    }
     if (this.statSisaStatus) {
-      this.statSisaStatus.textContent = `${100 - pct}% masih tersedia`;
-      this.statSisaStatus.className = b.is_over ? 'stat-card-badge rose' : 'stat-card-badge green';
+      if (totLimit > 0) {
+        this.statSisaStatus.textContent = b.is_over ? 'Pagu terlampaui' : `${100 - pct}% masih tersedia`;
+        this.statSisaStatus.className = b.is_over ? 'stat-card-badge rose' : 'stat-card-badge green';
+      } else {
+        this.statSisaStatus.textContent = 'Atur pagu bulanan';
+        this.statSisaStatus.className = 'stat-card-badge amber';
+      }
     }
 
-    if (this.statTabunganBulanIni) this.statTabunganBulanIni.textContent = 'Rp 1.250.000';
-    if (this.statTabunganStatus) this.statTabunganStatus.textContent = 'Target Rp 1.500.000';
+    let totalSavingsThisMonth = 0;
+    if (this.savingsGoals && this.savingsGoals.length > 0) {
+      totalSavingsThisMonth = this.savingsGoals.reduce((sum, g) => sum + (parseFloat(g.current_balance) || 0), 0);
+    }
+    if (this.statTabunganBulanIni) {
+      this.statTabunganBulanIni.textContent = this.formatIDR(totalSavingsThisMonth);
+    }
+    if (this.statTabunganStatus) {
+      this.statTabunganStatus.textContent = this.savingsGoals && this.savingsGoals.length > 0
+        ? `${this.savingsGoals.length} kantong tabungan aktif`
+        : 'Belum ada target tabungan';
+    }
 
     // Render Category Budgets Table (Screen 03)
     if (this.categoryBudgetsTableBody) {
       this.categoryBudgetsTableBody.innerHTML = '';
-      const categoriesToRender = (b.categories && b.categories.length > 0) ? b.categories : [
-        { category_name: 'Makanan & minuman', limit_amount: 1500000, spent_amount: 850000, remaining_amount: 650000, percentage_spent: 56.7 },
-        { category_name: 'Transportasi', limit_amount: 750000, spent_amount: 420000, remaining_amount: 330000, percentage_spent: 56.0 },
-        { category_name: 'Hiburan', limit_amount: 500000, spent_amount: 380000, remaining_amount: 120000, percentage_spent: 76.0 },
-        { category_name: 'Belanja', limit_amount: 750000, spent_amount: 300000, remaining_amount: 450000, percentage_spent: 40.0 },
-        { category_name: 'Lainnya', limit_amount: 1500000, spent_amount: 200000, remaining_amount: 1300000, percentage_spent: 13.3 },
-      ];
+      let categoriesToRender = (b.categories && b.categories.length > 0) ? b.categories : [];
 
-      categoriesToRender.forEach((cat) => {
-        const catPct = Math.min(Math.round(cat.percentage_spent || 0), 100);
-        const fillClass = catPct > 80 ? 'rose' : (catPct > 65 ? 'amber' : '');
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td><strong>${cat.category_name}</strong></td>
-          <td style="color: var(--text-secondary);">${this.formatIDR(cat.limit_amount)}</td>
-          <td><strong>${this.formatIDR(cat.spent_amount)}</strong></td>
-          <td style="color: var(--text-secondary);">${this.formatIDR(cat.remaining_amount)}</td>
-          <td>
-            <div class="cat-progress-track">
-              <div class="cat-progress-fill ${fillClass}" style="width: ${catPct}%;"></div>
-            </div>
-          </td>
+      if (categoriesToRender.length === 0 && this.transactions && this.transactions.length > 0) {
+        const catMap = {};
+        this.transactions.forEach((tx) => {
+          if (tx.is_reversal || tx.type !== 'EXPENSE') return;
+          const cName = tx.category_name || 'Lainnya';
+          const amt = parseFloat(tx.amount) || 0;
+          catMap[cName] = (catMap[cName] || 0) + amt;
+        });
+        categoriesToRender = Object.entries(catMap).map(([cName, spent]) => ({
+          category_name: cName,
+          limit_amount: 0,
+          spent_amount: spent,
+          remaining_amount: 0,
+          percentage_spent: 100,
+        }));
+      }
+
+      if (categoriesToRender.length > 0) {
+        categoriesToRender.forEach((cat) => {
+          const limit = parseFloat(cat.limit_amount) || 0;
+          const spent = parseFloat(cat.spent_amount) || 0;
+          const catPct = limit > 0 ? Math.min(Math.round((spent / limit) * 100), 100) : 100;
+          const fillClass = limit > 0 ? (catPct > 80 ? 'rose' : (catPct > 65 ? 'amber' : '')) : '';
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><strong>${cat.category_name}</strong></td>
+            <td style="color: var(--text-secondary);">${limit > 0 ? this.formatIDR(limit) : '<span style="color: var(--text-muted); font-size: 11px;">Belum diatur</span>'}</td>
+            <td><strong>${this.formatIDR(spent)}</strong></td>
+            <td style="color: var(--text-secondary);">${limit > 0 ? this.formatIDR(cat.remaining_amount) : '-'}</td>
+            <td>
+              <div class="cat-progress-track">
+                <div class="cat-progress-fill ${fillClass}" style="width: ${catPct}%;"></div>
+              </div>
+            </td>
+          `;
+          this.categoryBudgetsTableBody.appendChild(tr);
+        });
+      } else {
+        this.categoryBudgetsTableBody.innerHTML = `
+          <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 16px;">Belum ada kategori anggaran atau mutasi pengeluaran.</td></tr>
         `;
-        this.categoryBudgetsTableBody.appendChild(tr);
-      });
+      }
     }
 
     // Render Monthly Budget History Table (Screen 03)
     if (this.budgetHistoryTableBody) {
-      this.budgetHistoryTableBody.innerHTML = `
-        <tr>
-          <td><strong>Oktober 2026</strong></td>
-          <td style="color: var(--text-secondary);">${this.formatIDR(totLimit)}</td>
-          <td><strong>${this.formatIDR(totSpent)}</strong></td>
-          <td style="color: var(--text-secondary);">${this.formatIDR(totRem)}</td>
-          <td style="color: var(--text-secondary);">${pct}%</td>
-        </tr>
-        <tr>
-          <td>September 2026</td>
-          <td style="color: var(--text-secondary);">${this.formatIDR(5000000)}</td>
-          <td><strong>${this.formatIDR(2450000)}</strong></td>
-          <td style="color: var(--text-secondary);">${this.formatIDR(2550000)}</td>
-          <td style="color: var(--text-secondary);">49%</td>
-        </tr>
-        <tr>
-          <td>Agustus 2026</td>
-          <td style="color: var(--text-secondary);">${this.formatIDR(4800000)}</td>
-          <td><strong>${this.formatIDR(2780000)}</strong></td>
-          <td style="color: var(--text-secondary);">${this.formatIDR(2020000)}</td>
-          <td style="color: var(--text-secondary);">58%</td>
-        </tr>
-        <tr>
-          <td>Juli 2026</td>
-          <td style="color: var(--text-secondary);">${this.formatIDR(4500000)}</td>
-          <td><strong>${this.formatIDR(2300000)}</strong></td>
-          <td style="color: var(--text-secondary);">${this.formatIDR(2200000)}</td>
-          <td style="color: var(--text-secondary);">51%</td>
-        </tr>
-      `;
+      this.budgetHistoryTableBody.innerHTML = '';
+      if (this.reportData && this.reportData.monthly_history && this.reportData.monthly_history.length > 0) {
+        this.reportData.monthly_history.forEach((row, i) => {
+          const tr = document.createElement('tr');
+          const isCurrent = i === 0;
+          tr.innerHTML = `
+            <td><strong>${row.period_str}</strong></td>
+            <td style="color: var(--text-secondary);">${totLimit > 0 && isCurrent ? this.formatIDR(totLimit) : '-'}</td>
+            <td><strong>${this.formatIDR(row.expense)}</strong></td>
+            <td style="color: var(--text-secondary);">${totLimit > 0 && isCurrent ? this.formatIDR(totRem) : '-'}</td>
+            <td style="color: var(--text-secondary);">${totLimit > 0 && isCurrent ? `${pct}%` : '-'}</td>
+          `;
+          this.budgetHistoryTableBody.appendChild(tr);
+        });
+      } else {
+        this.budgetHistoryTableBody.innerHTML = `
+          <tr>
+            <td><strong>${currentMonthText}</strong></td>
+            <td style="color: var(--text-secondary);">${totLimit > 0 ? this.formatIDR(totLimit) : '-'}</td>
+            <td><strong>${this.formatIDR(totSpent)}</strong></td>
+            <td style="color: var(--text-secondary);">${totLimit > 0 ? this.formatIDR(totRem) : '-'}</td>
+            <td style="color: var(--text-secondary);">${totLimit > 0 ? `${pct}%` : '-'}</td>
+          </tr>
+        `;
+      }
     }
   }
 
@@ -1647,90 +1725,457 @@ class App {
   }
 
   // ====================================================================
-  // SCREEN 05: LAPORAN KEUANGAN LOGIC & CSV EXPORT
+  // SCREEN 05: LAPORAN KEUANGAN & DIAGRAM REALTIME LOGIC
   // ====================================================================
-  loadReportsData() {
-    // If transactions exist, calculate actual income, expense, and net cashflow for this month
-    if (this.transactions && this.transactions.length > 0) {
-      let incomeTotal = 0;
-      let expenseTotal = 0;
-      let incomeCount = 0;
-      const catSpent = {};
+  async loadReportsData(targetYear = null, targetMonth = null) {
+    const now = new Date();
+    const yr = targetYear || this.selectedReportYear || now.getFullYear();
+    const mo = targetMonth || this.selectedReportMonth || (now.getMonth() + 1);
+    this.selectedReportYear = yr;
+    this.selectedReportMonth = mo;
 
-      this.transactions.forEach((tx) => {
-        const amount = parseFloat(tx.amount) || 0;
-        if (tx.type === 'income') {
-          incomeTotal += amount;
-          incomeCount += 1;
-        } else if (tx.type === 'expense') {
-          expenseTotal += amount;
-          const cat = tx.category_name || 'Lainnya';
-          catSpent[cat] = (catSpent[cat] || 0) + amount;
-        }
+    const monthNames = [
+      '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+    ];
+
+    if (this.reportCurrentMonthLabel) {
+      this.reportCurrentMonthLabel.textContent = `${monthNames[mo] || 'Oktober'} ${yr}`;
+    }
+
+    try {
+      const res = await api.planning.getReports(yr, mo);
+      if (res && res.data) {
+        this.reportData = res.data;
+        this.renderReports(this.reportData);
+        return;
+      }
+    } catch (err) {
+      console.warn('Gagal memuat API analitik laporan, menggunakan komputasi lokal:', err);
+    }
+
+    // Fallback: hitung realtime langsung dari buku besar transaksi lokal
+    this.renderReportsFallback(yr, mo);
+  }
+
+  renderReports(data) {
+    if (!data) return;
+
+    // 1. Metric Cards
+    if (this.reportStatIncome) this.reportStatIncome.textContent = this.formatIDR(data.current_income);
+    if (this.reportStatIncomeSub) this.reportStatIncomeSub.textContent = `Dari ${data.income_count} transaksi tercatat`;
+    if (this.reportStatExpense) this.reportStatExpense.textContent = this.formatIDR(data.current_expense);
+    if (this.reportStatExpenseSub) {
+      if (data.prev_month_expense > 0) {
+        const sign = data.expense_change_percent >= 0 ? '+' : '';
+        this.reportStatExpenseSub.textContent = `${sign}${data.expense_change_percent}% dari bulan lalu`;
+      } else {
+        this.reportStatExpenseSub.textContent = `Dari ${data.expense_count} transaksi pengeluaran`;
+      }
+    }
+    if (this.reportStatNet) this.reportStatNet.textContent = this.formatIDR(data.current_net);
+    if (this.reportStatNetSub) this.reportStatNetSub.textContent = 'Pemasukan - pengeluaran riil';
+    if (this.reportStatRate) this.reportStatRate.textContent = `${data.savings_rate}%`;
+    if (this.reportStatRateSub) this.reportStatRateSub.textContent = 'Dari total pemasukan';
+
+    // 2. Komposisi Pengeluaran
+    const monthNames = [
+      '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+    ];
+    if (this.reportCompMonth) this.reportCompMonth.textContent = monthNames[data.period_month] || 'Oktober';
+    if (this.reportCompTotal) this.reportCompTotal.textContent = `Total ${this.formatIDR(data.current_expense)}`;
+
+    if (this.reportsCatProgressContainer) {
+      this.reportsCatProgressContainer.innerHTML = '';
+      if (data.category_composition && data.category_composition.length > 0) {
+        data.category_composition.forEach((item, idx) => {
+          const row = document.createElement('div');
+          row.className = 'reports-cat-row';
+          row.innerHTML = `
+            <div class="reports-cat-header">
+              <span>${item.category_name} (${this.formatIDR(item.spent_amount)})</span>
+              <span>${item.percentage}%</span>
+            </div>
+            <div class="reports-cat-track">
+              <div class="reports-cat-fill reports-cat-fill-${idx % 5}" style="width: ${Math.min(item.percentage, 100)}%;"></div>
+            </div>
+          `;
+          this.reportsCatProgressContainer.appendChild(row);
+        });
+      } else {
+        this.reportsCatProgressContainer.innerHTML = `
+          <div style="color: var(--text-muted); font-size: 11px; padding: 14px 0; text-align: center;">
+            Belum ada mutasi pengeluaran tercatat untuk periode ini.
+          </div>
+        `;
+      }
+    }
+
+    // 3. 12-Month Grouped Bar Chart
+    if (this.reportsBarsContainer && data.monthly_cashflow) {
+      this.reportsBarsContainer.innerHTML = '';
+      let maxVal = 0;
+      data.monthly_cashflow.forEach((item) => {
+        const inc = parseFloat(item.income) || 0;
+        const exp = parseFloat(item.expense) || 0;
+        if (inc > maxVal) maxVal = inc;
+        if (exp > maxVal) maxVal = exp;
       });
+      if (maxVal === 0) maxVal = 1000000;
 
-      // If we have actual transactions, dynamically enrich the stats
-      if (incomeTotal > 0 || expenseTotal > 0) {
-        const netCashflow = incomeTotal - expenseTotal;
-        const savingRate = incomeTotal > 0 ? ((netCashflow / incomeTotal) * 100).toFixed(1) : 0;
+      const maxChartHeight = 135; // px
 
-        if (this.reportStatIncome) this.reportStatIncome.textContent = this.formatIDR(incomeTotal);
-        if (this.reportStatIncomeSub) this.reportStatIncomeSub.textContent = `Dari ${incomeCount} transaksi tercatat`;
-        if (this.reportStatExpense) this.reportStatExpense.textContent = this.formatIDR(expenseTotal);
-        if (this.reportStatNet) this.reportStatNet.textContent = this.formatIDR(netCashflow);
-        if (this.reportStatRate) this.reportStatRate.textContent = `${savingRate}%`;
+      data.monthly_cashflow.forEach((item) => {
+        const inc = parseFloat(item.income) || 0;
+        const exp = parseFloat(item.expense) || 0;
+        const incH = Math.min(Math.round((inc / maxVal) * maxChartHeight), maxChartHeight);
+        const expH = Math.min(Math.round((exp / maxVal) * maxChartHeight), maxChartHeight);
+        const isActive = item.month === data.period_month;
 
-        if (this.reportCompTotal) this.reportCompTotal.textContent = `Total ${this.formatIDR(expenseTotal)}`;
+        const col = document.createElement('div');
+        col.className = 'grouped-month-col';
+        col.style.cursor = 'pointer';
+        col.title = `${item.month_label} ${item.year}: Masuk ${this.formatIDR(inc)} | Keluar ${this.formatIDR(exp)} (Klik untuk pilih)`;
 
-        // Render dynamic category bars if expense data exists
-        if (expenseTotal > 0 && this.reportsCatProgressContainer) {
-          const sortedCats = Object.entries(catSpent).sort((a, b) => b[1] - a[1]);
-          if (sortedCats.length > 0) {
-            this.reportsCatProgressContainer.innerHTML = '';
-            sortedCats.slice(0, 5).forEach(([catName, spent], idx) => {
-              const pct = Math.round((spent / expenseTotal) * 100);
-              const row = document.createElement('div');
-              row.className = 'reports-cat-row';
-              row.innerHTML = `
-                <div class="reports-cat-header">
-                  <span>${catName}</span>
-                  <span>${pct}%</span>
-                </div>
-                <div class="reports-cat-track">
-                  <div class="reports-cat-fill reports-cat-fill-${idx % 5}" style="width: ${pct}%;"></div>
-                </div>
-              `;
-              this.reportsCatProgressContainer.appendChild(row);
-            });
+        col.innerHTML = `
+          <div class="grouped-bars-wrapper">
+            <div class="bar-income ${isActive ? 'active' : ''}" style="height: ${incH}px;" title="${item.month_label} Masuk: ${this.formatIDR(inc)}"></div>
+            <div class="bar-expense ${isActive ? 'active' : ''}" style="height: ${expH}px;" title="${item.month_label} Keluar: ${this.formatIDR(exp)}"></div>
+          </div>
+          <div class="grouped-month-label ${isActive ? 'active' : ''}">${item.month_label}</div>
+        `;
+
+        col.addEventListener('click', () => {
+          this.loadReportsData(item.year, item.month);
+        });
+
+        this.reportsBarsContainer.appendChild(col);
+      });
+    }
+
+    if (this.reportsChartNote) {
+      this.reportsChartNote.textContent = `Menampilkan data arus kas riil buku besar tahun ${data.period_year}.`;
+    }
+
+    // 4. Monthly History Table
+    if (this.reportsMonthlyTableBody && data.monthly_history) {
+      this.reportsMonthlyTableBody.innerHTML = '';
+      data.monthly_history.forEach((row) => {
+        const tr = document.createElement('tr');
+        const chg = row.expense_change_percent;
+        const badgeClass = chg <= 0 ? 'trend-badge-green' : 'trend-badge-rose';
+        const sign = chg > 0 ? '+' : '';
+        const chgText = chg !== 0 ? `${sign}${chg}%` : '-';
+
+        tr.innerHTML = `
+          <td><strong>${row.period_str}</strong></td>
+          <td style="color: var(--text-secondary);">${this.formatIDR(row.income)}</td>
+          <td style="color: var(--text-secondary);">${this.formatIDR(row.expense)}</td>
+          <td><strong>${this.formatIDR(row.net_cashflow)}</strong></td>
+          <td><span class="${badgeClass}">${chgText}</span></td>
+          <td style="text-align: right;">
+            <button type="button" class="card-action-link btn-view-period" data-year="${row.year}" data-month="${row.month}">Lihat periode</button>
+          </td>
+        `;
+
+        tr.querySelector('.btn-view-period').addEventListener('click', (e) => {
+          const y = parseInt(e.currentTarget.getAttribute('data-year'), 10);
+          const m = parseInt(e.currentTarget.getAttribute('data-month'), 10);
+          this.loadReportsData(y, m);
+        });
+
+        this.reportsMonthlyTableBody.appendChild(tr);
+      });
+    }
+
+    // 5. Update Dashboard Real-time Charts
+    if (data.sparkline_points && data.sparkline_months) {
+      this.renderDashboardSparkline(data.sparkline_points, data.sparkline_months);
+    }
+    if (data.daily_spending) {
+      this.renderDashboardInsightBars(data.daily_spending);
+    }
+  }
+
+  renderReportsFallback(yr, mo) {
+    const monthLabels = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    const monthNamesFull = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+    let curIncome = 0;
+    let curExpense = 0;
+    let incCount = 0;
+    let expCount = 0;
+    const catSpent = {};
+
+    const monthlyMap = {};
+    for (let m = 1; m <= 12; m++) {
+      monthlyMap[m] = { income: 0, expense: 0 };
+    }
+
+    if (this.transactions && this.transactions.length > 0) {
+      this.transactions.forEach((tx) => {
+        if (tx.is_reversal) return;
+        const amt = parseFloat(tx.amount) || 0;
+        const txDate = tx.transaction_date ? new Date(tx.transaction_date) : new Date();
+        const tYr = txDate.getFullYear();
+        const tMo = txDate.getMonth() + 1;
+
+        if (tYr === yr) {
+          if (tx.type === 'INCOME') {
+            monthlyMap[tMo].income += amt;
+            if (tMo === mo) {
+              curIncome += amt;
+              incCount += 1;
+            }
+          } else if (tx.type === 'EXPENSE') {
+            monthlyMap[tMo].expense += amt;
+            if (tMo === mo) {
+              curExpense += amt;
+              expCount += 1;
+              const cat = tx.category_name || 'Lainnya';
+              catSpent[cat] = (catSpent[cat] || 0) + amt;
+            }
           }
         }
+      });
+    }
+
+    const curNet = curIncome - curExpense;
+    const savingsRate = curIncome > 0 ? parseFloat(((curNet / curIncome) * 100).toFixed(1)) : 0;
+
+    const monthlyCashflow = [];
+    for (let m = 1; m <= 12; m++) {
+      monthlyCashflow.append ? null : monthlyCashflow.push({
+        year: yr,
+        month: m,
+        month_label: monthLabels[m],
+        income: monthlyMap[m].income,
+        expense: monthlyMap[m].expense,
+        net_cashflow: monthlyMap[m].income - monthlyMap[m].expense
+      });
+    }
+
+    const totalCatSpent = Object.values(catSpent).reduce((a, b) => a + b, 0) || curExpense || 1;
+    const categoryComposition = Object.entries(catSpent)
+      .sort((a, b) => b[1] - a[1])
+      .map(([catName, spent]) => ({
+        category_name: catName,
+        spent_amount: spent,
+        percentage: parseFloat(((spent / totalCatSpent) * 100).toFixed(1))
+      }));
+
+    const monthlyHistory = [
+      {
+        period_str: `${monthNamesFull[mo] || 'Oktober'} ${yr}`,
+        year: yr,
+        month: mo,
+        income: curIncome,
+        expense: curExpense,
+        net_cashflow: curNet,
+        expense_change_percent: 0.0
       }
+    ];
+
+    // Build rolling 5 months for sparkline
+    let currentNetWorth = 0;
+    if (this.accounts) {
+      currentNetWorth = this.accounts.reduce((s, a) => s + (parseFloat(a.current_balance) || 0), 0);
+    }
+    const sparklineMonths = [];
+    const sparklinePoints = [];
+    for (let i = 4; i >= 0; i--) {
+      let tM = mo - i;
+      let tY = yr;
+      while (tM < 1) {
+        tM += 12;
+        tY -= 1;
+      }
+      sparklineMonths.push(monthLabels[tM]);
+      const netMo = (monthlyMap[tM] ? monthlyMap[tM].income - monthlyMap[tM].expense : 0);
+      sparklinePoints.push(Math.max(0, currentNetWorth - (i * 200000) + netMo));
+    }
+
+    const dailySpending = [];
+    const today = new Date();
+    for (let i = 9; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      const dStr = d.toISOString().slice(0, 10);
+      let daySpent = 0;
+      if (this.transactions) {
+        this.transactions.forEach((tx) => {
+          if (tx.is_reversal || tx.type !== 'EXPENSE') return;
+          if (tx.transaction_date === dStr) daySpent += parseFloat(tx.amount) || 0;
+        });
+      }
+      dailySpending.push({
+        date_str: dStr,
+        day_label: String(d.getDate()),
+        spent_amount: daySpent
+      });
+    }
+
+    const fallbackData = {
+      period_year: yr,
+      period_month: mo,
+      current_income: curIncome,
+      current_expense: curExpense,
+      current_net: curNet,
+      savings_rate: savingsRate,
+      income_count: incCount,
+      expense_count: expCount,
+      prev_month_expense: 0,
+      expense_change_percent: 0,
+      monthly_cashflow: monthlyCashflow,
+      category_composition: categoryComposition,
+      monthly_history: monthlyHistory,
+      daily_spending: dailySpending,
+      sparkline_points: sparklinePoints,
+      sparkline_months: sparklineMonths,
+    };
+
+    this.renderReports(fallbackData);
+  }
+
+  renderDashboardSparkline(points, months) {
+    if (!points || points.length === 0) return;
+
+    if (this.dashboardSparklineMonths && months && months.length > 0) {
+      this.dashboardSparklineMonths.innerHTML = months.map((m) => `<span>${m}</span>`).join('');
+    }
+
+    const svgW = 240;
+    const svgH = 48;
+    const padding = 6;
+    const innerH = svgH - padding * 2;
+
+    const numPoints = points.length;
+    let minVal = Math.min(...points.map((p) => parseFloat(p) || 0));
+    let maxVal = Math.max(...points.map((p) => parseFloat(p) || 0));
+    if (maxVal === minVal) {
+      maxVal += 100000;
+      minVal = Math.max(0, minVal - 100000);
+    }
+    const valRange = maxVal - minVal || 1;
+
+    const coords = points.map((p, idx) => {
+      const x = Math.round((idx / (numPoints - 1)) * svgW);
+      const val = parseFloat(p) || 0;
+      const y = Math.round(svgH - padding - ((val - minVal) / valRange) * innerH);
+      return { x, y };
+    });
+
+    let lineD = `M ${coords[0].x} ${coords[0].y}`;
+    for (let i = 0; i < coords.length - 1; i++) {
+      const p0 = coords[i];
+      const p1 = coords[i + 1];
+      const cpx = Math.round((p0.x + p1.x) / 2);
+      lineD += ` C ${cpx} ${p0.y}, ${cpx} ${p1.y}, ${p1.x} ${p1.y}`;
+    }
+
+    const lastCoord = coords[coords.length - 1];
+    const areaD = `${lineD} L ${lastCoord.x} ${svgH} L ${coords[0].x} ${svgH} Z`;
+
+    if (this.dashboardSparklineLine) {
+      this.dashboardSparklineLine.setAttribute('d', lineD);
+    }
+    if (this.dashboardSparklineArea) {
+      this.dashboardSparklineArea.setAttribute('d', areaD);
+    }
+    if (this.dashboardSparklineDot) {
+      this.dashboardSparklineDot.setAttribute('cx', lastCoord.x);
+      this.dashboardSparklineDot.setAttribute('cy', lastCoord.y);
+    }
+  }
+
+  renderDashboardInsightBars(dailyList) {
+    if (!dailyList || dailyList.length === 0) return;
+    if (!this.dashboardInsightBars) return;
+
+    this.dashboardInsightBars.innerHTML = '';
+    let maxSpend = 0;
+    let totalSpend = 0;
+    dailyList.forEach((d) => {
+      const sp = parseFloat(d.spent_amount) || 0;
+      totalSpend += sp;
+      if (sp > maxSpend) maxSpend = sp;
+    });
+    if (maxSpend === 0) maxSpend = 100000;
+
+    const avgSpend = totalSpend / dailyList.length;
+    const maxBarHeight = 50;
+    const minBarHeight = 8;
+
+    dailyList.forEach((d, idx) => {
+      const sp = parseFloat(d.spent_amount) || 0;
+      const h = Math.max(minBarHeight, Math.round((sp / maxSpend) * maxBarHeight));
+      const isToday = idx === dailyList.length - 1;
+
+      const bar = document.createElement('div');
+      bar.className = `insight-bar ${isToday ? 'highlight-green' : ''}`;
+      bar.style.height = `${h}px`;
+      bar.title = `${d.date_str}: ${this.formatIDR(sp)}`;
+
+      this.dashboardInsightBars.appendChild(bar);
+    });
+
+    const todaySpend = parseFloat(dailyList[dailyList.length - 1].spent_amount) || 0;
+    if (this.dashboardInsightTitle) {
+      if (todaySpend > avgSpend * 1.3 && todaySpend > 0) {
+        this.dashboardInsightTitle.textContent = 'Aktivitas pengeluaran lebih tinggi hari ini';
+      } else if (todaySpend === 0) {
+        this.dashboardInsightTitle.textContent = 'Belum ada pengeluaran hari ini (Hemat)';
+      } else {
+        this.dashboardInsightTitle.textContent = 'Pengeluaran stabil di bawah batas rata-rata';
+      }
+    }
+
+    if (this.dashboardInsightDesc) {
+      this.dashboardInsightDesc.textContent = `Rata-rata belanja harian adalah ${this.formatIDR(avgSpend)}. Arus kas tercatat secara real-time dari buku besar.`;
     }
   }
 
   handleExportReport() {
     try {
-      // Build CSV Data from report table
       const rows = [
-        ['Periode', 'Pemasukan (IDR)', 'Pengeluaran (IDR)', 'Arus Kas Bersih (IDR)', 'Perubahan Pengeluaran'],
-        ['Oktober 2026', '7500000', '2150000', '5350000', '-12%'],
-        ['September 2026', '7200000', '2450000', '4750000', '+8%'],
-        ['Agustus 2026', '7200000', '2780000', '4420000', '+14%'],
-        ['Juli 2026', '7000000', '2300000', '4700000', '-6%'],
-        ['Juni 2026', '6800000', '2100000', '4700000', '-9%'],
-        ['Mei 2026', '6500000', '2400000', '4100000', '+4%']
+        ['Periode', 'Pemasukan (IDR)', 'Pengeluaran (IDR)', 'Arus Kas Bersih (IDR)', 'Perubahan Pengeluaran']
       ];
 
-      const csvContent = 'data:text/csv;charset=utf-8,' + rows.map(e => e.join(',')).join('\n');
+      if (this.reportData && this.reportData.monthly_history && this.reportData.monthly_history.length > 0) {
+        this.reportData.monthly_history.forEach((r) => {
+          rows.push([
+            r.period_str,
+            r.income.toString(),
+            r.expense.toString(),
+            r.net_cashflow.toString(),
+            `${r.expense_change_percent}%`
+          ]);
+        });
+      } else if (this.transactions && this.transactions.length > 0) {
+        let inc = 0;
+        let exp = 0;
+        this.transactions.forEach((t) => {
+          if (t.is_reversal) return;
+          const a = parseFloat(t.amount) || 0;
+          if (t.type === 'INCOME') inc += a;
+          else if (t.type === 'EXPENSE') exp += a;
+        });
+        rows.push(['Bulan Berjalan', inc.toString(), exp.toString(), (inc - exp).toString(), '0%']);
+      } else {
+        rows.push(['Oktober 2026', '0', '0', '0', '0%']);
+      }
+
+      const csvContent = 'data:text/csv;charset=utf-8,' + rows.map((e) => e.map((val) => `"${val}"`).join(',')).join('\n');
       const encodedUri = encodeURI(csvContent);
       const link = document.createElement('a');
       link.setAttribute('href', encodedUri);
-      link.setAttribute('download', `Laporan_Keuangan_Oktober_2026.csv`);
+      link.setAttribute('download', `Laporan_Keuangan_Realtime_${new Date().toISOString().slice(0, 10)}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
-      this.showAlert('Laporan keuangan berhasil diekspor ke file CSV.', 'success');
+      this.showAlert('Laporan keuangan riil berhasil diekspor ke file CSV.', 'success');
     } catch (err) {
       console.error('Gagal mengekspor laporan:', err);
       this.showAlert('Gagal mengekspor laporan keuangan.', 'error');
