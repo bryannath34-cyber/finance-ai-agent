@@ -178,6 +178,35 @@ class App {
     this.reportsCatProgressContainer = document.getElementById('reports-cat-progress-container');
     this.reportsMonthlyTableBody = document.getElementById('reports-monthly-table-body');
     this.btnReportSelectMonth = document.getElementById('btn-report-select-month');
+
+    // Tab 6: Pengaturan & Profil (Screen 06)
+    this.settingsProfileName = document.getElementById('settings-profile-name');
+    this.settingsProfileEmail = document.getElementById('settings-profile-email');
+    this.settingsAvatarInitial = document.getElementById('settings-avatar-initial');
+    this.settingsAccountsList = document.getElementById('settings-accounts-list');
+    this.btnAddAccountSettings = document.getElementById('btn-add-account-settings');
+    this.btnEditProfile = document.getElementById('btn-edit-profile');
+    this.btnChangePassword = document.getElementById('btn-change-password');
+    this.btnToggle2fa = document.getElementById('btn-toggle-2fa');
+    this.btnViewSessions = document.getElementById('btn-view-sessions');
+    this.btnSettingsExportCsv = document.getElementById('btn-settings-export-csv');
+    this.btnSettingsBackupStatus = document.getElementById('btn-settings-backup-status');
+    this.btnSettingsPrivacyPolicy = document.getElementById('btn-settings-privacy-policy');
+
+    this.modalEditProfile = document.getElementById('modal-edit-profile');
+    this.formEditProfile = document.getElementById('form-edit-profile');
+    this.inputProfileFullname = document.getElementById('input-profile-fullname');
+    this.inputProfileEmail = document.getElementById('input-profile-email');
+
+    this.modalChangePassword = document.getElementById('modal-change-password');
+    this.formChangePassword = document.getElementById('form-change-password');
+    this.inputOldPassword = document.getElementById('input-old-password');
+    this.inputNewPassword = document.getElementById('input-new-password');
+    this.inputConfirmPassword = document.getElementById('input-confirm-password');
+
+    this.modalBackupStatus = document.getElementById('modal-backup-status');
+    this.modalPrivacyPolicy = document.getElementById('modal-privacy-policy');
+    this.userProfileBadge = document.querySelector('.user-profile-badge');
   }
 
   attachEventListeners() {
@@ -322,6 +351,90 @@ class App {
         this.showAlert(`Membuka rincian periode: ${period}`, 'info');
       });
     });
+
+    // Tab 6 Events (Pengaturan & Profil)
+    if (this.userProfileBadge) {
+      this.userProfileBadge.addEventListener('click', (e) => {
+        if (!e.target.closest('#btn-logout')) {
+          this.switchTab('tab-settings');
+        }
+      });
+    }
+
+    // Settings Modals
+    bindOpenModal(this.btnEditProfile, this.modalEditProfile);
+    bindOpenModal(this.btnChangePassword, this.modalChangePassword);
+    bindOpenModal(this.btnSettingsBackupStatus, this.modalBackupStatus);
+    bindOpenModal(this.btnSettingsPrivacyPolicy, this.modalPrivacyPolicy);
+    bindOpenModal(this.btnAddAccountSettings, this.modalCreateGoal, () => this.populateGoalAccSelect());
+
+    if (this.btnSettingsExportCsv) {
+      this.btnSettingsExportCsv.addEventListener('click', () => this.handleExportReport());
+    }
+
+    if (this.btnToggle2fa) {
+      this.btnToggle2fa.addEventListener('click', () => {
+        this.showAlert('Autentikasi dua faktor (2FA) TOTP akan tersedia pada pembaruan keamanan berikutnya.', 'info');
+      });
+    }
+
+    if (this.btnViewSessions) {
+      this.btnViewSessions.addEventListener('click', () => {
+        this.showAlert('Sesi aktif: Windows 11 · Browser Chrome/Edge (Sesi saat ini aman)', 'info');
+      });
+    }
+
+    // Toggle Switches (Screen 06 Preferences)
+    document.querySelectorAll('.toggle-switch').forEach((toggle) => {
+      toggle.addEventListener('click', () => {
+        toggle.classList.toggle('active');
+        const pref = toggle.getAttribute('data-pref');
+        const state = toggle.classList.contains('active') ? 'diaktifkan' : 'dinonaktifkan';
+        this.showAlert(`Preferensi ${pref || 'aplikasi'} berhasil ${state}.`, 'success');
+      });
+    });
+
+    // Form Edit Profile
+    if (this.formEditProfile) {
+      this.formEditProfile.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const newName = this.inputProfileFullname.value.trim();
+        const newEmail = this.inputProfileEmail.value.trim();
+        if (newName) {
+          if (this.settingsProfileName) this.settingsProfileName.textContent = newName;
+          if (this.usernameDisplay) this.usernameDisplay.textContent = newName.split(' ')[0];
+          if (this.settingsAvatarInitial) this.settingsAvatarInitial.textContent = newName[0].toUpperCase();
+          if (this.userAvatarInitial) this.userAvatarInitial.textContent = newName[0].toUpperCase();
+        }
+        if (newEmail && this.settingsProfileEmail) {
+          this.settingsProfileEmail.textContent = newEmail;
+        }
+        this.closeModals();
+        this.showAlert('Profil pengguna berhasil diperbarui.', 'success');
+      });
+    }
+
+    // Form Change Password
+    if (this.formChangePassword) {
+      this.formChangePassword.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const newP = this.inputNewPassword.value;
+        const confP = this.inputConfirmPassword.value;
+
+        if (newP !== confP) {
+          this.showAlert('Konfirmasi kata sandi baru tidak cocok.', 'error');
+          return;
+        }
+        if (newP.length < 8) {
+          this.showAlert('Kata sandi baru minimal 8 karakter.', 'error');
+          return;
+        }
+
+        this.closeModals();
+        this.formChangePassword.reset();
+        this.showAlert('Kata sandi akun Anda berhasil diperbarui.', 'success');
+      });
+    }
   }
 
   switchTab(tabId) {
@@ -333,7 +446,8 @@ class App {
       'tab-mutasi': { title: 'Mutasi & Suara AI', intro: 'Catat transaksi lewat teks atau suara, periksa draft, lalu konfirmasi ke buku besar.' },
       'tab-planning': { title: 'Anggaran & Tabungan', intro: 'Atur pagu bulanan dan pantau progres tujuan tabungan.' },
       'tab-copilot': { title: 'Penasihat Finansial AI', intro: 'Tanyakan rencana pembelian, evaluasi kelayakan anggaran, dan pantau pola pengeluaran berbasis AI.' },
-      'tab-reports': { title: 'Laporan Keuangan', intro: 'Tinjau arus kas, komposisi pengeluaran, dan perubahan dari bulan ke bulan.' }
+      'tab-reports': { title: 'Laporan Keuangan', intro: 'Tinjau arus kas, komposisi pengeluaran, dan perubahan dari bulan ke bulan.' },
+      'tab-settings': { title: 'Pengaturan & Profil', intro: 'Kelola profil, rekening, keamanan, dan preferensi aplikasi.' }
     };
 
     if (this.pageTitle && titles[tabId]) this.pageTitle.textContent = titles[tabId].title;
@@ -363,6 +477,8 @@ class App {
       this.loadCopilotData();
     } else if (tabId === 'tab-reports') {
       this.loadReportsData();
+    } else if (tabId === 'tab-settings') {
+      this.loadSettingsData();
     }
   }
 
@@ -1506,6 +1622,55 @@ class App {
     } catch (err) {
       console.error('Gagal mengekspor laporan:', err);
       this.showAlert('Gagal mengekspor laporan keuangan.', 'error');
+    }
+  }
+
+  // ====================================================================
+  // SCREEN 06: PENGATURAN & PROFIL LOGIC
+  // ====================================================================
+  loadSettingsData() {
+    if (this.currentUser) {
+      const uName = this.currentUser.username || 'Bryan Nathanael';
+      if (this.settingsProfileName) this.settingsProfileName.textContent = uName;
+      if (this.settingsAvatarInitial) this.settingsAvatarInitial.textContent = uName[0].toUpperCase();
+    }
+
+    // Render Connected Accounts
+    if (this.accounts && this.accounts.length > 0 && this.settingsAccountsList) {
+      this.settingsAccountsList.innerHTML = '';
+      this.accounts.forEach((acc, idx) => {
+        let iconChar = '🏦';
+        let iconClass = 'bca';
+        const nameLower = (acc.name || '').toLowerCase();
+        if (nameLower.includes('gopay') || nameLower.includes('ovo') || nameLower.includes('dana')) {
+          iconChar = '📱';
+          iconClass = 'gopay';
+        } else if (nameLower.includes('kas') || nameLower.includes('tunai') || nameLower.includes('cash')) {
+          iconChar = '💵';
+          iconClass = 'cash';
+        }
+
+        const row = document.createElement('div');
+        row.className = 'connected-acc-row';
+        row.innerHTML = `
+          <div class="connected-acc-left">
+            <div class="connected-acc-icon ${iconClass}">${iconChar}</div>
+            <div>
+              <div class="connected-acc-type">${acc.name}</div>
+              <div class="connected-acc-nickname">${acc.type || 'Rekening aktif'} · ${this.formatIDR(acc.balance || 0)}</div>
+            </div>
+          </div>
+          <div class="badge-connected">Terhubung</div>
+        `;
+        this.settingsAccountsList.appendChild(row);
+
+        if (idx < this.accounts.length - 1) {
+          const div = document.createElement('div');
+          div.className = 'settings-inner-divider';
+          div.style.margin = '4px 0';
+          this.settingsAccountsList.appendChild(div);
+        }
+      });
     }
   }
 }

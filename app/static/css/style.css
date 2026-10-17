@@ -2192,6 +2192,364 @@ body {
 }
 
 /* ==========================================================================
+   SCREEN 06: FIGMA 1:1 PENGATURAN & PROFIL (Screen 06 1440x1060)
+   ========================================================================== */
+
+.settings-grid-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+@media (max-width: 1080px) {
+  .settings-grid-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Card 1: Profil Pengguna */
+.profile-card-content {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 14px;
+}
+
+.profile-avatar-large {
+  width: 58px;
+  height: 58px;
+  background: #252A26;
+  border-radius: 29px;
+  color: #FFFFFF;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.profile-info-col {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.profile-full-name {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 19px;
+  color: #202420;
+}
+
+.profile-email-text {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 10px;
+  line-height: 12px;
+  color: #6F7770;
+}
+
+.profile-badge-active {
+  background: #EAF4EE;
+  border: 1px solid #EAF4EE;
+  border-radius: 7px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 9px;
+  line-height: 11px;
+  color: #2D7653;
+  padding: 3px 10px;
+  width: fit-content;
+  margin-top: 4px;
+}
+
+.settings-inner-divider {
+  width: 100%;
+  height: 1px;
+  background: #E2E5DF;
+  margin: 14px 0 10px 0;
+}
+
+.profile-footer-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  line-height: 12px;
+  color: #6F7770;
+}
+
+/* Card 2: Rekening Terhubung */
+.connected-acc-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 0;
+}
+
+.connected-acc-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.connected-acc-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.connected-acc-icon.bca { background: #EDF3F8; color: #1D5E8C; }
+.connected-acc-icon.gopay { background: #F1F2EF; color: #0081A0; }
+.connected-acc-icon.cash { background: #ECEFEB; color: #2D7653; }
+
+.connected-acc-type {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 11px;
+  line-height: 13px;
+  color: #202420;
+}
+
+.connected-acc-nickname {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 9px;
+  line-height: 11px;
+  color: #6F7770;
+  margin-top: 2px;
+}
+
+.badge-connected {
+  background: #EAF4EE;
+  border: 1px solid #EAF4EE;
+  border-radius: 7px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 9px;
+  line-height: 11px;
+  color: #2D7653;
+  padding: 3px 12px;
+  text-align: center;
+}
+
+/* Card 3: Keamanan Akun */
+.security-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 0;
+}
+
+.security-row-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.security-row-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 11px;
+  line-height: 13px;
+  color: #202420;
+}
+
+.security-row-desc {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 9px;
+  line-height: 11px;
+  color: #6F7770;
+}
+
+.security-action-link {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 10px;
+  line-height: 12px;
+  color: #486F95;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity 0.15s ease;
+}
+
+.security-action-link:hover {
+  text-decoration: underline;
+}
+
+.security-bottom-note {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 9px;
+  line-height: 11px;
+  color: #969C96;
+  margin-top: 8px;
+}
+
+/* Card 4: Preferensi Aplikasi */
+.preference-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 0;
+}
+
+.preference-row-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.preference-row-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 11px;
+  line-height: 13px;
+  color: #202420;
+}
+
+.preference-row-desc {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 9px;
+  line-height: 11px;
+  color: #6F7770;
+}
+
+/* Toggle Switch Pill */
+.toggle-switch {
+  width: 42px;
+  height: 22px;
+  border-radius: 11px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+  border: none;
+  outline: none;
+}
+
+.toggle-switch.active {
+  background: #2D7653;
+}
+
+.toggle-switch:not(.active) {
+  background: #E1E5DF;
+}
+
+.toggle-knob {
+  width: 18px;
+  height: 18px;
+  background: #FFFFFF;
+  border-radius: 9px;
+  position: absolute;
+  top: 2px;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.toggle-switch.active .toggle-knob {
+  transform: translateX(20px);
+}
+
+.toggle-switch:not(.active) .toggle-knob {
+  transform: translateX(2px);
+}
+
+/* Card 5: Data dan Privasi */
+.privacy-options-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 14px;
+}
+
+@media (max-width: 992px) {
+  .privacy-options-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.privacy-tile {
+  box-sizing: border-box;
+  background: #F8F9F7;
+  border: 1px solid #E2E5DF;
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.privacy-tile-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.privacy-tile-icon {
+  font-size: 16px;
+  line-height: 19px;
+  color: #202420;
+}
+
+.privacy-tile-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  line-height: 13px;
+  color: #202420;
+}
+
+.privacy-tile-desc {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 9px;
+  line-height: 12px;
+  color: #6F7770;
+  min-height: 28px;
+}
+
+.btn-privacy-action {
+  height: 27px;
+  padding: 0 14px;
+  background: #FFFFFF;
+  border: 1px solid #D6DAD3;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 9px;
+  line-height: 11px;
+  color: #202420;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.btn-privacy-action:hover {
+  background: #F0F2EE;
+  border-color: #C5CDC5;
+}
+
+/* ==========================================================================
    MODALS (Figma clean white cards, subtle backdrop)
    ========================================================================== */
 .modal-overlay {
