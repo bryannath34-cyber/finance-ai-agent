@@ -15,6 +15,7 @@ class App {
     this.categories = [];
     this.currentBatch = null; // { batch_id, drafts }
     this.transactions = [];
+    this.filteredTransactions = [];
 
     // Planning & Copilot State
     this.currentTab = 'tab-mutasi';
@@ -44,6 +45,9 @@ class App {
     this.userAvatarInitial = document.getElementById('user-avatar-initial');
     this.btnLogout = document.getElementById('btn-logout');
 
+    this.pageTitle = document.getElementById('page-title');
+    this.pageIntro = document.getElementById('page-intro');
+
     // Navigation Tabs (Both Feature Pills and Sidebar Links)
     this.tabBtns = document.querySelectorAll('.tab-btn');
     this.sidebarNavBtns = document.querySelectorAll('.sidebar-nav-btn[data-tab]');
@@ -63,12 +67,18 @@ class App {
 
     // Staging Drafts
     this.draftSection = document.getElementById('draft-section');
-    this.draftBatchId = document.getElementById('draft-batch-id');
+    this.draftCountText = document.getElementById('draft-count-text');
     this.draftTableBody = document.getElementById('draft-table-body');
+    this.draftFooterRow = document.getElementById('draft-footer-row');
+    this.draftTotalSummary = document.getElementById('draft-total-summary');
     this.btnConfirmBatch = document.getElementById('btn-confirm-batch');
 
     // Immutable Ledger History
     this.historyTableBody = document.getElementById('history-table-body');
+    this.dashboardHistoryBody = document.getElementById('dashboard-history-body');
+    this.ledgerSearchInput = document.getElementById('ledger-search-input');
+    this.ledgerTypeSelect = document.getElementById('ledger-type-select');
+    this.ledgerMonthSelect = document.getElementById('ledger-month-select');
     this.alertBox = document.getElementById('alert-box');
 
     // Right Column Mini Cards
@@ -83,6 +93,7 @@ class App {
     this.summarySurplusVal = document.getElementById('summary-surplus-val');
 
     this.btnJumpToCopilot = document.getElementById('btn-jump-to-copilot');
+    this.btnJumpToMutasi = document.getElementById('btn-jump-to-mutasi');
 
     // Tab 2: Planning & Budgets
     this.btnOpenSetBudget = document.getElementById('btn-open-set-budget');
@@ -160,6 +171,9 @@ class App {
     if (this.btnJumpToCopilot) {
       this.btnJumpToCopilot.addEventListener('click', () => this.switchTab('tab-copilot'));
     }
+    if (this.btnJumpToMutasi) {
+      this.btnJumpToMutasi.addEventListener('click', () => this.switchTab('tab-mutasi'));
+    }
 
     // Refresh Buttons
     if (this.btnRefreshAccounts) {
@@ -167,6 +181,14 @@ class App {
     }
     if (this.btnRefreshHistory) {
       this.btnRefreshHistory.addEventListener('click', () => this.loadHistory());
+    }
+
+    // Ledger Filters (Search & Type)
+    if (this.ledgerSearchInput) {
+      this.ledgerSearchInput.addEventListener('input', () => this.applyLedgerFilters());
+    }
+    if (this.ledgerTypeSelect) {
+      this.ledgerTypeSelect.addEventListener('change', () => this.applyLedgerFilters());
     }
 
     // Tab 1 Events (AI Parse & Voice)
@@ -238,6 +260,17 @@ class App {
   switchTab(tabId) {
     this.currentTab = tabId;
 
+    // Synchronize Titles & Intros
+    const titles = {
+      'tab-dashboard': { title: 'Personal Finance Dashboard', intro: 'Kelola mutasi, anggaran, dan konsultasi cerdas berbasis OCI Native AI.' },
+      'tab-mutasi': { title: 'Mutasi & Suara AI', intro: 'Catat transaksi, tinjau draft, dan pantau buku besar.' },
+      'tab-planning': { title: 'Anggaran & Target Tabungan', intro: 'Pantau pagu bulanan, batas kategori, dan akumulasi dana impian.' },
+      'tab-copilot': { title: 'Penasihat Finansial AI', intro: 'Analisis kelayakan belanja cerdas dan detektif pola mutasi.' }
+    };
+
+    if (this.pageTitle && titles[tabId]) this.pageTitle.textContent = titles[tabId].title;
+    if (this.pageIntro && titles[tabId]) this.pageIntro.textContent = titles[tabId].intro;
+
     // Synchronize Top Feature Tabs
     this.tabBtns.forEach((b) => {
       if (b.getAttribute('data-tab') === tabId) b.classList.add('active');
@@ -292,6 +325,21 @@ class App {
     }).format(val);
   }
 
+  formatDateID(dateStr) {
+    if (!dateStr) return '-';
+    try {
+      const parts = dateStr.split('-');
+      if (parts.length === 3) {
+        const months = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+        const m = parseInt(parts[1], 10);
+        return `${parts[2]} ${months[m] || parts[1]} ${parts[0]}`;
+      }
+      return dateStr;
+    } catch {
+      return dateStr;
+    }
+  }
+
   async checkSession() {
     try {
       const res = await api.auth.getMe();
@@ -313,7 +361,7 @@ class App {
 
   showDashboard() {
     this.authOverlay.style.display = 'none';
-    const username = this.currentUser ? this.currentUser.username : 'bryan';
+    const username = this.currentUser ? this.currentUser.username : 'Bryan';
     if (this.usernameDisplay) this.usernameDisplay.textContent = username;
     if (this.userAvatarInitial) this.userAvatarInitial.textContent = username.charAt(0).toUpperCase();
     this.loadInitialData();
@@ -386,11 +434,29 @@ class App {
     try {
       const res = await api.transactions.list(50, 0);
       this.transactions = res.data || [];
+      this.filteredTransactions = [...this.transactions];
       this.renderHistory();
       this.calculateMonthlySummary();
     } catch (err) {
       console.warn('Gagal memuat riwayat:', err);
     }
+  }
+
+  applyLedgerFilters() {
+    const q = this.ledgerSearchInput ? this.ledgerSearchInput.value.toLowerCase().trim() : '';
+    const typeFilter = this.ledgerTypeSelect ? this.ledgerTypeSelect.value : 'ALL';
+
+    this.filteredTransactions = this.transactions.filter((tx) => {
+      const descMatch = (tx.description || '').toLowerCase().includes(q);
+      const catMatch = (tx.category_name || '').toLowerCase().includes(q);
+      const accMatch = (tx.source_account_name || '').toLowerCase().includes(q) || (tx.destination_account_name || '').toLowerCase().includes(q);
+      const textMatches = !q || descMatch || catMatch || accMatch;
+
+      const typeMatches = typeFilter === 'ALL' || tx.type === typeFilter;
+      return textMatches && typeMatches;
+    });
+
+    this.renderHistory();
   }
 
   // Calculate Realized Monthly Summary from Transactions
@@ -472,25 +538,28 @@ class App {
     }
   }
 
-  // Render Ledger History in Figma Table Style
+  // Render Ledger History in Figma Screen 02 Table Style
   renderHistory() {
+    const list = this.filteredTransactions || this.transactions;
     this.historyTableBody.innerHTML = '';
-    if (this.transactions.length === 0) {
+
+    if (list.length === 0) {
       this.historyTableBody.innerHTML = `
         <tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 18px;">
-          Belum ada transaksi di buku besar.
+          Tidak ada transaksi yang cocok.
         </td></tr>
       `;
       return;
     }
 
-    this.transactions.forEach((tx) => {
+    list.forEach((tx) => {
       const tr = document.createElement('tr');
       const isRev = tx.is_reversal;
       const role = tx.ledger_role;
 
-      let pillClass = 'cat-blue';
-      let statusLabel = tx.type;
+      let pillClass = 'cat-rose';
+      let statusLabel = 'EXPENSE';
+      let isIncome = false;
 
       if (isRev) {
         pillClass = 'cat-rose';
@@ -498,31 +567,34 @@ class App {
       } else if (tx.type === 'INCOME') {
         pillClass = 'cat-green';
         statusLabel = 'INCOME';
+        isIncome = true;
       } else if (tx.type === 'TRANSFER') {
-        pillClass = 'cat-amber';
+        pillClass = 'cat-blue';
         statusLabel = 'TRANSFER';
       }
 
       let accountsDisplay = '-';
       if (tx.type === 'EXPENSE') accountsDisplay = `${tx.source_account_name || 'Rekening'}`;
       else if (tx.type === 'INCOME') accountsDisplay = `${tx.destination_account_name || 'Rekening'}`;
-      else if (tx.type === 'TRANSFER') accountsDisplay = `${tx.source_account_name} ➔ ${tx.destination_account_name}`;
+      else if (tx.type === 'TRANSFER') accountsDisplay = `${tx.source_account_name || 'Sumber'} ➔ ${tx.destination_account_name || 'Tujuan'}`;
 
-      const dateShort = tx.transaction_date ? tx.transaction_date.slice(5) : '-';
+      const dateStr = this.formatDateID(tx.transaction_date);
+      const sign = isIncome ? '+' : '-';
+      const amountColor = isIncome ? 'var(--accent-green)' : 'var(--text-primary)';
 
       tr.innerHTML = `
-        <td style="color: var(--text-secondary); font-size: 8.5px;">${dateShort}</td>
+        <td style="color: var(--text-secondary); font-size: 9px;">${dateStr}</td>
         <td><strong>${tx.description || '-'}</strong></td>
-        <td>${this.formatIDR(tx.amount)}</td>
-        <td><span class="badge-cat-pill ${pillClass}">${tx.category_name || '-'}</span></td>
-        <td style="color: var(--text-secondary); font-size: 8.5px;">${accountsDisplay}</td>
+        <td style="color: var(--text-secondary);">${tx.category_name || '-'}</td>
+        <td style="color: var(--text-secondary); font-size: 9px;">${accountsDisplay}</td>
+        <td style="font-weight: 600; color: ${amountColor};">${sign}${this.formatIDR(tx.amount)}</td>
         <td><span class="badge-cat-pill ${pillClass}">${statusLabel}</span></td>
         <td style="text-align: right;">
           ${!isRev && role !== 'ADMIN_FEE' ? `
-            <button class="btn-reverse-action btn-reverse" data-id="${tx.id}">
+            <button class="btn-draft-edit btn-reverse" data-id="${tx.id}">
               Balikkan
             </button>
-          ` : '-'}
+          ` : '—'}
         </td>
       `;
 
@@ -533,6 +605,25 @@ class App {
 
       this.historyTableBody.appendChild(tr);
     });
+
+    // Also populate dashboard history preview if element exists
+    if (this.dashboardHistoryBody) {
+      this.dashboardHistoryBody.innerHTML = '';
+      this.transactions.slice(0, 5).forEach((tx) => {
+        const tr = document.createElement('tr');
+        const isIncome = tx.type === 'INCOME';
+        const sign = isIncome ? '+' : '-';
+        tr.innerHTML = `
+          <td>${this.formatDateID(tx.transaction_date)}</td>
+          <td><strong>${tx.description || '-'}</strong></td>
+          <td style="font-weight: 600; color: ${isIncome ? 'var(--accent-green)' : 'var(--text-primary)'};">${sign}${this.formatIDR(tx.amount)}</td>
+          <td>${tx.category_name || '-'}</td>
+          <td>${tx.source_account_name || tx.destination_account_name || '-'}</td>
+          <td><span class="badge-cat-pill ${isIncome ? 'cat-green' : (tx.type === 'TRANSFER' ? 'cat-blue' : 'cat-rose')}">${tx.type}</span></td>
+        `;
+        this.dashboardHistoryBody.appendChild(tr);
+      });
+    }
   }
 
   async handleReverse(txId) {
@@ -549,7 +640,7 @@ class App {
   }
 
   // ==========================================
-  // AI & Voice Flow (Tab 1)
+  // AI & Voice Flow (Tab 1 / Screen 02)
   // ==========================================
   async handleAIParse() {
     const text = this.aiInput.value.trim();
@@ -573,52 +664,91 @@ class App {
       this.showAlert(`Gagal menganalisis kalimat: ${err.message}`, 'error');
     } finally {
       this.btnParse.disabled = false;
-      this.btnParse.innerHTML = `<span>✦</span><span>Proses Mutasi AI</span>`;
+      this.btnParse.innerHTML = `<span>Proses Mutasi AI</span>`;
     }
   }
 
+  // Render Drafts in Screen 02 1:1 Table Style
   renderDrafts() {
     if (!this.currentBatch || this.currentBatch.drafts.length === 0) {
-      this.draftSection.style.display = 'none';
+      if (this.draftFooterRow) this.draftFooterRow.style.display = 'none';
+      if (this.draftCountText) this.draftCountText.textContent = '0 draft';
+      this.draftTableBody.innerHTML = `
+        <tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 18px;">
+          Belum ada draft mutasi. Tulis atau rekam kalimat mutasi pada Command Center di atas.
+        </td></tr>
+      `;
       return;
     }
 
     const pendingDrafts = this.currentBatch.drafts.filter((d) => d.status === 'PENDING');
     if (pendingDrafts.length === 0) {
-      this.draftSection.style.display = 'none';
+      if (this.draftFooterRow) this.draftFooterRow.style.display = 'none';
+      if (this.draftCountText) this.draftCountText.textContent = '0 draft';
+      this.draftTableBody.innerHTML = `
+        <tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 18px;">
+          Semua draft mutasi dalam batch ini telah diproses atau dibatalkan.
+        </td></tr>
+      `;
       return;
     }
 
-    this.draftSection.style.display = 'block';
-    this.draftBatchId.textContent = `${pendingDrafts.length} Draft Siap`;
+    if (this.draftCountText) this.draftCountText.textContent = `${pendingDrafts.length} draft`;
     this.draftTableBody.innerHTML = '';
+
+    let totalExpense = 0;
 
     pendingDrafts.forEach((d, idx) => {
       const tr = document.createElement('tr');
-      const pillClass = d.type === 'INCOME' ? 'cat-green' : (d.type === 'TRANSFER' ? 'cat-amber' : 'cat-blue');
+      const pillCatClass = d.category_name && d.category_name.toLowerCase().includes('makan') ? 'cat-amber' : 'cat-blue';
+      const typeClass = d.type === 'INCOME' ? 'cat-green' : (d.type === 'TRANSFER' ? 'cat-blue' : 'cat-rose');
 
       let accText = '-';
       if (d.type === 'EXPENSE') accText = `${d.source_account_name || 'Rekening'}`;
       else if (d.type === 'INCOME') accText = `${d.destination_account_name || 'Rekening'}`;
       else if (d.type === 'TRANSFER') accText = `${d.source_account_name} ➔ ${d.destination_account_name}`;
 
+      if (d.type === 'EXPENSE') totalExpense += parseFloat(d.amount) || 0;
+
       tr.innerHTML = `
-        <td style="color: var(--text-secondary);">${idx + 1}</td>
+        <td style="color: var(--text-secondary); font-size: 9px;">${idx + 1}</td>
         <td><strong>${d.description || d.type}</strong></td>
-        <td><span class="badge-cat-pill ${pillClass}">${d.category_name || '-'}</span></td>
+        <td><span class="badge-cat-pill ${pillCatClass}">${d.category_name || '-'}</span></td>
         <td><strong>${this.formatIDR(d.amount)}</strong></td>
-        <td style="color: var(--text-secondary); font-size: 8.5px;">${accText}</td>
+        <td style="color: var(--text-secondary); font-size: 9px;">${accText}</td>
+        <td><span class="badge-cat-pill ${typeClass}">${d.type}</span></td>
         <td><span class="ready-status-dot">Siap</span></td>
-        <td>
-          <button class="btn-reverse-action btn-cancel-draft" data-id="${d.id}" style="color: var(--accent-rose);">
-            Batal
-          </button>
+        <td style="text-align: right;">
+          <div style="display: flex; gap: 4px; justify-content: flex-end;">
+            <button class="btn-draft-edit btn-edit-draft" data-id="${d.id}">Edit</button>
+            <button class="btn-draft-remove btn-cancel-draft" data-id="${d.id}">Hapus</button>
+          </div>
         </td>
       `;
 
       tr.querySelector('.btn-cancel-draft').addEventListener('click', () => this.handleCancelDraft(d.id));
+      tr.querySelector('.btn-edit-draft').addEventListener('click', () => this.handleEditDraft(d));
       this.draftTableBody.appendChild(tr);
     });
+
+    if (this.draftTotalSummary) {
+      this.draftTotalSummary.textContent = `Total pengeluaran draft: ${this.formatIDR(totalExpense)}`;
+    }
+    if (this.draftFooterRow) {
+      this.draftFooterRow.style.display = 'flex';
+    }
+  }
+
+  handleEditDraft(draft) {
+    const newDesc = prompt('Ubah deskripsi transaksi:', draft.description);
+    if (!newDesc) return;
+    const newAmount = prompt('Ubah jumlah nominal (Rp):', draft.amount);
+    if (!newAmount) return;
+
+    draft.description = newDesc;
+    draft.amount = parseFloat(newAmount) || draft.amount;
+    this.renderDrafts();
+    this.showAlert('Draft transaksi berhasil disunting lokal.', 'info');
   }
 
   async handleCancelDraft(draftId) {
@@ -642,7 +772,7 @@ class App {
       const res = await api.transactions.confirmBatch(this.currentBatch.batch_id);
       this.showAlert(res.message || 'Seluruh transaksi berhasil dibukukan!', 'success');
       this.currentBatch = null;
-      this.draftSection.style.display = 'none';
+      this.renderDrafts();
       this.aiInput.value = '';
 
       await Promise.all([this.loadAccounts(), this.loadHistory(), this.loadBudgetOverview()]);
@@ -650,7 +780,7 @@ class App {
       this.showAlert(`Gagal konfirmasi batch: ${err.message}`, 'error');
     } finally {
       this.btnConfirmBatch.disabled = false;
-      this.btnConfirmBatch.innerHTML = `<span>✓</span><span>Konfirmasi Seluruh Transaksi</span>`;
+      this.btnConfirmBatch.innerHTML = `<span>✓</span><span>Konfirmasi semua draft</span>`;
     }
   }
 
@@ -678,8 +808,8 @@ class App {
       this.recordStatus.textContent = 'Merekam suara (Maks 30s)...';
     } else {
       this.btnRecord.classList.remove('recording');
-      this.btnRecord.innerHTML = `<span>🎤</span><span>Rekam Suara</span>`;
-      this.recordStatus.textContent = '';
+      this.btnRecord.innerHTML = `<span>🎤</span><span>Rekam suara</span>`;
+      this.recordStatus.textContent = 'Bahasa Indonesia · hasil transkripsi ditinjau sebelum diproses';
     }
   }
 
@@ -696,7 +826,7 @@ class App {
       this.pollTranscription(jobId);
     } catch (err) {
       this.showAlert(`Gagal memulai transkripsi: ${err.message}`, 'error');
-      this.recordStatus.textContent = '';
+      this.recordStatus.textContent = 'Bahasa Indonesia · hasil transkripsi ditinjau sebelum diproses';
       this.btnRecord.disabled = false;
     }
   }
@@ -709,7 +839,7 @@ class App {
     const pollInterval = setInterval(async () => {
       if (Date.now() - startTime > maxPollTimeMs) {
         clearInterval(pollInterval);
-        this.recordStatus.textContent = '';
+        this.recordStatus.textContent = 'Bahasa Indonesia · hasil transkripsi ditinjau sebelum diproses';
         this.btnRecord.disabled = false;
         this.showAlert('Transkripsi suara timeout. Silakan coba lagi.', 'error');
         return;
@@ -721,7 +851,7 @@ class App {
 
         if (data.status === 'SUCCEEDED') {
           clearInterval(pollInterval);
-          this.recordStatus.textContent = '';
+          this.recordStatus.textContent = 'Bahasa Indonesia · hasil transkripsi ditinjau sebelum diproses';
           this.btnRecord.disabled = false;
 
           const transcript = data.transcript || '';
@@ -734,7 +864,7 @@ class App {
           }
         } else if (data.status === 'FAILED') {
           clearInterval(pollInterval);
-          this.recordStatus.textContent = '';
+          this.recordStatus.textContent = 'Bahasa Indonesia · hasil transkripsi ditinjau sebelum diproses';
           this.btnRecord.disabled = false;
           this.showAlert(`Transkripsi gagal: ${data.error_message || 'Terjadi kesalahan sistem.'}`, 'error');
         }
@@ -745,7 +875,7 @@ class App {
   }
 
   // ==========================================
-  // TAB 2: ANGGARAN & TARGET TABUNGAN
+  // TAB 3: ANGGARAN & TARGET TABUNGAN
   // ==========================================
   async loadPlanningData() {
     await Promise.all([
@@ -1024,7 +1154,7 @@ class App {
   }
 
   // ==========================================
-  // TAB 3: PENASIHAT KEUANGAN AI & COPILOT
+  // TAB 4: PENASIHAT KEUANGAN AI & COPILOT
   // ==========================================
   async loadCopilotData() {
     this.populateCopilotAccSelect();

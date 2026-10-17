@@ -905,7 +905,7 @@ body {
   gap: 4px;
   font-weight: 500;
   font-size: 9px;
-  color: var(--text-secondary);
+  color: var(--accent-green);
 }
 
 .ready-status-dot::before {
@@ -914,6 +914,87 @@ body {
   height: 5px;
   background: var(--accent-green);
   border-radius: 50%;
+}
+
+.btn-draft-edit {
+  height: 22px;
+  padding: 0 8px;
+  background: #FFFFFF;
+  border: 1px solid var(--border-main);
+  border-radius: 7px;
+  font-family: 'Inter', sans-serif;
+  font-size: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-draft-edit:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.btn-draft-remove {
+  height: 22px;
+  padding: 0 8px;
+  background: #FFFFFF;
+  border: 1px solid var(--border-main);
+  border-radius: 7px;
+  font-family: 'Inter', sans-serif;
+  font-size: 8px;
+  color: var(--accent-rose);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-draft-remove:hover {
+  background: var(--accent-rose-bg);
+}
+
+.draft-footer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-main);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.draft-total-text {
+  font-weight: 600;
+  font-size: 11px;
+  line-height: 13px;
+  color: var(--text-primary);
+}
+
+.btn-confirm-all-pill {
+  height: 35px;
+  padding: 0 22px;
+  background: var(--brand-dark);
+  border: 1px solid var(--brand-dark);
+  border-radius: 17px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 10px;
+  line-height: 12px;
+  color: #FFFFFF;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.btn-confirm-all-pill:hover {
+  background: var(--brand-dark-hover);
+}
+
+.btn-confirm-all-pill:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .btn-confirm-all {
@@ -945,7 +1026,57 @@ body {
   cursor: not-allowed;
 }
 
-/* Immutable Ledger Action */
+/* Immutable Ledger Toolbar & Action */
+.ledger-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ledger-search-box {
+  height: 30px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-main);
+  border-radius: 9px;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ledger-search-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 9px;
+  color: var(--text-primary);
+  width: 140px;
+}
+
+.ledger-filter-select {
+  height: 30px;
+  background: #FFFFFF;
+  border: 1px solid var(--border-main);
+  border-radius: 9px;
+  padding: 0 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 9px;
+  color: var(--text-secondary);
+  outline: none;
+  cursor: pointer;
+}
+
+.ledger-footer-note {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-main);
+  font-size: 9px;
+  line-height: 11px;
+  color: var(--text-muted);
+}
+
 .btn-reverse-action {
   height: 20px;
   padding: 0 8px;
