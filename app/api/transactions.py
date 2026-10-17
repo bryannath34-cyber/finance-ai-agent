@@ -1,0 +1,86 @@
+from typing import List, Optional
+from fastapi import APIRouter, Depends, Query
+from app.core.security import get_current_user
+from app.schemas.common import DataResponse, BaseResponse
+from app.schemas.transaction import (
+    DraftItemResponse,
+    UpdateDraftRequest,
+    ConfirmBatchRequest,
+    ConfirmBatchResponse,
+    TransactionItemResponse,
+    ReverseTransactionRequest,
+)
+from app.services.transaction_service import TransactionService
+from app.services.finance_service import FinanceService
+
+router = APIRouter(prefix="/transactions", tags=["Transactions"])
+
+@router.get("/drafts/{batch_id}", response_model=DataResponse[List[DraftItemResponse]])
+def get_batch_drafts(batch_id: str, user: dict = Depends(get_current_user)):
+    """Mengambil seluruh draft transaksi pada batch tertentu untuk direview di antarmuka web."""
+    drafts = TransactionService.get_batch_drafts(user["id"], batch_id)
+    return DataResponse(
+        success=True,
+        message=f"Berhasil mengambil {len(drafts)} draft.",
+        data=drafts
+    )
+
+@router.patch("/drafts/{draft_id}", response_model=BaseResponse)
+def update_draft(draft_id: int, payload: UpdateDraftRequest, user: dict = Depends(get_current_user)):
+    """Menyunting kolom nominal, akun, kategori, atau catatan pada draft berstatus PENDING."""
+    update_data = payload.model_dump(exclude_unset=True)
+    res = TransactionService.update_draft(user["id"], draft_id, update_data)
+    return BaseResponse(success=True, message=res["message"])
+
+@router.post("/drafts/{draft_id}/cancel", response_model=BaseResponse)
+def cancel_draft(draft_id: int, user: dict = Depends(get_current_user)):
+    """Membatalkan draft transaksi individual per baris."""
+    res = TransactionService.cancel_draft(user["id"], draft_id)
+    return BaseResponse(success=True, message=res["message"])
+
+@router.post("/confirm-batch", response_model=ConfirmBatchResponse)
+def confirm_batch(payload: ConfirmBatchRequest, user: dict = Depends(get_current_user)):
+    """
+    Mengonfirmasi seluruh draft yang valid pada batch sekaligus:
+    - Transaksi database atomik (SELECT ... FOR UPDATE)
+    - Menyimpan ke buku besar transactions (PRIMARY dan ADMIN_FEE)
+    - Menolak jika batch telah kedaluwarsa atau kosong
+    """
+    res = TransactionService.confirm_batch(user["id"], payload.batch_id)
+    return ConfirmBatchResponse(**res)
+
+@router.get("", response_model=DataResponse[List[TransactionItemResponse]])
+def list_transactions(
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    user: dict = Depends(get_current_user)
+):
+    """Mengambil riwayat mutasi buku besar abadi (immutable ledger)."""
+    txs = TransactionService.list_transactions(user["id"], limit=limit, offset=offset)
+    return DataResponse(
+        success=True,
+        message=f"Berhasil mengambil {len(txs)} riwayat transaksi.",
+        data=txs
+    )
+
+@router.post("/{transaction_id}/reverse", response_model=DataResponse[dict])
+def reverse_transaction(
+    transaction_id: int,
+    payload: ReverseTransactionRequest,
+    user: dict = Depends(get_current_user)
+):
+    """
+    Menerbitkan Jurnal Pembalik (Reversal Transaction) untuk membatalkan mutasi buku besar:
+    - Menghasilkan baris pembalik ber-ledger_role = 'REVERSAL'
+    - Jika mutasi berupa TRANSFER berbiaya admin, membalik biaya admin secara atomik
+    """
+    res = FinanceService.reverse_transaction(
+        user_id=user["id"],
+        transaction_id=transaction_id,
+        reason=payload.reason or "Koreksi pencatatan"
+    )
+    return DataResponse(
+        success=True,
+        message=res["message"],
+        data=res
+    )

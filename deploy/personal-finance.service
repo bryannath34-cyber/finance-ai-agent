@@ -1,0 +1,23 @@
+[Unit]
+Description=Personal Finance AI Agent FastAPI Service (v2.3 OCI Native)
+After=network.target
+
+[Service]
+Type=simple
+User=opc
+Group=opc
+WorkingDirectory=/opt/personal-finance-agent
+EnvironmentFile=/opt/personal-finance-agent/.env
+ExecStart=/opt/personal-finance-agent/venv/bin/uvicorn app.main:app \
+    --host 0.0.0.0 \
+    --port 8000 \
+    --workers 1 \
+    --proxy-headers \
+    --forwarded-allow-ips=10.10.1.0/24 \
+    --log-config /opt/personal-finance-agent/deploy/logging.conf
+Restart=always
+RestartSec=5s
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
