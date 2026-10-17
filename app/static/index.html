@@ -73,6 +73,12 @@
             </button>
           </li>
           <li>
+            <button type="button" class="sidebar-nav-btn" data-tab="tab-auth" id="btn-open-auth-nav">
+              <span class="nav-icon">👤</span>
+              <span>Akun Pengguna</span>
+            </button>
+          </li>
+          <li>
             <button type="button" class="sidebar-nav-btn" id="btn-open-help">
               <span class="nav-icon">?</span>
               <span>Bantuan</span>
@@ -152,6 +158,10 @@
           <button type="button" class="tab-btn" data-tab="tab-settings">
             <span class="tab-icon">⚙</span>
             <span>Pengaturan</span>
+          </button>
+          <button type="button" class="tab-btn" data-tab="tab-auth">
+            <span class="tab-icon">👤</span>
+            <span>Akun Pengguna</span>
           </button>
         </nav>
       </div>
@@ -1466,6 +1476,158 @@
         </div>
       </div>
 
+      <!-- ================================================================
+           SCREEN 07: TAB AKUN PENGGUNA (Figma Screen 07 1:1 Match)
+           Buat Akun dan Reset Password
+           ================================================================ -->
+      <div id="tab-auth" class="tab-content">
+        <div class="auth-screen-layout">
+
+          <!-- Left Column (568px x 650px): Buat akun baru -->
+          <div class="figma-card" style="padding: 18px 20px;">
+            <div class="card-header-row">
+              <div class="card-title-group">
+                <span class="card-header-icon">👤</span>
+                <span class="card-section-title">Buat akun baru</span>
+              </div>
+            </div>
+            <div class="card-subtitle-text" style="margin-bottom: 16px;">
+              Isi informasi berikut untuk membuat akun Finance AI Agent.
+            </div>
+
+            <form id="form-tab-signup">
+              <div class="auth-field-group">
+                <label for="signup-fullname" class="auth-field-label">Nama lengkap</label>
+                <input type="text" id="signup-fullname" class="auth-text-input" placeholder="Masukkan nama lengkap" required>
+              </div>
+
+              <div class="auth-field-group">
+                <label for="signup-email" class="auth-field-label">Email</label>
+                <input type="email" id="signup-email" class="auth-text-input" placeholder="nama@email.com" required>
+              </div>
+
+              <div class="auth-field-group">
+                <label for="signup-password" class="auth-field-label">Kata sandi</label>
+                <input type="password" id="signup-password" class="auth-text-input" placeholder="Minimal 8 karakter" required minlength="8">
+              </div>
+
+              <div class="auth-field-group">
+                <label for="signup-confirm" class="auth-field-label">Konfirmasi kata sandi</label>
+                <input type="password" id="signup-confirm" class="auth-text-input" placeholder="Ulangi kata sandi" required minlength="8">
+              </div>
+
+              <div class="auth-terms-row">
+                <input type="checkbox" id="signup-terms" class="auth-checkbox" required>
+                <label for="signup-terms" class="auth-terms-text">
+                  Saya setuju dengan ketentuan penggunaan dan kebijakan privasi.
+                </label>
+              </div>
+
+              <button type="submit" class="btn-auth-submit" id="btn-submit-signup">
+                Buat akun
+              </button>
+
+              <div class="auth-existing-link">
+                Sudah punya akun? <button type="button" class="auth-link-action" id="btn-jump-login">Masuk</button>
+              </div>
+
+              <div class="auth-card-footer-note">
+                Contoh tampilan saja. Koneksi autentikasi perlu diterapkan di aplikasi.
+              </div>
+            </form>
+          </div>
+
+          <!-- Right Column: Stack of 2 Cards -->
+          <div class="auth-right-stack">
+
+            <!-- Card 2 (580px x 390px): Reset kata sandi -->
+            <div class="figma-card" style="padding: 18px 20px;">
+              <div class="card-header-row">
+                <div class="card-title-group">
+                  <span class="card-header-icon">🔒</span>
+                  <span class="card-section-title">Reset kata sandi</span>
+                </div>
+              </div>
+              <div class="card-subtitle-text" style="margin-bottom: 16px;">
+                Masukkan email akun. Instruksi pemulihan akan dikirim sesuai mekanisme autentikasi aplikasi.
+              </div>
+
+              <form id="form-tab-reset">
+                <div class="auth-field-group" style="margin-bottom: 14px;">
+                  <label for="reset-email" class="auth-field-label">Email terdaftar</label>
+                  <div class="auth-input-with-icon">
+                    <span class="auth-input-icon">✉</span>
+                    <input type="email" id="reset-email" class="auth-text-input with-icon" placeholder="nama@email.com" required>
+                  </div>
+                </div>
+
+                <button type="submit" class="btn-auth-submit" id="btn-submit-reset">
+                  Kirim instruksi reset
+                </button>
+
+                <div style="text-align: center; margin-top: 14px;">
+                  <button type="button" class="auth-link-action" id="btn-reset-to-login">
+                    Kembali ke halaman masuk
+                  </button>
+                </div>
+
+                <div class="settings-inner-divider" style="margin: 18px 0 14px 0;"></div>
+
+                <div class="auth-info-note-row">
+                  <span style="font-size: 14px; line-height: 14px;">ⓘ</span>
+                  <span>Layar ini adalah desain UI. Verifikasi email dan token reset harus ditangani server.</span>
+                </div>
+              </form>
+            </div>
+
+            <!-- Card 3 (580px x 236px): Prinsip autentikasi -->
+            <div class="figma-card" style="padding: 18px 20px;">
+              <div class="card-header-row">
+                <div class="card-title-group">
+                  <span class="card-header-icon">🛡️</span>
+                  <span class="card-section-title">Prinsip autentikasi</span>
+                </div>
+              </div>
+
+              <div style="margin-top: 10px;">
+                <!-- Principle 1: Password -->
+                <div class="auth-principle-row">
+                  <span class="principle-heading">Password</span>
+                  <span class="principle-desc">Jangan pernah menampilkan kata sandi dalam bentuk teks.</span>
+                </div>
+                <div class="settings-inner-divider" style="margin: 4px 0;"></div>
+
+                <!-- Principle 2: Session -->
+                <div class="auth-principle-row">
+                  <span class="principle-heading">Session</span>
+                  <span class="principle-desc">Berikan opsi logout dan pengelolaan sesi.</span>
+                </div>
+                <div class="settings-inner-divider" style="margin: 4px 0;"></div>
+
+                <!-- Principle 3: Recovery -->
+                <div class="auth-principle-row">
+                  <span class="principle-heading">Recovery</span>
+                  <span class="principle-desc">Gunakan token pemulihan yang memiliki masa berlaku.</span>
+                </div>
+                <div class="settings-inner-divider" style="margin: 4px 0;"></div>
+
+                <!-- Principle 4: Errors -->
+                <div class="auth-principle-row">
+                  <span class="principle-heading">Errors</span>
+                  <span class="principle-desc">Tampilkan pesan gagal login yang jelas dan aman.</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+        <div class="planning-footer-note" style="margin-top: 20px;">
+          Finance AI Agent - Login dan recovery adalah rancangan tampilan, bukan autentikasi yang sudah terhubung.
+        </div>
+      </div>
+
     </main>
   </div>
 
@@ -1679,6 +1841,11 @@
         <button type="submit" class="btn-primary-dark" style="width: 100%; height: 38px;">
           Masuk ke Dashboard
         </button>
+
+        <div style="display: flex; justify-content: space-between; margin-top: 14px; font-size: 10px;">
+          <button type="button" id="link-overlay-forgot" class="auth-link-action">Lupa kata sandi?</button>
+          <button type="button" id="link-overlay-register" class="auth-link-action">Buat akun baru</button>
+        </div>
       </form>
     </div>
   </div>

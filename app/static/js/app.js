@@ -207,6 +207,22 @@ class App {
     this.modalBackupStatus = document.getElementById('modal-backup-status');
     this.modalPrivacyPolicy = document.getElementById('modal-privacy-policy');
     this.userProfileBadge = document.querySelector('.user-profile-badge');
+
+    // Tab 7: Akun Pengguna / Auth (Screen 07)
+    this.formTabSignup = document.getElementById('form-tab-signup');
+    this.signupFullname = document.getElementById('signup-fullname');
+    this.signupEmail = document.getElementById('signup-email');
+    this.signupPassword = document.getElementById('signup-password');
+    this.signupConfirm = document.getElementById('signup-confirm');
+    this.signupTerms = document.getElementById('signup-terms');
+    this.btnJumpLogin = document.getElementById('btn-jump-login');
+
+    this.formTabReset = document.getElementById('form-tab-reset');
+    this.resetEmail = document.getElementById('reset-email');
+    this.btnResetToLogin = document.getElementById('btn-reset-to-login');
+
+    this.linkOverlayForgot = document.getElementById('link-overlay-forgot');
+    this.linkOverlayRegister = document.getElementById('link-overlay-register');
   }
 
   attachEventListeners() {
@@ -435,6 +451,59 @@ class App {
         this.showAlert('Kata sandi akun Anda berhasil diperbarui.', 'success');
       });
     }
+
+    // Tab 7 Events (Screen 07: Buat Akun & Reset Kata Sandi)
+    if (this.btnJumpLogin) {
+      this.btnJumpLogin.addEventListener('click', () => this.showLogin());
+    }
+    if (this.btnResetToLogin) {
+      this.btnResetToLogin.addEventListener('click', () => this.showLogin());
+    }
+    if (this.linkOverlayForgot) {
+      this.linkOverlayForgot.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.closeModals();
+        this.switchTab('tab-auth');
+      });
+    }
+    if (this.linkOverlayRegister) {
+      this.linkOverlayRegister.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.closeModals();
+        this.switchTab('tab-auth');
+      });
+    }
+
+    if (this.formTabSignup) {
+      this.formTabSignup.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = this.signupFullname.value.trim();
+        const email = this.signupEmail.value.trim();
+        const pwd = this.signupPassword.value;
+        const confirm = this.signupConfirm.value;
+
+        if (pwd !== confirm) {
+          this.showAlert('Konfirmasi kata sandi tidak cocok.', 'error');
+          return;
+        }
+        if (pwd.length < 8) {
+          this.showAlert('Kata sandi minimal 8 karakter.', 'error');
+          return;
+        }
+
+        this.showAlert(`Akun untuk ${name} (${email}) berhasil didaftarkan!`, 'success');
+        this.formTabSignup.reset();
+      });
+    }
+
+    if (this.formTabReset) {
+      this.formTabReset.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const email = this.resetEmail.value.trim();
+        this.showAlert(`Instruksi pemulihan kata sandi telah dikirim ke ${email}.`, 'success');
+        this.formTabReset.reset();
+      });
+    }
   }
 
   switchTab(tabId) {
@@ -447,7 +516,8 @@ class App {
       'tab-planning': { title: 'Anggaran & Tabungan', intro: 'Atur pagu bulanan dan pantau progres tujuan tabungan.' },
       'tab-copilot': { title: 'Penasihat Finansial AI', intro: 'Tanyakan rencana pembelian, evaluasi kelayakan anggaran, dan pantau pola pengeluaran berbasis AI.' },
       'tab-reports': { title: 'Laporan Keuangan', intro: 'Tinjau arus kas, komposisi pengeluaran, dan perubahan dari bulan ke bulan.' },
-      'tab-settings': { title: 'Pengaturan & Profil', intro: 'Kelola profil, rekening, keamanan, dan preferensi aplikasi.' }
+      'tab-settings': { title: 'Pengaturan & Profil', intro: 'Kelola profil, rekening, keamanan, dan preferensi aplikasi.' },
+      'tab-auth': { title: 'Akun pengguna', intro: 'Rancangan layar daftar akun dan reset kata sandi.' }
     };
 
     if (this.pageTitle && titles[tabId]) this.pageTitle.textContent = titles[tabId].title;
