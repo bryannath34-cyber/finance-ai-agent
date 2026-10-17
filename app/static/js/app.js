@@ -271,6 +271,7 @@ class App {
     this.reportsChartNote = document.getElementById('reports-chart-note');
     this.reportsMonthlyTableBody = document.getElementById('reports-monthly-table-body');
     this.btnReportSelectMonth = document.getElementById('btn-report-select-month');
+    this.activeChartSeries = 'ALL'; // 'ALL' | 'INCOME' | 'EXPENSE'
 
     // Dashboard Real-time Visual Charts (Screen 01)
     this.dashboardSparklineSvg = document.getElementById('dashboard-sparkline-svg');
@@ -602,6 +603,14 @@ class App {
         this.showAlert('Rentang grafik: 12 Bulan Aktif (2026)', 'info');
       });
     }
+
+    // Interactive Series Filter (Semua, Pemasukan, Pengeluaran)
+    document.querySelectorAll('.chart-series-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const series = btn.getAttribute('data-series');
+        this.setChartSeriesFilter(series);
+      });
+    });
 
     document.querySelectorAll('.btn-view-period').forEach((btn) => {
       btn.addEventListener('click', (e) => {
@@ -2271,6 +2280,28 @@ class App {
     }
   }
 
+  setChartSeriesFilter(series) {
+    this.activeChartSeries = series;
+    document.querySelectorAll('.chart-series-btn').forEach((btn) => {
+      if (btn.getAttribute('data-series') === series) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+
+    const seriesLabels = {
+      ALL: 'Semua (Pemasukan & Pengeluaran)',
+      INCOME: 'Pemasukan',
+      EXPENSE: 'Pengeluaran'
+    };
+    this.showAlert(`Grafik difilter: ${seriesLabels[series] || series}`, 'info');
+
+    if (this.reportData) {
+      this.renderReports(this.reportData);
+    }
+  }
+
   // ==========================================
   // TAB 3: ANGGARAN & TARGET TABUNGAN
   // ==========================================
@@ -2904,12 +2935,18 @@ class App {
     // 3. 12-Month Grouped Bar Chart
     if (this.reportsBarsContainer && data.monthly_cashflow) {
       this.reportsBarsContainer.innerHTML = '';
+      const filterSeries = this.activeChartSeries || 'ALL'; // 'ALL' | 'INCOME' | 'EXPENSE'
+
       let maxVal = 0;
       data.monthly_cashflow.forEach((item) => {
         const inc = parseFloat(item.income) || 0;
         const exp = parseFloat(item.expense) || 0;
-        if (inc > maxVal) maxVal = inc;
-        if (exp > maxVal) maxVal = exp;
+        if (filterSeries === 'ALL' || filterSeries === 'INCOME') {
+          if (inc > maxVal) maxVal = inc;
+        }
+        if (filterSeries === 'ALL' || filterSeries === 'EXPENSE') {
+          if (exp > maxVal) maxVal = exp;
+        }
       });
       if (maxVal === 0) maxVal = 1000000;
 
@@ -2922,6 +2959,10 @@ class App {
         const expH = Math.min(Math.round((exp / maxVal) * maxChartHeight), maxChartHeight);
         const isActive = item.month === data.period_month;
 
+        const showIncome = (filterSeries === 'ALL' || filterSeries === 'INCOME');
+        const showExpense = (filterSeries === 'ALL' || filterSeries === 'EXPENSE');
+        const singleBarWidth = (!showIncome || !showExpense) ? 'width: 24px;' : '';
+
         const col = document.createElement('div');
         col.className = 'grouped-month-col';
         col.style.cursor = 'pointer';
@@ -2929,8 +2970,8 @@ class App {
 
         col.innerHTML = `
           <div class="grouped-bars-wrapper">
-            <div class="bar-income ${isActive ? 'active' : ''}" style="height: ${incH}px;" title="${item.month_label} Masuk: ${this.formatIDR(inc)}"></div>
-            <div class="bar-expense ${isActive ? 'active' : ''}" style="height: ${expH}px;" title="${item.month_label} Keluar: ${this.formatIDR(exp)}"></div>
+            ${showIncome ? `<div class="bar-income ${isActive ? 'active' : ''}" style="height: ${incH}px; ${singleBarWidth}" title="${item.month_label} Masuk: ${this.formatIDR(inc)}"></div>` : ''}
+            ${showExpense ? `<div class="bar-expense ${isActive ? 'active' : ''}" style="height: ${expH}px; ${singleBarWidth}" title="${item.month_label} Keluar: ${this.formatIDR(exp)}"></div>` : ''}
           </div>
           <div class="grouped-month-label ${isActive ? 'active' : ''}">${item.month_label}</div>
         `;
@@ -2944,7 +2985,8 @@ class App {
     }
 
     if (this.reportsChartNote) {
-      this.reportsChartNote.textContent = `Menampilkan data arus kas riil buku besar tahun ${data.period_year}.`;
+      const seriesText = this.activeChartSeries === 'EXPENSE' ? 'pengeluaran' : (this.activeChartSeries === 'INCOME' ? 'pemasukan' : 'arus kas riil');
+      this.reportsChartNote.textContent = `Menampilkan data ${seriesText} buku besar tahun ${data.period_year}.`;
     }
 
     // 4. Monthly History Table

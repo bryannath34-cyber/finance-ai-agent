@@ -1066,10 +1066,19 @@
               Bandingkan pemasukan dan pengeluaran sepanjang tahun 2026.
             </div>
 
-            <!-- Legend pills -->
-            <div class="reports-chart-legends">
-              <div class="chart-legend-badge income">Pemasukan</div>
-              <div class="chart-legend-badge expense">Pengeluaran</div>
+            <!-- Interactive Series Filter Buttons -->
+            <div class="reports-chart-legends" id="reports-chart-series-filter">
+              <button type="button" class="chart-series-btn active" data-series="ALL" id="btn-series-all">
+                Semua
+              </button>
+              <button type="button" class="chart-series-btn" data-series="INCOME" id="btn-series-income">
+                <span class="series-dot income"></span>
+                <span>Pemasukan</span>
+              </button>
+              <button type="button" class="chart-series-btn" data-series="EXPENSE" id="btn-series-expense">
+                <span class="series-dot expense"></span>
+                <span>Pengeluaran</span>
+              </button>
             </div>
 
             <!-- 12-Month Grouped Bar Chart -->
