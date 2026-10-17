@@ -369,105 +369,138 @@ class TransactionService:
         expires_at_str = (now_utc + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
         batch_id = str(uuid.uuid4())
 
-        with get_db_connection() as conn:
-            with conn.cursor() as cur:
-                # Verifikasi kepemilikan rekening
-                if source_account_id:
-                    cur.execute("SELECT id FROM accounts WHERE id = %s AND user_id = %s", (source_account_id, user_id))
-                    if not cur.fetchone():
-                        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rekening sumber tidak ditemukan.")
-                if destination_account_id:
-                    cur.execute("SELECT id FROM accounts WHERE id = %s AND user_id = %s", (destination_account_id, user_id))
-                    if not cur.fetchone():
-                        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rekening tujuan tidak ditemukan.")
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    # Verifikasi kepemilikan rekening
+                    if source_account_id:
+                        cur.execute("SELECT id FROM accounts WHERE id = %s AND user_id = %s", (source_account_id, user_id))
+                        if not cur.fetchone():
+                            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rekening sumber tidak ditemukan.")
+                    if destination_account_id:
+                        cur.execute("SELECT id FROM accounts WHERE id = %s AND user_id = %s", (destination_account_id, user_id))
+                        if not cur.fetchone():
+                            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rekening tujuan tidak ditemukan.")
 
-                # Verifikasi kepemilikan kategori
-                if category_id:
-                    cur.execute("SELECT id FROM categories WHERE id = %s AND user_id = %s", (category_id, user_id))
-                    if not cur.fetchone():
-                        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kategori tidak ditemukan.")
+                    # Verifikasi kepemilikan kategori
+                    if category_id:
+                        cur.execute("SELECT id FROM categories WHERE id = %s AND user_id = %s", (category_id, user_id))
+                        if not cur.fetchone():
+                            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kategori tidak ditemukan.")
 
-                # 1. Masukkan draft otomatis berstatus CONFIRMED (memenuhi trigger & constraint foreign key)
-                cur.execute("""
-                    INSERT INTO transaction_drafts (
-                        user_id, batch_id, type, amount, admin_fee, source_account_id,
-                        destination_account_id, category_id, description, transaction_date,
-                        status, confirmed_at, expires_at
-                    ) VALUES (
-                        %s, %s, %s, %s, %s, %s,
-                        %s, %s, %s, %s,
-                        'CONFIRMED', %s, %s
-                    )
-                """, (
-                    user_id, batch_id, tx_type, amount, admin_fee, source_account_id,
-                    destination_account_id, category_id, description, tx_date,
-                    now_utc_str, expires_at_str
-                ))
-                draft_id = cur.lastrowid
-
-                # 2. Masukkan transaksi PRIMARY ke buku besar
-                cur.execute("""
-                    INSERT INTO transactions (
-                        user_id, draft_id, ledger_role, type, amount, source_account_id,
-                        destination_account_id, category_id, description, transaction_date,
-                        is_reversal
-                    ) VALUES (
-                        %s, %s, 'PRIMARY', %s, %s, %s,
-                        %s, %s, %s, %s,
-                        FALSE
-                    )
-                """, (
-                    user_id, draft_id, tx_type, amount,
-                    source_account_id, destination_account_id,
-                    category_id, description, tx_date
-                ))
-                primary_tx_id = cur.lastrowid
-
-                # 3. Jika transfer dengan biaya admin > 0
-                if tx_type == "TRANSFER" and admin_fee > 0:
+                    # 1. Masukkan draft otomatis berstatus CONFIRMED (memenuhi trigger & constraint foreign key)
                     cur.execute("""
-                        SELECT id FROM categories 
-                        WHERE user_id = %s AND (is_system = TRUE OR name = 'Biaya Admin')
-                        ORDER BY is_system DESC LIMIT 1
-                    """, (user_id,))
-                    admin_cat_row = cur.fetchone()
-                    if admin_cat_row:
-                        admin_cat_id = admin_cat_row["id"]
-                    else:
-                        cur.execute("""
-                            INSERT INTO categories (user_id, name, type, is_system, is_active)
-                            VALUES (%s, 'Biaya Admin', 'EXPENSE', TRUE, TRUE)
-                        """, (user_id,))
-                        admin_cat_id = cur.lastrowid
-
-                    fee_desc = f"Biaya Admin Transfer: {description or ''}".strip()
-                    cur.execute("""
-                        INSERT INTO transactions (
-                            user_id, draft_id, ledger_role, parent_transaction_id, type, amount,
-                            source_account_id, destination_account_id, category_id, description,
-                            transaction_date, is_reversal
+                        INSERT INTO transaction_drafts (
+                            user_id, batch_id, type, amount, admin_fee, source_account_id,
+                            destination_account_id, category_id, description, transaction_date,
+                            status, confirmed_at, expires_at
                         ) VALUES (
-                            %s, %s, 'ADMIN_FEE', %s, 'EXPENSE', %s,
-                            %s, NULL, %s, %s,
-                            %s, FALSE
+                            %s, %s, %s, %s, %s, %s,
+                            %s, %s, %s, %s,
+                            'CONFIRMED', %s, %s
                         )
                     """, (
-                        user_id, draft_id, primary_tx_id, admin_fee,
-                        source_account_id, admin_cat_id, fee_desc,
-                        tx_date
+                        user_id, batch_id, tx_type, amount, admin_fee, source_account_id,
+                        destination_account_id, category_id, description, tx_date,
+                        now_utc_str, expires_at_str
                     ))
+                    draft_id = cur.lastrowid
 
-                # 4. Audit Log
-                audit_details = f"Transaksi manual dibuat (ID {primary_tx_id}): {tx_type} Rp {amount}."[:255]
-                client_ip = (ip_address or "127.0.0.1")[:45]
-                cur.execute("""
-                    INSERT INTO system_audit_logs (user_id, event_type, details, ip_address)
-                    VALUES (%s, 'MANUAL_TX_CREATED', %s, %s)
-                """, (user_id, audit_details, client_ip))
+                    # 2. Masukkan transaksi PRIMARY ke buku besar
+                    cur.execute("""
+                        INSERT INTO transactions (
+                            user_id, draft_id, ledger_role, type, amount, source_account_id,
+                            destination_account_id, category_id, description, transaction_date,
+                            is_reversal
+                        ) VALUES (
+                            %s, %s, 'PRIMARY', %s, %s, %s,
+                            %s, %s, %s, %s,
+                            FALSE
+                        )
+                    """, (
+                        user_id, draft_id, tx_type, amount,
+                        source_account_id, destination_account_id,
+                        category_id, description, tx_date
+                    ))
+                    primary_tx_id = cur.lastrowid
 
-                conn.commit()
+                    # 3. Jika transfer dengan biaya admin > 0
+                    if tx_type == "TRANSFER" and admin_fee > 0:
+                        cur.execute("""
+                            SELECT id FROM categories 
+                            WHERE user_id = %s AND (is_system = TRUE OR name = 'Biaya Admin')
+                            ORDER BY is_system DESC LIMIT 1
+                        """, (user_id,))
+                        admin_cat_row = cur.fetchone()
+                        if admin_cat_row:
+                            admin_cat_id = admin_cat_row["id"]
+                        else:
+                            cur.execute("""
+                                INSERT INTO categories (user_id, name, type, is_system, is_active)
+                                VALUES (%s, 'Biaya Admin', 'EXPENSE', TRUE, TRUE)
+                            """, (user_id,))
+                            admin_cat_id = cur.lastrowid
 
-        return TransactionService.get_transaction_by_id(user_id, primary_tx_id)
+                        fee_desc = f"Biaya Admin Transfer: {description or ''}".strip()
+                        cur.execute("""
+                            INSERT INTO transactions (
+                                user_id, draft_id, ledger_role, parent_transaction_id, type, amount,
+                                source_account_id, destination_account_id, category_id, description,
+                                transaction_date, is_reversal
+                            ) VALUES (
+                                %s, %s, 'ADMIN_FEE', %s, 'EXPENSE', %s,
+                                %s, NULL, %s, %s,
+                                %s, FALSE
+                            )
+                        """, (
+                            user_id, draft_id, primary_tx_id, admin_fee,
+                            source_account_id, admin_cat_id, fee_desc,
+                            tx_date
+                        ))
+
+                    # 4. Audit Log
+                    audit_details = f"Transaksi manual dibuat (ID {primary_tx_id}): {tx_type} Rp {amount}."[:255]
+                    client_ip = (ip_address or "127.0.0.1")[:45]
+                    cur.execute("""
+                        INSERT INTO system_audit_logs (user_id, event_type, details, ip_address)
+                        VALUES (%s, 'MANUAL_TX_CREATED', %s, %s)
+                    """, (user_id, audit_details, client_ip))
+
+                    conn.commit()
+
+            return TransactionService.get_transaction_by_id(user_id, primary_tx_id)
+        except HTTPException:
+            raise
+        except pymysql.MySQLError as e:
+            err_code = e.args[0] if e.args else None
+            err_msg = str(e)
+            logger.error("MySQL error saat mencatat transaksi manual: %s", e)
+            if err_code == 1142 or "command denied" in err_msg.lower():
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"Database user 'fin_bot_app' belum memiliki hak akses pada tabel MySQL: {err_msg}. Silakan jalankan: python scripts/fix_crud_grants.py"
+                )
+            elif err_code == 3819 or "check constraint" in err_msg.lower():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Validasi data transaksi tidak sesuai aturan bisnis database: {err_msg}"
+                )
+            elif "trigger" in err_msg.lower() or "gagal insert ledger" in err_msg.lower():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Validasi trigger database gagal: {err_msg}"
+                )
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Database error saat mencatat transaksi: {err_msg}"
+                )
+        except Exception as e:
+            logger.error("Error tidak terduga saat mencatat transaksi manual: %s", e, exc_info=True)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Gagal mencatat transaksi: {str(e)}"
+            )
 
     @staticmethod
     def update_transaction(user_id: int, transaction_id: int, update_data: Dict[str, Any], ip_address: str = "127.0.0.1") -> Dict[str, Any]:

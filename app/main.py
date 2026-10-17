@@ -53,6 +53,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 2b. Global Exception Handler
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error("Unhandled error [%s %s]: %s", request.method, request.url.path, exc, exc_info=True)
+    detail_msg = getattr(exc, "detail", str(exc)) or "Terjadi kesalahan internal server."
+    return JSONResponse(
+        status_code=500,
+        content={"success": False, "message": detail_msg, "detail": detail_msg}
+    )
+
 # 3. Startup & Shutdown Events
 @app.on_event("startup")
 def startup_event():
