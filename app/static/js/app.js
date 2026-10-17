@@ -856,6 +856,31 @@ class App {
     }
   }
 
+  formatTxDescription(desc, isRev) {
+    if (!desc) return '-';
+    let text = String(desc).trim();
+    const isPembalik = isRev || text.includes('[PEMBALIK]');
+    const isBiayaAdmin = text.includes('BIAYA ADMIN') || text.includes('Biaya Admin');
+
+    let reason = '';
+    const reasonMatch = text.match(/\(Alasan:\s*([^\)]+)\)/i);
+    if (reasonMatch) {
+      reason = reasonMatch[1].trim();
+      text = text.replace(/\(Alasan:\s*[^\)]+\)/i, '').trim();
+    }
+
+    text = text.replace(/\[PEMBALIK BIAYA ADMIN\]/gi, '').replace(/\[PEMBALIK\]/gi, '').trim();
+
+    let tagHtml = '';
+    if (isPembalik) {
+      tagHtml = `<span class="badge-tag-reversal">${isBiayaAdmin ? 'Pembalik Biaya' : 'Pembalik'}</span>`;
+    }
+
+    let reasonHtml = reason ? `<span class="reversal-reason">(${reason})</span>` : '';
+
+    return `<div class="td-desc">${tagHtml}<span>${text}</span>${reasonHtml}</div>`;
+  }
+
   // Render Ledger History in Figma Screen 02 Table Style
   renderHistory() {
     const list = this.filteredTransactions || this.transactions;
@@ -898,14 +923,14 @@ class App {
 
       const dateStr = this.formatDateID(tx.transaction_date);
       const sign = isIncome ? '+' : '-';
-      const amountColor = isIncome ? 'var(--accent-green)' : 'var(--text-primary)';
+      const amountClass = isIncome ? 'income' : 'expense';
 
       tr.innerHTML = `
-        <td style="color: var(--text-secondary); font-size: 9px;">${dateStr}</td>
-        <td><strong>${tx.description || '-'}</strong></td>
-        <td style="color: var(--text-secondary);">${tx.category_name || '-'}</td>
-        <td style="color: var(--text-secondary); font-size: 9px;">${accountsDisplay}</td>
-        <td style="font-weight: 600; color: ${amountColor};">${sign}${this.formatIDR(tx.amount)}</td>
+        <td class="td-date">${dateStr}</td>
+        <td>${this.formatTxDescription(tx.description, isRev)}</td>
+        <td class="td-category">${tx.category_name || '-'}</td>
+        <td class="td-account">${accountsDisplay}</td>
+        <td class="td-amount ${amountClass}">${sign}${this.formatIDR(tx.amount)}</td>
         <td><span class="badge-cat-pill ${pillClass}">${statusLabel}</span></td>
         <td style="text-align: right;">
           ${!isRev && role !== 'ADMIN_FEE' ? `
@@ -930,14 +955,28 @@ class App {
       this.transactions.slice(0, 5).forEach((tx) => {
         const tr = document.createElement('tr');
         const isIncome = tx.type === 'INCOME';
+        const isRev = tx.is_reversal;
         const sign = isIncome ? '+' : '-';
+        let pillClass = 'cat-rose';
+        let statusLabel = 'EXPENSE';
+        if (isRev) {
+          pillClass = 'cat-rose';
+          statusLabel = 'REVERSAL';
+        } else if (isIncome) {
+          pillClass = 'cat-green';
+          statusLabel = 'INCOME';
+        } else if (tx.type === 'TRANSFER') {
+          pillClass = 'cat-blue';
+          statusLabel = 'TRANSFER';
+        }
+
         tr.innerHTML = `
-          <td>${this.formatDateID(tx.transaction_date)}</td>
-          <td><strong>${tx.description || '-'}</strong></td>
-          <td style="font-weight: 600; color: ${isIncome ? 'var(--accent-green)' : 'var(--text-primary)'};">${sign}${this.formatIDR(tx.amount)}</td>
-          <td>${tx.category_name || '-'}</td>
-          <td>${tx.source_account_name || tx.destination_account_name || '-'}</td>
-          <td><span class="badge-cat-pill ${isIncome ? 'cat-green' : (tx.type === 'TRANSFER' ? 'cat-blue' : 'cat-rose')}">${tx.type}</span></td>
+          <td class="td-date">${this.formatDateID(tx.transaction_date)}</td>
+          <td>${this.formatTxDescription(tx.description, isRev)}</td>
+          <td class="td-amount ${isIncome ? 'income' : 'expense'}">${sign}${this.formatIDR(tx.amount)}</td>
+          <td class="td-category">${tx.category_name || '-'}</td>
+          <td class="td-account">${tx.source_account_name || tx.destination_account_name || '-'}</td>
+          <td style="text-align: center;"><span class="badge-cat-pill ${pillClass}">${statusLabel}</span></td>
         `;
         this.dashboardHistoryBody.appendChild(tr);
       });
