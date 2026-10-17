@@ -9,6 +9,8 @@ from app.schemas.transaction import (
     ConfirmBatchResponse,
     TransactionItemResponse,
     ReverseTransactionRequest,
+    CreateTransactionRequest,
+    UpdateTransactionRequest,
 )
 from app.services.transaction_service import TransactionService
 from app.services.finance_service import FinanceService
@@ -75,6 +77,78 @@ def list_transactions(
         success=True,
         message=f"Berhasil mengambil {len(txs)} riwayat transaksi.",
         data=txs
+    )
+
+@router.post("", response_model=DataResponse[TransactionItemResponse])
+def create_transaction(
+    payload: CreateTransactionRequest,
+    request: Request,
+    user: dict = Depends(get_current_user)
+):
+    """Mencatat transaksi baru langsung ke buku besar."""
+    client_ip = _get_client_ip(request)
+    tx = TransactionService.create_manual_transaction(
+        user_id=user["id"],
+        payload=payload.model_dump(),
+        ip_address=client_ip
+    )
+    return DataResponse(
+        success=True,
+        message="Transaksi berhasil dicatat ke buku besar.",
+        data=tx
+    )
+
+@router.get("/{transaction_id}", response_model=DataResponse[TransactionItemResponse])
+def get_transaction(
+    transaction_id: int,
+    user: dict = Depends(get_current_user)
+):
+    """Mengambil rincian transaksi buku besar berdasarkan ID."""
+    tx = TransactionService.get_transaction_by_id(user["id"], transaction_id)
+    return DataResponse(
+        success=True,
+        message="Berhasil mengambil data transaksi.",
+        data=tx
+    )
+
+@router.put("/{transaction_id}", response_model=DataResponse[TransactionItemResponse])
+def update_transaction(
+    transaction_id: int,
+    payload: UpdateTransactionRequest,
+    request: Request,
+    user: dict = Depends(get_current_user)
+):
+    """Menyunting transaksi buku besar yang telah dibukukan."""
+    client_ip = _get_client_ip(request)
+    update_data = payload.model_dump(exclude_unset=True)
+    tx = TransactionService.update_transaction(
+        user_id=user["id"],
+        transaction_id=transaction_id,
+        update_data=update_data,
+        ip_address=client_ip
+    )
+    return DataResponse(
+        success=True,
+        message="Transaksi berhasil diperbarui.",
+        data=tx
+    )
+
+@router.delete("/{transaction_id}", response_model=BaseResponse)
+def delete_transaction(
+    transaction_id: int,
+    request: Request,
+    user: dict = Depends(get_current_user)
+):
+    """Menghapus transaksi dari buku besar."""
+    client_ip = _get_client_ip(request)
+    res = TransactionService.delete_transaction(
+        user_id=user["id"],
+        transaction_id=transaction_id,
+        ip_address=client_ip
+    )
+    return BaseResponse(
+        success=True,
+        message=res["message"]
     )
 
 @router.post("/{transaction_id}/reverse", response_model=DataResponse[dict])

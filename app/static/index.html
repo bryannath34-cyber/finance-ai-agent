@@ -261,7 +261,7 @@
                 <span class="card-section-title">Riwayat buku besar</span>
               </div>
               
-              <!-- Ledger Toolbar (Search, Month, Type) -->
+              <!-- Ledger Toolbar (Search, Month, Type, + Catat Transaksi) -->
               <div class="ledger-toolbar">
                 <div class="ledger-search-box">
                   <svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -278,6 +278,10 @@
                   <option value="INCOME">Pemasukan</option>
                   <option value="TRANSFER">Transfer</option>
                 </select>
+                <button type="button" class="btn-primary-dark" id="btn-open-create-tx" style="height: 32px; font-size: 11px; display: inline-flex; align-items: center; gap: 6px; padding: 0 13px; border-radius: 9px; white-space: nowrap;">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  <span>Catat Transaksi</span>
+                </button>
               </div>
             </div>
             <div class="card-subtitle-text">
@@ -407,10 +411,16 @@
                   </span>
                   <span class="card-section-title">Ringkasan Mutasi Terkini</span>
                 </div>
-                <button type="button" class="card-action-link" id="btn-jump-to-mutasi">
-                  <span>Buka Command Center</span>
-                  <svg class="ui-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-                </button>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <button type="button" class="btn-primary-dark" id="btn-open-create-tx-dash" style="height: 28px; font-size: 10px; display: inline-flex; align-items: center; gap: 5px; padding: 0 10px; border-radius: 8px;">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    <span>+ Catat Transaksi</span>
+                  </button>
+                  <button type="button" class="card-action-link" id="btn-jump-to-mutasi">
+                    <span>Buka Command Center</span>
+                    <svg class="ui-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                  </button>
+                </div>
               </div>
               <div class="card-subtitle-text">Transaksi buku besar terverifikasi</div>
               <div class="figma-table-wrapper">
@@ -1743,6 +1753,146 @@
           <button type="submit" class="btn-primary-dark">Simpan Limit</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Catat Transaksi Baru (CRUD - Create) -->
+  <div id="modal-create-tx" class="modal-overlay" style="display: none;">
+    <div class="modal-content" style="max-width: 480px;">
+      <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 7px;">
+        <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        <span>Catat Transaksi Buku Besar</span>
+      </h3>
+      <p style="font-size: 10.5px; color: var(--text-secondary); margin-bottom: 14px;">Tambah mutasi secara langsung ke pembukuan tanpa melalui kalimat AI.</p>
+      
+      <form id="form-create-tx">
+        <!-- Segmented Type Selector -->
+        <div class="tx-type-segmented" id="create-tx-type-selector">
+          <button type="button" class="tx-type-btn active" data-type="EXPENSE">Pengeluaran</button>
+          <button type="button" class="tx-type-btn" data-type="INCOME">Pemasukan</button>
+          <button type="button" class="tx-type-btn" data-type="TRANSFER">Transfer</button>
+        </div>
+        <input type="hidden" id="create-tx-type" value="EXPENSE">
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+          <div>
+            <label style="font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Nominal (Rp) *</label>
+            <input type="number" id="create-tx-amount" class="auth-input" placeholder="Contoh: 50000" min="1" step="any" required>
+          </div>
+          <div>
+            <label style="font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Tanggal *</label>
+            <input type="date" id="create-tx-date" class="auth-input" required>
+          </div>
+        </div>
+
+        <div id="create-tx-src-group" style="margin-bottom: 10px;">
+          <label style="font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Rekening Sumber *</label>
+          <select id="create-tx-source-account" class="auth-input"></select>
+        </div>
+
+        <div id="create-tx-dest-group" style="margin-bottom: 10px; display: none;">
+          <label style="font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Rekening Tujuan *</label>
+          <select id="create-tx-dest-account" class="auth-input"></select>
+        </div>
+
+        <div id="create-tx-category-group" style="margin-bottom: 10px;">
+          <label style="font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Kategori *</label>
+          <select id="create-tx-category" class="auth-input"></select>
+        </div>
+
+        <div id="create-tx-admin-fee-group" style="margin-bottom: 10px; display: none;">
+          <label style="font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Biaya Admin Transfer (Rp, Opsional)</label>
+          <input type="number" id="create-tx-admin-fee" class="auth-input" placeholder="0" min="0" step="any" value="0">
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label style="font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Keterangan / Deskripsi</label>
+          <input type="text" id="create-tx-description" class="auth-input" placeholder="Makan siang, tagihan wifi, belanja bulanan...">
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+          <button type="button" class="btn-secondary-light btn-close-modal">Batal</button>
+          <button type="submit" class="btn-primary-dark" id="btn-submit-create-tx">Simpan ke Buku Besar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Sunting Transaksi Buku Besar (CRUD - Update) -->
+  <div id="modal-edit-tx" class="modal-overlay" style="display: none;">
+    <div class="modal-content" style="max-width: 480px;">
+      <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between;">
+        <span style="display: flex; align-items: center; gap: 7px;">
+          <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          <span>Sunting Transaksi</span>
+        </span>
+        <span id="edit-tx-type-badge" class="badge-cat-pill cat-rose">EXPENSE</span>
+      </h3>
+      <p style="font-size: 10.5px; color: var(--text-secondary); margin-bottom: 14px;">Perubahan akan langsung mengkalkulasi ulang saldo rekening dan grafik.</p>
+      
+      <form id="form-edit-tx">
+        <input type="hidden" id="edit-tx-id">
+        <input type="hidden" id="edit-tx-type">
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+          <div>
+            <label style="font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Nominal (Rp) *</label>
+            <input type="number" id="edit-tx-amount" class="auth-input" min="1" step="any" required>
+          </div>
+          <div>
+            <label style="font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Tanggal *</label>
+            <input type="date" id="edit-tx-date" class="auth-input" required>
+          </div>
+        </div>
+
+        <div id="edit-tx-src-group" style="margin-bottom: 10px;">
+          <label style="font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Rekening Sumber</label>
+          <select id="edit-tx-source-account" class="auth-input"></select>
+        </div>
+
+        <div id="edit-tx-dest-group" style="margin-bottom: 10px;">
+          <label style="font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Rekening Tujuan</label>
+          <select id="edit-tx-dest-account" class="auth-input"></select>
+        </div>
+
+        <div id="edit-tx-category-group" style="margin-bottom: 10px;">
+          <label style="font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Kategori</label>
+          <select id="edit-tx-category" class="auth-input"></select>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label style="font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Keterangan / Deskripsi</label>
+          <input type="text" id="edit-tx-description" class="auth-input">
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+          <button type="button" class="btn-secondary-light btn-close-modal">Batal</button>
+          <button type="submit" class="btn-primary-dark" id="btn-submit-edit-tx">Simpan Perubahan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Konfirmasi Hapus Transaksi (CRUD - Delete) -->
+  <div id="modal-delete-tx" class="modal-overlay" style="display: none;">
+    <div class="modal-content" style="max-width: 430px;">
+      <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; gap: 7px; color: var(--accent-rose);">
+        <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span>Hapus Transaksi Buku Besar</span>
+      </h3>
+      <p style="font-size: 11px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 12px;">
+        Apakah Anda yakin ingin menghapus transaksi ini? Tindakan ini akan menghapus mutasi dan memperbarui saldo rekening secara otomatis.
+      </p>
+      
+      <div id="delete-tx-info" style="background: var(--bg-input); border: 1px solid var(--border-main); border-radius: 9px; padding: 10px 14px; font-size: 11px; line-height: 1.6; margin-bottom: 16px;">
+        <!-- Filled dynamically -->
+      </div>
+      <input type="hidden" id="delete-tx-id">
+
+      <div style="display: flex; justify-content: flex-end; gap: 8px;">
+        <button type="button" class="btn-secondary-light btn-close-modal">Batal</button>
+        <button type="button" class="btn-danger-dark" id="btn-confirm-delete-tx">Hapus Transaksi</button>
+      </div>
     </div>
   </div>
 

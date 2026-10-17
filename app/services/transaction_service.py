@@ -275,3 +275,339 @@ class TransactionService:
                 LIMIT %s OFFSET %s
             """, (user_id, limit, offset))
             return cur.fetchall()
+
+    @staticmethod
+    def get_transaction_by_id(user_id: int, transaction_id: int) -> Dict[str, Any]:
+        """Mengambil rincian satu transaksi buku besar berdasarkan ID."""
+        with get_db_cursor(commit=False) as cur:
+            cur.execute("""
+                SELECT 
+                    t.id, t.draft_id, t.ledger_role, t.parent_transaction_id, t.reverses_transaction_id,
+                    t.type, t.amount, t.description, t.transaction_date, t.is_reversal, t.created_at,
+                    t.source_account_id, sa.name as source_account_name,
+                    t.destination_account_id, da.name as destination_account_name,
+                    t.category_id, c.name as category_name
+                FROM transactions t
+                LEFT JOIN accounts sa ON t.source_account_id = sa.id AND sa.user_id = t.user_id
+                LEFT JOIN accounts da ON t.destination_account_id = da.id AND da.user_id = t.user_id
+                LEFT JOIN categories c ON t.category_id = c.id AND c.user_id = t.user_id
+                WHERE t.id = %s AND t.user_id = %s
+            """, (transaction_id, user_id))
+            row = cur.fetchone()
+            if not row:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transaksi tidak ditemukan.")
+            return row
+
+    @staticmethod
+    def create_manual_transaction(user_id: int, payload: Dict[str, Any], ip_address: str = "127.0.0.1") -> Dict[str, Any]:
+        """
+        Mencatat transaksi manual langsung ke buku besar (membuat draft status CONFIRMED otomatis).
+        Mendukung tipe EXPENSE, INCOME, dan TRANSFER (termasuk biaya admin).
+        """
+        tx_type = payload.get("type")
+        amount = payload.get("amount")
+        admin_fee = payload.get("admin_fee") or Decimal("0.00")
+        source_account_id = payload.get("source_account_id")
+        destination_account_id = payload.get("destination_account_id")
+        category_id = payload.get("category_id")
+        description = payload.get("description")
+        tx_date = payload.get("transaction_date") or date.today()
+        if isinstance(tx_date, str):
+            try:
+                tx_date = datetime.strptime(tx_date, "%Y-%m-%d").date()
+            except ValueError:
+                tx_date = date.today()
+
+        # Validasi konsistensi tipe transaksi
+        if tx_type == "EXPENSE":
+            if not source_account_id:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Rekening sumber wajib dipilih untuk pengeluaran.")
+            if destination_account_id is not None:
+                destination_account_id = None
+            if not category_id:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Kategori pengeluaran wajib dipilih.")
+            admin_fee = Decimal("0.00")
+        elif tx_type == "INCOME":
+            if not destination_account_id:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Rekening tujuan wajib dipilih untuk pemasukan.")
+            if source_account_id is not None:
+                source_account_id = None
+            if not category_id:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Kategori pemasukan wajib dipilih.")
+            admin_fee = Decimal("0.00")
+        elif tx_type == "TRANSFER":
+            if not source_account_id or not destination_account_id:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Rekening sumber dan tujuan wajib dipilih untuk transfer.")
+            if source_account_id == destination_account_id:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Rekening sumber dan tujuan tidak boleh sama.")
+            category_id = None
+        else:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Tipe transaksi '{tx_type}' tidak valid.")
+
+        now_utc = datetime.now(timezone.utc)
+        now_utc_str = now_utc.strftime("%Y-%m-%d %H:%M:%S")
+        expires_at_str = (now_utc + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
+        batch_id = str(uuid.uuid4())
+
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                # Verifikasi kepemilikan rekening
+                if source_account_id:
+                    cur.execute("SELECT id FROM accounts WHERE id = %s AND user_id = %s", (source_account_id, user_id))
+                    if not cur.fetchone():
+                        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rekening sumber tidak ditemukan.")
+                if destination_account_id:
+                    cur.execute("SELECT id FROM accounts WHERE id = %s AND user_id = %s", (destination_account_id, user_id))
+                    if not cur.fetchone():
+                        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rekening tujuan tidak ditemukan.")
+
+                # Verifikasi kepemilikan kategori
+                if category_id:
+                    cur.execute("SELECT id FROM categories WHERE id = %s AND user_id = %s", (category_id, user_id))
+                    if not cur.fetchone():
+                        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kategori tidak ditemukan.")
+
+                # 1. Masukkan draft otomatis berstatus CONFIRMED (memenuhi trigger & constraint foreign key)
+                cur.execute("""
+                    INSERT INTO transaction_drafts (
+                        user_id, batch_id, type, amount, admin_fee, source_account_id,
+                        destination_account_id, category_id, description, transaction_date,
+                        status, confirmed_at, expires_at
+                    ) VALUES (
+                        %s, %s, %s, %s, %s, %s,
+                        %s, %s, %s, %s,
+                        'CONFIRMED', %s, %s
+                    )
+                """, (
+                    user_id, batch_id, tx_type, amount, admin_fee, source_account_id,
+                    destination_account_id, category_id, description, tx_date,
+                    now_utc_str, expires_at_str
+                ))
+                draft_id = cur.lastrowid
+
+                # 2. Masukkan transaksi PRIMARY ke buku besar
+                cur.execute("""
+                    INSERT INTO transactions (
+                        user_id, draft_id, ledger_role, type, amount, source_account_id,
+                        destination_account_id, category_id, description, transaction_date,
+                        is_reversal
+                    ) VALUES (
+                        %s, %s, 'PRIMARY', %s, %s, %s,
+                        %s, %s, %s, %s,
+                        FALSE
+                    )
+                """, (
+                    user_id, draft_id, tx_type, amount,
+                    source_account_id, destination_account_id,
+                    category_id, description, tx_date
+                ))
+                primary_tx_id = cur.lastrowid
+
+                # 3. Jika transfer dengan biaya admin > 0
+                if tx_type == "TRANSFER" and admin_fee > 0:
+                    cur.execute("""
+                        SELECT id FROM categories 
+                        WHERE user_id = %s AND (is_system = TRUE OR name = 'Biaya Admin')
+                        ORDER BY is_system DESC LIMIT 1
+                    """, (user_id,))
+                    admin_cat_row = cur.fetchone()
+                    if admin_cat_row:
+                        admin_cat_id = admin_cat_row["id"]
+                    else:
+                        cur.execute("""
+                            INSERT INTO categories (user_id, name, type, is_system, is_active)
+                            VALUES (%s, 'Biaya Admin', 'EXPENSE', TRUE, TRUE)
+                        """, (user_id,))
+                        admin_cat_id = cur.lastrowid
+
+                    fee_desc = f"Biaya Admin Transfer: {description or ''}".strip()
+                    cur.execute("""
+                        INSERT INTO transactions (
+                            user_id, draft_id, ledger_role, parent_transaction_id, type, amount,
+                            source_account_id, destination_account_id, category_id, description,
+                            transaction_date, is_reversal
+                        ) VALUES (
+                            %s, %s, 'ADMIN_FEE', %s, 'EXPENSE', %s,
+                            %s, NULL, %s, %s,
+                            %s, FALSE
+                        )
+                    """, (
+                        user_id, draft_id, primary_tx_id, admin_fee,
+                        source_account_id, admin_cat_id, fee_desc,
+                        tx_date
+                    ))
+
+                # 4. Audit Log
+                audit_details = f"Transaksi manual dibuat (ID {primary_tx_id}): {tx_type} Rp {amount}."[:255]
+                client_ip = (ip_address or "127.0.0.1")[:45]
+                cur.execute("""
+                    INSERT INTO system_audit_logs (user_id, event_type, details, ip_address)
+                    VALUES (%s, 'MANUAL_TX_CREATED', %s, %s)
+                """, (user_id, audit_details, client_ip))
+
+                conn.commit()
+
+        return TransactionService.get_transaction_by_id(user_id, primary_tx_id)
+
+    @staticmethod
+    def update_transaction(user_id: int, transaction_id: int, update_data: Dict[str, Any], ip_address: str = "127.0.0.1") -> Dict[str, Any]:
+        """
+        Menyunting transaksi buku besar (nominal, tanggal, kategori, rekening, deskripsi).
+        Memvalidasi aturan bisnis dan sinkronisasi saldo real-time.
+        """
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                # 1. Kunci baris transaksi
+                cur.execute("""
+                    SELECT id, draft_id, ledger_role, parent_transaction_id, reverses_transaction_id,
+                           type, amount, source_account_id, destination_account_id, category_id,
+                           description, transaction_date, is_reversal
+                    FROM transactions
+                    WHERE id = %s AND user_id = %s
+                    FOR UPDATE
+                """, (transaction_id, user_id))
+                tx = cur.fetchone()
+                if not tx:
+                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transaksi tidak ditemukan.")
+
+                if tx["is_reversal"]:
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Jurnal pembalik tidak dapat disunting secara manual.")
+
+                # Cek apakah transaksi sudah pernah dibalik
+                cur.execute("SELECT id FROM transactions WHERE reverses_transaction_id = %s AND user_id = %s", (transaction_id, user_id))
+                if cur.fetchone():
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Transaksi yang telah dibalik tidak dapat disunting.")
+
+                tx_type = tx["type"]
+
+                # Nilai baru dengan fallback ke nilai lama
+                new_amount = update_data.get("amount") if update_data.get("amount") is not None else tx["amount"]
+                new_desc = update_data.get("description") if "description" in update_data else tx["description"]
+                new_date = update_data.get("transaction_date") if update_data.get("transaction_date") is not None else tx["transaction_date"]
+                if isinstance(new_date, str):
+                    try:
+                        new_date = datetime.strptime(new_date, "%Y-%m-%d").date()
+                    except ValueError:
+                        new_date = tx["transaction_date"]
+
+                new_src = update_data.get("source_account_id") if "source_account_id" in update_data else tx["source_account_id"]
+                new_dest = update_data.get("destination_account_id") if "destination_account_id" in update_data else tx["destination_account_id"]
+                new_cat = update_data.get("category_id") if "category_id" in update_data else tx["category_id"]
+
+                # Validasi konsistensi berdasarkan tipe
+                if tx_type == "EXPENSE":
+                    new_dest = None
+                    if not new_src:
+                        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Rekening sumber wajib diisi untuk pengeluaran.")
+                    if not new_cat:
+                        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Kategori wajib dipilih untuk pengeluaran.")
+                elif tx_type == "INCOME":
+                    new_src = None
+                    if not new_dest:
+                        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Rekening tujuan wajib diisi untuk pemasukan.")
+                    if not new_cat:
+                        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Kategori wajib dipilih untuk pemasukan.")
+                elif tx_type == "TRANSFER":
+                    new_cat = None
+                    if not new_src or not new_dest:
+                        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Rekening sumber dan tujuan wajib diisi untuk transfer.")
+                    if new_src == new_dest:
+                        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Rekening sumber dan tujuan tidak boleh sama.")
+
+                # Verifikasi rekening dan kategori jika diubah
+                if new_src:
+                    cur.execute("SELECT id FROM accounts WHERE id = %s AND user_id = %s", (new_src, user_id))
+                    if not cur.fetchone():
+                        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rekening sumber tidak valid.")
+                if new_dest:
+                    cur.execute("SELECT id FROM accounts WHERE id = %s AND user_id = %s", (new_dest, user_id))
+                    if not cur.fetchone():
+                        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rekening tujuan tidak valid.")
+                if new_cat:
+                    cur.execute("SELECT id FROM categories WHERE id = %s AND user_id = %s", (new_cat, user_id))
+                    if not cur.fetchone():
+                        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kategori tidak valid.")
+
+                # Update baris transaksi utama
+                cur.execute("""
+                    UPDATE transactions
+                    SET amount = %s, source_account_id = %s, destination_account_id = %s,
+                        category_id = %s, description = %s, transaction_date = %s
+                    WHERE id = %s AND user_id = %s
+                """, (new_amount, new_src, new_dest, new_cat, new_desc, new_date, transaction_id, user_id))
+
+                # Jika ada transaksi anak biaya admin (ADMIN_FEE)
+                cur.execute("""
+                    UPDATE transactions
+                    SET source_account_id = %s, transaction_date = %s
+                    WHERE parent_transaction_id = %s AND user_id = %s
+                """, (new_src, new_date, transaction_id, user_id))
+
+                # Audit Log
+                audit_details = f"Transaksi ID {transaction_id} diperbarui: Rp {new_amount} ({tx_type})."[:255]
+                client_ip = (ip_address or "127.0.0.1")[:45]
+                cur.execute("""
+                    INSERT INTO system_audit_logs (user_id, event_type, details, ip_address)
+                    VALUES (%s, 'TRANSACTION_UPDATED', %s, %s)
+                """, (user_id, audit_details, client_ip))
+
+                conn.commit()
+
+        return TransactionService.get_transaction_by_id(user_id, transaction_id)
+
+    @staticmethod
+    def delete_transaction(user_id: int, transaction_id: int, ip_address: str = "127.0.0.1") -> Dict[str, Any]:
+        """
+        Menghapus transaksi dari buku besar secara aman.
+        - Menghapus transaksi anak (biaya admin) terlebih dahulu bila ada.
+        - Mencegah penghapusan jika transaksi telah memiliki jurnal pembalik.
+        - Menghapus draft terkait jika tidak ada transaksi lain yang merujuk.
+        """
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                # 1. Kunci dan periksa transaksi
+                cur.execute("""
+                    SELECT id, draft_id, ledger_role, parent_transaction_id, reverses_transaction_id, is_reversal, amount, type
+                    FROM transactions
+                    WHERE id = %s AND user_id = %s
+                    FOR UPDATE
+                """, (transaction_id, user_id))
+                tx = cur.fetchone()
+                if not tx:
+                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transaksi tidak ditemukan.")
+
+                # Cek apakah ada jurnal pembalik yang membalik transaksi ini
+                cur.execute("SELECT id FROM transactions WHERE reverses_transaction_id = %s AND user_id = %s", (transaction_id, user_id))
+                rev = cur.fetchone()
+                if rev:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Transaksi ini telah dibalik oleh jurnal pembalik. Hapus transaksi jurnal pembalik terlebih dahulu."
+                    )
+
+                draft_id = tx["draft_id"]
+
+                # 2. Hapus transaksi anak (misal: ADMIN_FEE yang merujuk parent_transaction_id ini)
+                cur.execute("DELETE FROM transactions WHERE parent_transaction_id = %s AND user_id = %s", (transaction_id, user_id))
+
+                # 3. Hapus transaksi ini
+                cur.execute("DELETE FROM transactions WHERE id = %s AND user_id = %s", (transaction_id, user_id))
+
+                # 4. Hapus draft jika tidak ada lagi transaksi yang menggunakannya
+                if draft_id:
+                    cur.execute("SELECT id FROM transactions WHERE draft_id = %s AND user_id = %s LIMIT 1", (draft_id, user_id))
+                    if not cur.fetchone():
+                        cur.execute("DELETE FROM transaction_drafts WHERE id = %s AND user_id = %s", (draft_id, user_id))
+
+                # 5. Audit Log
+                audit_details = f"Transaksi ID {transaction_id} ({tx['type']} Rp {tx['amount']}) berhasil dihapus."[:255]
+                client_ip = (ip_address or "127.0.0.1")[:45]
+                cur.execute("""
+                    INSERT INTO system_audit_logs (user_id, event_type, details, ip_address)
+                    VALUES (%s, 'TRANSACTION_DELETED', %s, %s)
+                """, (user_id, audit_details, client_ip))
+
+                conn.commit()
+
+        logger.info("Transaksi ID %s berhasil dihapus untuk User ID %s", transaction_id, user_id)
+        return {"success": True, "message": "Transaksi berhasil dihapus dari buku besar."}

@@ -62,3 +62,21 @@ class TransactionItemResponse(BaseModel):
 class ReverseTransactionRequest(BaseModel):
     transaction_id: int = Field(..., gt=0)
     reason: Optional[str] = Field("Koreksi kesalahan pencatatan", max_length=255)
+
+class CreateTransactionRequest(BaseModel):
+    type: str = Field(..., pattern="^(INCOME|EXPENSE|TRANSFER)$")
+    amount: Decimal = Field(..., gt=0)
+    admin_fee: Optional[Decimal] = Field(Decimal("0.00"), ge=0)
+    source_account_id: Optional[int] = None
+    destination_account_id: Optional[int] = None
+    category_id: Optional[int] = None
+    description: Optional[str] = Field(None, max_length=255)
+    transaction_date: Optional[date] = None
+
+class UpdateTransactionRequest(BaseModel):
+    amount: Optional[Decimal] = Field(None, gt=0)
+    source_account_id: Optional[int] = None
+    destination_account_id: Optional[int] = None
+    category_id: Optional[int] = None
+    description: Optional[str] = Field(None, max_length=255)
+    transaction_date: Optional[date] = None

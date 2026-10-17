@@ -21,7 +21,10 @@ const Icons = {
   shield: `<svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
   plane: `<svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>`,
   target: `<svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`,
-  alert: `<svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B38600" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`
+  alert: `<svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B38600" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+  edit: `<svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
+  trash: `<svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`,
+  plus: `<svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`
 };
 
 class App {
@@ -99,6 +102,47 @@ class App {
     this.ledgerTypeSelect = document.getElementById('ledger-type-select');
     this.ledgerMonthSelect = document.getElementById('ledger-month-select');
     this.alertBox = document.getElementById('alert-box');
+
+    // Ledger CRUD Modals & Form Elements
+    this.btnOpenCreateTx = document.getElementById('btn-open-create-tx');
+    this.btnOpenCreateTxDash = document.getElementById('btn-open-create-tx-dash');
+    this.modalCreateTx = document.getElementById('modal-create-tx');
+    this.formCreateTx = document.getElementById('form-create-tx');
+    this.createTxType = document.getElementById('create-tx-type');
+    this.createTxTypeBtns = document.querySelectorAll('#create-tx-type-selector .tx-type-btn');
+    this.createTxAmount = document.getElementById('create-tx-amount');
+    this.createTxDate = document.getElementById('create-tx-date');
+    this.createTxSrcGroup = document.getElementById('create-tx-src-group');
+    this.createTxSourceAccount = document.getElementById('create-tx-source-account');
+    this.createTxDestGroup = document.getElementById('create-tx-dest-group');
+    this.createTxDestAccount = document.getElementById('create-tx-dest-account');
+    this.createTxCategoryGroup = document.getElementById('create-tx-category-group');
+    this.createTxCategory = document.getElementById('create-tx-category');
+    this.createTxAdminFeeGroup = document.getElementById('create-tx-admin-fee-group');
+    this.createTxAdminFee = document.getElementById('create-tx-admin-fee');
+    this.createTxDescription = document.getElementById('create-tx-description');
+    this.btnSubmitCreateTx = document.getElementById('btn-submit-create-tx');
+
+    this.modalEditTx = document.getElementById('modal-edit-tx');
+    this.formEditTx = document.getElementById('form-edit-tx');
+    this.editTxId = document.getElementById('edit-tx-id');
+    this.editTxType = document.getElementById('edit-tx-type');
+    this.editTxTypeBadge = document.getElementById('edit-tx-type-badge');
+    this.editTxAmount = document.getElementById('edit-tx-amount');
+    this.editTxDate = document.getElementById('edit-tx-date');
+    this.editTxSrcGroup = document.getElementById('edit-tx-src-group');
+    this.editTxSourceAccount = document.getElementById('edit-tx-source-account');
+    this.editTxDestGroup = document.getElementById('edit-tx-dest-group');
+    this.editTxDestAccount = document.getElementById('edit-tx-dest-account');
+    this.editTxCategoryGroup = document.getElementById('edit-tx-category-group');
+    this.editTxCategory = document.getElementById('edit-tx-category');
+    this.editTxDescription = document.getElementById('edit-tx-description');
+    this.btnSubmitEditTx = document.getElementById('btn-submit-edit-tx');
+
+    this.modalDeleteTx = document.getElementById('modal-delete-tx');
+    this.deleteTxId = document.getElementById('delete-tx-id');
+    this.deleteTxInfo = document.getElementById('delete-tx-info');
+    this.btnConfirmDeleteTx = document.getElementById('btn-confirm-delete-tx');
 
     // Right Column Mini Cards
     this.budgetCapVal = document.getElementById('budget-cap-val');
@@ -362,6 +406,31 @@ class App {
     }
     if (this.formCreateGoal) {
       this.formCreateGoal.addEventListener('submit', (e) => this.handleCreateGoal(e));
+    }
+
+    // Ledger CRUD Events
+    if (this.btnOpenCreateTx) {
+      this.btnOpenCreateTx.addEventListener('click', () => this.openCreateTxModal());
+    }
+    if (this.btnOpenCreateTxDash) {
+      this.btnOpenCreateTxDash.addEventListener('click', () => this.openCreateTxModal());
+    }
+    if (this.createTxTypeBtns) {
+      this.createTxTypeBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const type = btn.getAttribute('data-type');
+          this.setCreateTxType(type);
+        });
+      });
+    }
+    if (this.formCreateTx) {
+      this.formCreateTx.addEventListener('submit', (e) => this.handleCreateTransaction(e));
+    }
+    if (this.formEditTx) {
+      this.formEditTx.addEventListener('submit', (e) => this.handleUpdateTransaction(e));
+    }
+    if (this.btnConfirmDeleteTx) {
+      this.btnConfirmDeleteTx.addEventListener('click', () => this.handleConfirmDeleteTransaction());
     }
 
     // Tab 3 Events (Copilot & Patterns)
@@ -933,13 +1002,36 @@ class App {
         <td class="td-amount ${amountClass}">${sign}${this.formatIDR(tx.amount)}</td>
         <td><span class="badge-cat-pill ${pillClass}">${statusLabel}</span></td>
         <td style="text-align: right;">
-          ${!isRev && role !== 'ADMIN_FEE' ? `
-            <button class="btn-draft-edit btn-reverse" data-id="${tx.id}">
-              Balikkan
-            </button>
-          ` : '—'}
+          <div style="display: flex; gap: 4px; justify-content: flex-end; align-items: center;">
+            ${!isRev && role !== 'ADMIN_FEE' ? `
+              <button type="button" class="btn-ledger-action btn-edit-tx" data-id="${tx.id}" title="Sunting transaksi">
+                ${Icons.edit}
+              </button>
+            ` : ''}
+            ${role !== 'ADMIN_FEE' ? `
+              <button type="button" class="btn-ledger-action danger btn-delete-tx" data-id="${tx.id}" title="Hapus transaksi">
+                ${Icons.trash}
+              </button>
+            ` : ''}
+            ${!isRev && role !== 'ADMIN_FEE' ? `
+              <button type="button" class="btn-draft-edit btn-reverse" data-id="${tx.id}" title="Terbitkan jurnal pembalik">
+                Balikkan
+              </button>
+            ` : ''}
+            ${isRev && role !== 'ADMIN_FEE' ? '' : (role === 'ADMIN_FEE' ? '—' : '')}
+          </div>
         </td>
       `;
+
+      const btnEdit = tr.querySelector('.btn-edit-tx');
+      if (btnEdit) {
+        btnEdit.addEventListener('click', () => this.openEditTxModal(tx));
+      }
+
+      const btnDel = tr.querySelector('.btn-delete-tx');
+      if (btnDel) {
+        btnDel.addEventListener('click', () => this.openDeleteTxModal(tx));
+      }
 
       const btnRev = tr.querySelector('.btn-reverse');
       if (btnRev) {
@@ -980,6 +1072,346 @@ class App {
         `;
         this.dashboardHistoryBody.appendChild(tr);
       });
+    }
+  }
+
+  // ==========================================
+  // LEDGER CRUD METHODS
+  // ==========================================
+  openCreateTxModal() {
+    if (!this.formCreateTx) return;
+    this.formCreateTx.reset();
+
+    // Default Date to Today
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (this.createTxDate) this.createTxDate.value = todayStr;
+
+    // Reset Type to EXPENSE
+    this.setCreateTxType('EXPENSE');
+
+    // Populate Accounts
+    this.populateTxAccountSelects(this.createTxSourceAccount, this.createTxDestAccount);
+
+    // Populate Categories (for EXPENSE)
+    this.populateTxCategorySelect(this.createTxCategory, 'EXPENSE');
+
+    if (this.modalCreateTx) {
+      this.modalCreateTx.style.display = 'flex';
+    }
+  }
+
+  setCreateTxType(type) {
+    if (this.createTxType) this.createTxType.value = type;
+    if (this.createTxTypeBtns) {
+      this.createTxTypeBtns.forEach((btn) => {
+        if (btn.getAttribute('data-type') === type) btn.classList.add('active');
+        else btn.classList.remove('active');
+      });
+    }
+
+    if (type === 'EXPENSE') {
+      if (this.createTxSrcGroup) this.createTxSrcGroup.style.display = 'block';
+      if (this.createTxDestGroup) this.createTxDestGroup.style.display = 'none';
+      if (this.createTxCategoryGroup) this.createTxCategoryGroup.style.display = 'block';
+      if (this.createTxAdminFeeGroup) this.createTxAdminFeeGroup.style.display = 'none';
+      this.populateTxCategorySelect(this.createTxCategory, 'EXPENSE');
+    } else if (type === 'INCOME') {
+      if (this.createTxSrcGroup) this.createTxSrcGroup.style.display = 'none';
+      if (this.createTxDestGroup) this.createTxDestGroup.style.display = 'block';
+      if (this.createTxCategoryGroup) this.createTxCategoryGroup.style.display = 'block';
+      if (this.createTxAdminFeeGroup) this.createTxAdminFeeGroup.style.display = 'none';
+      this.populateTxCategorySelect(this.createTxCategory, 'INCOME');
+    } else if (type === 'TRANSFER') {
+      if (this.createTxSrcGroup) this.createTxSrcGroup.style.display = 'block';
+      if (this.createTxDestGroup) this.createTxDestGroup.style.display = 'block';
+      if (this.createTxCategoryGroup) this.createTxCategoryGroup.style.display = 'none';
+      if (this.createTxAdminFeeGroup) this.createTxAdminFeeGroup.style.display = 'block';
+    }
+  }
+
+  populateTxAccountSelects(sourceSelect, destSelect, selectedSrcId = null, selectedDestId = null) {
+    if (sourceSelect) {
+      sourceSelect.innerHTML = '<option value="">-- Pilih Rekening Sumber --</option>';
+      this.accounts.forEach((acc) => {
+        const opt = document.createElement('option');
+        opt.value = acc.id;
+        opt.textContent = `${acc.name} (${acc.type}) - ${this.formatIDR(acc.current_balance)}`;
+        if (selectedSrcId && String(acc.id) === String(selectedSrcId)) opt.selected = true;
+        sourceSelect.appendChild(opt);
+      });
+    }
+
+    if (destSelect) {
+      destSelect.innerHTML = '<option value="">-- Pilih Rekening Tujuan --</option>';
+      this.accounts.forEach((acc) => {
+        const opt = document.createElement('option');
+        opt.value = acc.id;
+        opt.textContent = `${acc.name} (${acc.type}) - ${this.formatIDR(acc.current_balance)}`;
+        if (selectedDestId && String(acc.id) === String(selectedDestId)) opt.selected = true;
+        destSelect.appendChild(opt);
+      });
+    }
+  }
+
+  populateTxCategorySelect(categorySelect, typeFilter = null, selectedCatId = null) {
+    if (!categorySelect) return;
+    categorySelect.innerHTML = '<option value="">-- Pilih Kategori --</option>';
+    const filtered = typeFilter ? this.categories.filter((c) => c.type === typeFilter) : this.categories;
+    filtered.forEach((cat) => {
+      const opt = document.createElement('option');
+      opt.value = cat.id;
+      opt.textContent = `${cat.name} (${cat.type === 'EXPENSE' ? 'Pengeluaran' : 'Pemasukan'})`;
+      if (selectedCatId && String(cat.id) === String(selectedCatId)) opt.selected = true;
+      categorySelect.appendChild(opt);
+    });
+  }
+
+  async handleCreateTransaction(e) {
+    e.preventDefault();
+    const type = this.createTxType.value;
+    const amount = parseFloat(this.createTxAmount.value);
+    const txDate = this.createTxDate.value;
+    const desc = this.createTxDescription.value.trim();
+
+    if (!amount || amount <= 0) {
+      this.showAlert('Nominal harus lebih dari 0.', 'error');
+      return;
+    }
+    if (!txDate) {
+      this.showAlert('Tanggal transaksi wajib dipilih.', 'error');
+      return;
+    }
+
+    const payload = {
+      type,
+      amount,
+      transaction_date: txDate,
+      description: desc || null,
+    };
+
+    if (type === 'EXPENSE') {
+      const srcId = parseInt(this.createTxSourceAccount.value, 10);
+      const catId = parseInt(this.createTxCategory.value, 10);
+      if (!srcId) {
+        this.showAlert('Rekening sumber wajib dipilih.', 'error');
+        return;
+      }
+      if (!catId) {
+        this.showAlert('Kategori pengeluaran wajib dipilih.', 'error');
+        return;
+      }
+      payload.source_account_id = srcId;
+      payload.category_id = catId;
+    } else if (type === 'INCOME') {
+      const destId = parseInt(this.createTxDestAccount.value, 10);
+      const catId = parseInt(this.createTxCategory.value, 10);
+      if (!destId) {
+        this.showAlert('Rekening tujuan wajib dipilih.', 'error');
+        return;
+      }
+      if (!catId) {
+        this.showAlert('Kategori pemasukan wajib dipilih.', 'error');
+        return;
+      }
+      payload.destination_account_id = destId;
+      payload.category_id = catId;
+    } else if (type === 'TRANSFER') {
+      const srcId = parseInt(this.createTxSourceAccount.value, 10);
+      const destId = parseInt(this.createTxDestAccount.value, 10);
+      const fee = parseFloat(this.createTxAdminFee.value) || 0;
+      if (!srcId || !destId) {
+        this.showAlert('Rekening sumber dan tujuan wajib dipilih.', 'error');
+        return;
+      }
+      if (srcId === destId) {
+        this.showAlert('Rekening sumber dan tujuan tidak boleh sama.', 'error');
+        return;
+      }
+      payload.source_account_id = srcId;
+      payload.destination_account_id = destId;
+      payload.admin_fee = fee;
+    }
+
+    this.btnSubmitCreateTx.disabled = true;
+    this.btnSubmitCreateTx.innerHTML = `<span class="loading-spinner"></span> Menyimpan...`;
+
+    try {
+      const res = await api.transactions.create(payload);
+      this.showAlert(res.message || 'Transaksi berhasil dicatat ke buku besar!', 'success');
+      this.closeModals();
+      await Promise.all([this.loadAccounts(), this.loadHistory(), this.loadBudgetOverview(), this.loadReportsData()]);
+    } catch (err) {
+      this.showAlert(`Gagal mencatat transaksi: ${err.message}`, 'error');
+    } finally {
+      this.btnSubmitCreateTx.disabled = false;
+      this.btnSubmitCreateTx.innerHTML = `Simpan ke Buku Besar`;
+    }
+  }
+
+  openEditTxModal(tx) {
+    if (!this.formEditTx) return;
+    this.formEditTx.reset();
+
+    this.editTxId.value = tx.id;
+    this.editTxType.value = tx.type;
+
+    if (this.editTxTypeBadge) {
+      this.editTxTypeBadge.textContent = tx.type;
+      this.editTxTypeBadge.className = `badge-cat-pill ${tx.type === 'INCOME' ? 'cat-green' : (tx.type === 'TRANSFER' ? 'cat-blue' : 'cat-rose')}`;
+    }
+
+    if (this.editTxAmount) this.editTxAmount.value = parseFloat(tx.amount);
+    if (this.editTxDate) this.editTxDate.value = tx.transaction_date;
+    if (this.editTxDescription) this.editTxDescription.value = tx.description || '';
+
+    // Field visibility based on type
+    if (tx.type === 'EXPENSE') {
+      if (this.editTxSrcGroup) this.editTxSrcGroup.style.display = 'block';
+      if (this.editTxDestGroup) this.editTxDestGroup.style.display = 'none';
+      if (this.editTxCategoryGroup) this.editTxCategoryGroup.style.display = 'block';
+      this.populateTxAccountSelects(this.editTxSourceAccount, null, tx.source_account_id, null);
+      this.populateTxCategorySelect(this.editTxCategory, 'EXPENSE', tx.category_id);
+    } else if (tx.type === 'INCOME') {
+      if (this.editTxSrcGroup) this.editTxSrcGroup.style.display = 'none';
+      if (this.editTxDestGroup) this.editTxDestGroup.style.display = 'block';
+      if (this.editTxCategoryGroup) this.editTxCategoryGroup.style.display = 'block';
+      this.populateTxAccountSelects(null, this.editTxDestAccount, null, tx.destination_account_id);
+      this.populateTxCategorySelect(this.editTxCategory, 'INCOME', tx.category_id);
+    } else if (tx.type === 'TRANSFER') {
+      if (this.editTxSrcGroup) this.editTxSrcGroup.style.display = 'block';
+      if (this.editTxDestGroup) this.editTxDestGroup.style.display = 'block';
+      if (this.editTxCategoryGroup) this.editTxCategoryGroup.style.display = 'none';
+      this.populateTxAccountSelects(this.editTxSourceAccount, this.editTxDestAccount, tx.source_account_id, tx.destination_account_id);
+    }
+
+    if (this.modalEditTx) {
+      this.modalEditTx.style.display = 'flex';
+    }
+  }
+
+  async handleUpdateTransaction(e) {
+    e.preventDefault();
+    const txId = parseInt(this.editTxId.value, 10);
+    const type = this.editTxType.value;
+    const amount = parseFloat(this.editTxAmount.value);
+    const txDate = this.editTxDate.value;
+    const desc = this.editTxDescription.value.trim();
+
+    if (!amount || amount <= 0) {
+      this.showAlert('Nominal harus lebih dari 0.', 'error');
+      return;
+    }
+    if (!txDate) {
+      this.showAlert('Tanggal transaksi wajib dipilih.', 'error');
+      return;
+    }
+
+    const payload = {
+      amount,
+      transaction_date: txDate,
+      description: desc || null,
+    };
+
+    if (type === 'EXPENSE') {
+      const srcId = parseInt(this.editTxSourceAccount.value, 10);
+      const catId = parseInt(this.editTxCategory.value, 10);
+      if (!srcId) {
+        this.showAlert('Rekening sumber wajib dipilih.', 'error');
+        return;
+      }
+      if (!catId) {
+        this.showAlert('Kategori pengeluaran wajib dipilih.', 'error');
+        return;
+      }
+      payload.source_account_id = srcId;
+      payload.category_id = catId;
+    } else if (type === 'INCOME') {
+      const destId = parseInt(this.editTxDestAccount.value, 10);
+      const catId = parseInt(this.editTxCategory.value, 10);
+      if (!destId) {
+        this.showAlert('Rekening tujuan wajib dipilih.', 'error');
+        return;
+      }
+      if (!catId) {
+        this.showAlert('Kategori pemasukan wajib dipilih.', 'error');
+        return;
+      }
+      payload.destination_account_id = destId;
+      payload.category_id = catId;
+    } else if (type === 'TRANSFER') {
+      const srcId = parseInt(this.editTxSourceAccount.value, 10);
+      const destId = parseInt(this.editTxDestAccount.value, 10);
+      if (!srcId || !destId) {
+        this.showAlert('Rekening sumber dan tujuan wajib dipilih.', 'error');
+        return;
+      }
+      if (srcId === destId) {
+        this.showAlert('Rekening sumber dan tujuan tidak boleh sama.', 'error');
+        return;
+      }
+      payload.source_account_id = srcId;
+      payload.destination_account_id = destId;
+    }
+
+    this.btnSubmitEditTx.disabled = true;
+    this.btnSubmitEditTx.innerHTML = `<span class="loading-spinner"></span> Menyimpan...`;
+
+    try {
+      const res = await api.transactions.update(txId, payload);
+      this.showAlert(res.message || 'Transaksi berhasil diperbarui!', 'success');
+      this.closeModals();
+      await Promise.all([this.loadAccounts(), this.loadHistory(), this.loadBudgetOverview(), this.loadReportsData()]);
+    } catch (err) {
+      this.showAlert(`Gagal memperbarui transaksi: ${err.message}`, 'error');
+    } finally {
+      this.btnSubmitEditTx.disabled = false;
+      this.btnSubmitEditTx.innerHTML = `Simpan Perubahan`;
+    }
+  }
+
+  openDeleteTxModal(tx) {
+    if (!this.modalDeleteTx) return;
+    this.deleteTxId.value = tx.id;
+    if (this.deleteTxInfo) {
+      this.deleteTxInfo.innerHTML = `
+        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+          <span style="color: var(--text-secondary);">Tanggal:</span>
+          <strong>${this.formatDateID(tx.transaction_date)}</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+          <span style="color: var(--text-secondary);">Tipe / Kategori:</span>
+          <span>${tx.type} · ${tx.category_name || '-'}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+          <span style="color: var(--text-secondary);">Deskripsi:</span>
+          <span>${tx.description || '-'}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: var(--text-secondary);">Nominal:</span>
+          <strong style="color: ${tx.type === 'INCOME' ? 'var(--accent-green)' : 'var(--accent-rose)'};">${this.formatIDR(tx.amount)}</strong>
+        </div>
+      `;
+    }
+    this.modalDeleteTx.style.display = 'flex';
+  }
+
+  async handleConfirmDeleteTransaction() {
+    const txId = parseInt(this.deleteTxId.value, 10);
+    if (!txId) return;
+
+    this.btnConfirmDeleteTx.disabled = true;
+    this.btnConfirmDeleteTx.innerHTML = `<span class="loading-spinner"></span> Menghapus...`;
+
+    try {
+      const res = await api.transactions.delete(txId);
+      this.showAlert(res.message || 'Transaksi berhasil dihapus dari buku besar.', 'success');
+      this.closeModals();
+      await Promise.all([this.loadAccounts(), this.loadHistory(), this.loadBudgetOverview(), this.loadReportsData()]);
+    } catch (err) {
+      this.showAlert(`Gagal menghapus transaksi: ${err.message}`, 'error');
+    } finally {
+      this.btnConfirmDeleteTx.disabled = false;
+      this.btnConfirmDeleteTx.innerHTML = `Hapus Transaksi`;
     }
   }
 

@@ -3529,3 +3529,85 @@ body {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* Ledger Action Buttons (CRUD) */
+.btn-ledger-action {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: #FFFFFF;
+  border: 1px solid var(--border-main);
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.btn-ledger-action:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--border-subtle);
+}
+
+.btn-ledger-action.danger {
+  color: var(--accent-rose);
+}
+
+.btn-ledger-action.danger:hover {
+  background: var(--accent-rose-bg);
+  border-color: #F0D5D5;
+}
+
+.btn-danger-dark {
+  height: 34px;
+  padding: 0 16px;
+  background: var(--accent-rose);
+  border: 1px solid var(--accent-rose);
+  border-radius: 9px;
+  color: #FFFFFF;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-danger-dark:hover {
+  background: #8b4343;
+}
+
+/* Transaction Type Segmented Control */
+.tx-type-segmented {
+  display: flex;
+  background: var(--bg-input);
+  border: 1px solid var(--border-main);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 4px;
+  margin-bottom: 14px;
+}
+
+.tx-type-btn {
+  flex: 1;
+  padding: 7px 0;
+  border: none;
+  background: transparent;
+  border-radius: 7px;
+  font-family: 'Inter', sans-serif;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.tx-type-btn.active {
+  background: #FFFFFF;
+  color: var(--text-primary);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}

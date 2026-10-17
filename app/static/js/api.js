@@ -142,6 +142,22 @@ export const api = {
       }),
     list: (limit = 50, offset = 0) =>
       request(`/transactions?limit=${limit}&offset=${offset}`),
+    get: (transactionId) =>
+      request(`/transactions/${transactionId}`),
+    create: (payload) =>
+      request('/transactions', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    update: (transactionId, payload) =>
+      request(`/transactions/${transactionId}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      }),
+    delete: (transactionId) =>
+      request(`/transactions/${transactionId}`, {
+        method: 'DELETE',
+      }),
     reverse: (transactionId, reason) =>
       request(`/transactions/${transactionId}/reverse`, {
         method: 'POST',
