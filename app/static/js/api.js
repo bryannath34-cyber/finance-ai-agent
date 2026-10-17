@@ -140,8 +140,12 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ batch_id: batchId }),
       }),
-    list: (limit = 50, offset = 0) =>
-      request(`/transactions?limit=${limit}&offset=${offset}`),
+    list: (limit = 100, offset = 0, year = null, month = null) => {
+      let url = `/transactions?limit=${limit}&offset=${offset}`;
+      if (year) url += `&year=${year}`;
+      if (month) url += `&month=${month}`;
+      return request(url);
+    },
     get: (transactionId) =>
       request(`/transactions/${transactionId}`),
     create: (payload) =>

@@ -257,10 +257,29 @@ class TransactionService:
         }
 
     @staticmethod
-    def list_transactions(user_id: int, limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
-        """Mengambil riwayat buku besar resmi pengguna."""
+    def list_transactions(
+        user_id: int, 
+        limit: int = 100, 
+        offset: int = 0,
+        year: Optional[int] = None,
+        month: Optional[int] = None
+    ) -> List[Dict[str, Any]]:
+        """Mengambil riwayat buku besar resmi pengguna dengan dukungan filter tahun dan bulan."""
+        where_clauses = ["t.user_id = %s"]
+        params: List[Any] = [user_id]
+
+        if year is not None:
+            where_clauses.append("YEAR(t.transaction_date) = %s")
+            params.append(year)
+        if month is not None:
+            where_clauses.append("MONTH(t.transaction_date) = %s")
+            params.append(month)
+
+        where_sql = " AND ".join(where_clauses)
+        params.extend([limit, offset])
+
         with get_db_cursor(commit=False) as cur:
-            cur.execute("""
+            cur.execute(f"""
                 SELECT 
                     t.id, t.draft_id, t.ledger_role, t.parent_transaction_id, t.reverses_transaction_id,
                     t.type, t.amount, t.description, t.transaction_date, t.is_reversal, t.created_at,
@@ -271,10 +290,10 @@ class TransactionService:
                 LEFT JOIN accounts sa ON t.source_account_id = sa.id AND sa.user_id = t.user_id
                 LEFT JOIN accounts da ON t.destination_account_id = da.id AND da.user_id = t.user_id
                 LEFT JOIN categories c ON t.category_id = c.id AND c.user_id = t.user_id
-                WHERE t.user_id = %s
+                WHERE {where_sql}
                 ORDER BY t.transaction_date DESC, t.id DESC
                 LIMIT %s OFFSET %s
-            """, (user_id, limit, offset))
+            """, tuple(params))
             return cur.fetchall()
 
     @staticmethod

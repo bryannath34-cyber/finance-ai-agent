@@ -412,9 +412,12 @@ class App {
       this.btnRefreshHistory.addEventListener('click', () => this.loadHistory());
     }
 
-    // Ledger Filters (Search & Type)
+    // Ledger Filters (Search, Month & Type)
     if (this.ledgerSearchInput) {
       this.ledgerSearchInput.addEventListener('input', () => this.applyLedgerFilters());
+    }
+    if (this.ledgerMonthSelect) {
+      this.ledgerMonthSelect.addEventListener('change', () => this.applyLedgerFilters());
     }
     if (this.ledgerTypeSelect) {
       this.ledgerTypeSelect.addEventListener('change', () => this.applyLedgerFilters());
@@ -967,10 +970,10 @@ class App {
 
   async loadHistory() {
     try {
-      const res = await api.transactions.list(50, 0);
+      const res = await api.transactions.list(100, 0);
       this.transactions = res.data || [];
-      this.filteredTransactions = [...this.transactions];
-      this.renderHistory();
+      this.populateLedgerMonthFilter();
+      this.applyLedgerFilters();
       this.calculateMonthlySummary();
       this.loadReportsData();
     } catch (err) {
@@ -978,9 +981,76 @@ class App {
     }
   }
 
+  populateLedgerMonthFilter() {
+    if (!this.ledgerMonthSelect) return;
+    const currentVal = this.ledgerMonthSelect.value;
+    const now = new Date();
+    const curY = now.getFullYear();
+    const curM = now.getMonth() + 1;
+    const curKey = `${curY}-${String(curM).padStart(2, '0')}`;
+
+    const monthNamesShort = [
+      '', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+    ];
+
+    const availableMonths = new Set();
+    availableMonths.add(curKey);
+
+    // Default berikan 6 bulan terakhir kalender
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(curY, (curM - 1) - i, 1);
+      const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      availableMonths.add(k);
+    }
+
+    // Masukkan seluruh bulan dari transaksi yang tercatat
+    if (this.transactions && this.transactions.length > 0) {
+      this.transactions.forEach((tx) => {
+        if (tx.transaction_date && tx.transaction_date.length >= 7) {
+          availableMonths.add(tx.transaction_date.substring(0, 7));
+        }
+      });
+    }
+
+    const sortedMonths = Array.from(availableMonths).sort().reverse();
+
+    this.ledgerMonthSelect.innerHTML = '';
+
+    // Pilihan 1: Bulan Ini (Current Month)
+    const optCurrent = document.createElement('option');
+    optCurrent.value = curKey;
+    optCurrent.textContent = `Bulan Ini (${monthNamesShort[curM]} ${curY})`;
+    this.ledgerMonthSelect.appendChild(optCurrent);
+
+    // Pilihan Bulan-Bulan Lampau
+    sortedMonths.forEach((key) => {
+      if (key === curKey) return;
+      const [y, mStr] = key.split('-');
+      const m = parseInt(mStr, 10);
+      const opt = document.createElement('option');
+      opt.value = key;
+      opt.textContent = `${monthNamesShort[m] || mStr} ${y}`;
+      this.ledgerMonthSelect.appendChild(opt);
+    });
+
+    // Pilihan: Semua Periode
+    const optAll = document.createElement('option');
+    optAll.value = 'ALL';
+    optAll.textContent = 'Semua Periode';
+    this.ledgerMonthSelect.appendChild(optAll);
+
+    if (currentVal && Array.from(this.ledgerMonthSelect.options).some((o) => o.value === currentVal)) {
+      this.ledgerMonthSelect.value = currentVal;
+    } else {
+      this.ledgerMonthSelect.value = curKey;
+    }
+  }
+
   applyLedgerFilters() {
     const q = this.ledgerSearchInput ? this.ledgerSearchInput.value.toLowerCase().trim() : '';
     const typeFilter = this.ledgerTypeSelect ? this.ledgerTypeSelect.value : 'ALL';
+    const monthFilter = this.ledgerMonthSelect ? this.ledgerMonthSelect.value : '';
 
     this.filteredTransactions = this.transactions.filter((tx) => {
       const descMatch = (tx.description || '').toLowerCase().includes(q);
@@ -989,19 +1059,31 @@ class App {
       const textMatches = !q || descMatch || catMatch || accMatch;
 
       const typeMatches = typeFilter === 'ALL' || tx.type === typeFilter;
-      return textMatches && typeMatches;
+
+      let monthMatches = true;
+      if (monthFilter && monthFilter !== 'ALL') {
+        monthMatches = Boolean(tx.transaction_date && tx.transaction_date.startsWith(monthFilter));
+      }
+
+      return textMatches && typeMatches && monthMatches;
     });
 
     this.renderHistory();
   }
 
-  // Calculate Realized Monthly Summary from Transactions
+  // Calculate Realized Monthly Summary from Transactions for the current month in real time
   calculateMonthlySummary() {
+    const now = new Date();
+    const curY = now.getFullYear();
+    const curM = now.getMonth() + 1;
+    const curKey = `${curY}-${String(curM).padStart(2, '0')}`;
+
     let income = 0;
     let expense = 0;
 
     this.transactions.forEach((tx) => {
       if (tx.is_reversal) return;
+      if (!tx.transaction_date || !tx.transaction_date.startsWith(curKey)) return;
       const amt = parseFloat(tx.amount) || 0;
       if (tx.type === 'INCOME') income += amt;
       else if (tx.type === 'EXPENSE') expense += amt;
@@ -1160,9 +1242,25 @@ class App {
     this.historyTableBody.innerHTML = '';
 
     if (list.length === 0) {
+      const monthFilter = this.ledgerMonthSelect ? this.ledgerMonthSelect.value : '';
+      let emptyTitle = 'Tidak ada transaksi yang cocok.';
+      let emptyDesc = '';
+
+      if (monthFilter && monthFilter !== 'ALL') {
+        const [y, mStr] = monthFilter.split('-');
+        const m = parseInt(mStr, 10);
+        const monthNames = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+        const monthLabel = `${monthNames[m] || mStr} ${y}`;
+        emptyTitle = `Buku besar periode ${monthLabel} masih kosong`;
+        emptyDesc = `Belum ada mutasi yang dicatat di bulan ${monthLabel}. Jika memasuki bulan baru, transaksi akan dimulai dari nol. Anda dapat memilih bulan sebelumnya pada menu di atas untuk melihat data lampau.`;
+      }
+
       this.historyTableBody.innerHTML = `
-        <tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 18px;">
-          Tidak ada transaksi yang cocok.
+        <tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 28px 16px;">
+          <div style="font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">
+            ${emptyTitle}
+          </div>
+          ${emptyDesc ? `<div style="font-size: 11px; color: var(--text-secondary); max-width: 480px; margin: 0 auto; line-height: 1.5;">${emptyDesc}</div>` : ''}
         </td></tr>
       `;
       return;

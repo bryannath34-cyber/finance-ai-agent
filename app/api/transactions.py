@@ -67,12 +67,14 @@ def confirm_batch(
 
 @router.get("", response_model=DataResponse[List[TransactionItemResponse]])
 def list_transactions(
-    limit: int = Query(50, ge=1, le=100),
+    limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
+    year: Optional[int] = Query(None, ge=2000, le=2100),
+    month: Optional[int] = Query(None, ge=1, le=12),
     user: dict = Depends(get_current_user)
 ):
-    """Mengambil riwayat mutasi buku besar abadi (immutable ledger)."""
-    txs = TransactionService.list_transactions(user["id"], limit=limit, offset=offset)
+    """Mengambil riwayat mutasi buku besar abadi (immutable ledger) dengan filter waktu."""
+    txs = TransactionService.list_transactions(user["id"], limit=limit, offset=offset, year=year, month=month)
     return DataResponse(
         success=True,
         message=f"Berhasil mengambil {len(txs)} riwayat transaksi.",
