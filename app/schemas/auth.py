@@ -15,4 +15,5 @@ class LoginResponse(BaseModel):
     success: bool = True
     message: str = "Login berhasil"
     user: UserProfile
+    data: Optional[UserProfile] = None
     csrf_token: str

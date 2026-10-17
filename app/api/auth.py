@@ -128,15 +128,17 @@ def login(login_data: LoginRequest, request: Request, response: Response):
 
     logger.info("Pengguna '%s' berhasil login (Session ID diterbitkan)", user["username"])
 
+    user_profile = UserProfile(
+        id=user["id"],
+        username=user["username"],
+        full_name=user["full_name"],
+        timezone=user["timezone"]
+    )
     return LoginResponse(
         success=True,
         message="Login berhasil.",
-        user=UserProfile(
-            id=user["id"],
-            username=user["username"],
-            full_name=user["full_name"],
-            timezone=user["timezone"]
-        ),
+        user=user_profile,
+        data=user_profile,
         csrf_token=csrf_token
     )
 

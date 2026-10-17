@@ -122,7 +122,7 @@ class App {
 
     try {
       const res = await api.auth.login(user, pass);
-      this.currentUser = res.data.user;
+      this.currentUser = res.user || (res.data ? (res.data.user || res.data) : res);
       this.loginPassword.value = '';
       this.showDashboard();
     } catch (err) {
@@ -138,6 +138,11 @@ class App {
       console.warn("Logout error:", e);
     }
     this.currentUser = null;
+    this.usernameDisplay.textContent = '-';
+    this.accounts = [];
+    this.transactions = [];
+    this.renderAccounts();
+    this.renderHistory();
     this.showLogin();
   }
 
