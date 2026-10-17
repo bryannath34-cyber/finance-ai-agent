@@ -1,0 +1,13 @@
+from typing import Any
+
+class argon2:
+    @classmethod
+    def hash(cls, secret: str, *args: Any, **kwargs: Any) -> str: ...
+    @classmethod
+    def verify(cls, secret: str, hash: str) -> bool: ...
+
+class pbkdf2_sha256:
+    @classmethod
+    def hash(cls, secret: str, *args: Any, **kwargs: Any) -> str: ...
+    @classmethod
+    def verify(cls, secret: str, hash: str) -> bool: ...
