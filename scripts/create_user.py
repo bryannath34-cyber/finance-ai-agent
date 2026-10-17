@@ -94,14 +94,14 @@ def main():
             # B. Insert 3 Rekening Awal
             accounts_data = [
                 (user_id, 'Kas Tunai', 'CASH', 0.00, datetime.date.today()),
-                (user_id, 'BCA', 'BANK', 0.00, datetime.date.today()),
+                (user_id, 'Bank', 'BANK', 0.00, datetime.date.today()),
                 (user_id, 'E-Wallet', 'EWALLET', 0.00, datetime.date.today()),
             ]
             cur.executemany("""
                 INSERT INTO accounts (user_id, name, type, opening_balance, opening_balance_date, is_active)
                 VALUES (%s, %s, %s, %s, %s, TRUE)
             """, accounts_data)
-            print("  ✅ 3 Rekening awal ('Kas Tunai', 'BCA', 'E-Wallet') diinisialisasi.")
+            print("  ✅ 3 Rekening awal ('Kas Tunai', 'Bank', 'E-Wallet') diinisialisasi.")
 
             # C. Insert 8 Kategori Umum + 1 Kategori Sistem "Biaya Admin"
             categories_data = [

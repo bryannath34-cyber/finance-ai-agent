@@ -104,7 +104,7 @@ def run_tests():
     print_test("5. Categories Retrieval (/categories)", passed, detail_cat)
 
     # 6. Test AI Extraction (Cohere Command A)
-    ai_prompt = "Makan siang di kantin 25rb pake e-wallet, tf 50rb dari bca ke e-wallet admin 1000"
+    ai_prompt = "Makan siang di kantin 25rb pake e-wallet, tf 50rb dari bank ke e-wallet admin 1000"
     s_ai, r_ai = client.request("POST", "/ai/parse", {"text": ai_prompt})
     if s_ai != 200:
         print_test("6. OCI GenAI Parsing (/ai/parse)", False, f"HTTP {s_ai}: {r_ai}")
@@ -163,7 +163,7 @@ def run_tests():
     print_test("12. Savings Goals Tracking (/planning/goals)", passed, detail_g)
 
     # 13. Test AI Purchase Advisory Copilot (/planning/advisory/purchase)
-    copilot_query = "Gue mau beli headset gaming Rp350.000 pake BCA, menurut lu aman gak?"
+    copilot_query = "Gue mau beli headset gaming Rp350.000 pake Bank, menurut lu aman gak?"
     s_adv, r_adv = client.request("POST", "/planning/advisory/purchase", {"query": copilot_query})
     passed = (s_adv == 200 and r_adv.get("data", {}).get("verdict") is not None)
     if passed:

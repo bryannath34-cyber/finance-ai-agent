@@ -65,7 +65,7 @@ class UpdateGoalStatusRequest(BaseModel):
 # 3. AI Financial Copilot & Advisory
 # ==========================================
 class PurchaseAdviceRequest(BaseModel):
-    query: str = Field(..., min_length=5, max_length=500, description="Pertanyaan pembelian, misal: 'Gue mau beli keyboard Rp760rb pake BCA, aman gak?'")
+    query: str = Field(..., min_length=5, max_length=500, description="Pertanyaan pembelian, misal: 'Gue mau beli keyboard Rp760rb pake Bank, aman gak?'")
     target_account_id: Optional[int] = None
 
 class PurchaseAdviceResponse(BaseModel):

@@ -867,7 +867,7 @@ class App {
     }
   }
 
-  // Render Accounts in Figma Style (Monograms KT, BCA, GP)
+  // Render Accounts in Figma Style (Monograms KT, BK, EW)
   renderAccounts() {
     this.accountsContainer.innerHTML = '';
     let totalBal = 0;
@@ -887,9 +887,9 @@ class App {
       let monogramClass = 'monogram-cash';
       let monogramText = 'KT';
 
-      if (nameLower.includes('bca') || acc.type === 'BANK') {
+      if (nameLower.includes('bank') || nameLower.includes('bca') || acc.type === 'BANK') {
         monogramClass = 'monogram-bank';
-        monogramText = 'BCA';
+        monogramText = 'BK';
       } else if (nameLower.includes('ewallet') || nameLower.includes('e-wallet') || nameLower.includes('gopay') || acc.type === 'EWALLET') {
         monogramClass = 'monogram-ewallet';
         monogramText = 'EW';
@@ -1874,7 +1874,7 @@ class App {
     this.savingsGoalsList.innerHTML = '';
 
     const goalsToRender = (this.savingsGoals && this.savingsGoals.length > 0) ? this.savingsGoals : [
-      { id: 1, name: 'Emergency Fund', account_name: 'Bank BCA', current_balance: 3000000, target_amount: 4000000, progress_percent: 75, target_date: '31 Des 2026', icon: 'shield' },
+      { id: 1, name: 'Emergency Fund', account_name: 'Bank', current_balance: 3000000, target_amount: 4000000, progress_percent: 75, target_date: '31 Des 2026', icon: 'shield' },
       { id: 2, name: 'Japan Trip', account_name: 'E-Wallet', current_balance: 7500000, target_amount: 10000000, progress_percent: 75, target_date: '30 Jun 2027', icon: 'plane' },
     ];
 
@@ -2017,7 +2017,7 @@ class App {
     if (!this.copilotAccountSelect) return;
     this.copilotAccountSelect.innerHTML = '';
     if (!this.accounts || this.accounts.length === 0) {
-      this.copilotAccountSelect.innerHTML = '<option value="">Bank BCA — Rp 5.250.000</option>';
+      this.copilotAccountSelect.innerHTML = '<option value="">Bank — Rp 5.250.000</option>';
       return;
     }
     this.accounts.forEach((a) => {
@@ -2092,7 +2092,7 @@ class App {
 
     // Snapshot Breakdown (6 Metrics)
     const snap = data.financial_snapshot || {};
-    if (this.snapAccName) this.snapAccName.textContent = snap.rekening_terpilih || 'Bank BCA';
+    if (this.snapAccName) this.snapAccName.textContent = snap.rekening_terpilih || 'Bank';
     if (this.snapAccBal) this.snapAccBal.textContent = this.formatIDR(snap.saldo_saat_ini || 5250000);
     if (this.snapAccAfter) {
       this.snapAccAfter.textContent = this.formatIDR(snap.saldo_setelah_beli || 2400000);
@@ -2668,7 +2668,7 @@ class App {
       this.settingsAccountsList.innerHTML = '';
       this.accounts.forEach((acc, idx) => {
         let iconSvg = Icons.bank;
-        let iconClass = 'bca';
+        let iconClass = 'bank';
         const nameLower = (acc.name || '').toLowerCase();
         if (nameLower.includes('ewallet') || nameLower.includes('e-wallet') || nameLower.includes('gopay') || nameLower.includes('ovo') || nameLower.includes('dana') || acc.type === 'EWALLET') {
           iconSvg = Icons.phone;
