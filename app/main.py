@@ -106,9 +106,24 @@ def serve_index():
         status_code=200
     )
 
+@app.get(f"{settings.APP_PREFIX}/favicon.svg", include_in_schema=False)
+@app.get(f"{settings.APP_PREFIX}/favicon.ico", include_in_schema=False)
+@app.get("/favicon.ico", include_in_schema=False)
+def serve_favicon():
+    """Menyajikan favicon SVG resmi dengan header anti-cache agar browser memperbarui tab icon."""
+    fav_path = os.path.join(STATIC_DIR, "favicon.svg")
+    if os.path.exists(fav_path):
+        return FileResponse(
+            fav_path,
+            media_type="image/svg+xml",
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate"}
+        )
+    return HTMLResponse(content="", status_code=204)
+
 @app.get("/", include_in_schema=False)
 def root_redirect():
     """Mengarahkan traffic root langsung ke prefix aplikasi /finance/."""
     return RedirectResponse(url=f"{settings.APP_PREFIX}/")
+
 
 
