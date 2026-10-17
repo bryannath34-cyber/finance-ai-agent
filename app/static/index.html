@@ -54,6 +54,12 @@
               <span>Penasihat Finansial AI</span>
             </button>
           </li>
+          <li>
+            <button type="button" class="sidebar-nav-btn" data-tab="tab-reports">
+              <span class="nav-icon">📈</span>
+              <span>Laporan Keuangan</span>
+            </button>
+          </li>
         </ul>
 
         <div class="sidebar-divider"></div>
@@ -138,6 +144,10 @@
           <button type="button" class="tab-btn" data-tab="tab-copilot">
             <span class="tab-icon">✨</span>
             <span>Penasihat Finansial AI</span>
+          </button>
+          <button type="button" class="tab-btn" data-tab="tab-reports">
+            <span class="tab-icon">📈</span>
+            <span>Laporan Keuangan</span>
           </button>
         </nav>
       </div>
@@ -854,6 +864,340 @@
 
         <div class="planning-footer-note">
           Penasihat finansial AI · Analisis berbasis data transaksi real-time · OCI GenAI Native v2.3
+        </div>
+      </div>
+
+      <!-- ================================================================
+           SCREEN 05: TAB LAPORAN KEUANGAN (Figma Screen 05 1:1 Match)
+           ================================================================ -->
+      <div id="tab-reports" class="tab-content">
+        <!-- Top month selector and export button row -->
+        <div class="reports-top-controls">
+          <button type="button" class="reports-btn-pill" id="btn-report-month-picker">
+            <span>📅</span>
+            <span id="report-current-month-label">Oktober 2026</span>
+            <span>▾</span>
+          </button>
+          <button type="button" class="reports-btn-pill" id="btn-export-report">
+            <span>⤓</span>
+            <span>Ekspor laporan</span>
+          </button>
+        </div>
+
+        <!-- 4 Top Metric Cards (width 278px/280px, height 112px, radius 15px) -->
+        <div class="reports-stat-cards">
+          <!-- Metric 1: Total pemasukan -->
+          <div class="reports-stat-card">
+            <div class="reports-stat-label">Total pemasukan</div>
+            <div class="reports-stat-val" id="report-stat-income">Rp 7.500.000</div>
+            <div class="reports-stat-delta" id="report-stat-income-sub">Dari 3 transaksi</div>
+          </div>
+
+          <!-- Metric 2: Total pengeluaran -->
+          <div class="reports-stat-card">
+            <div class="reports-stat-label">Total pengeluaran</div>
+            <div class="reports-stat-val" id="report-stat-expense">Rp 2.150.000</div>
+            <div class="reports-stat-delta" id="report-stat-expense-sub">Turun 12% dari Sep</div>
+          </div>
+
+          <!-- Metric 3: Arus kas bersih -->
+          <div class="reports-stat-card">
+            <div class="reports-stat-label">Arus kas bersih</div>
+            <div class="reports-stat-val" id="report-stat-net">Rp 5.350.000</div>
+            <div class="reports-stat-delta" id="report-stat-net-sub">Pemasukan - pengeluaran</div>
+          </div>
+
+          <!-- Metric 4: Tingkat menabung -->
+          <div class="reports-stat-card">
+            <div class="reports-stat-label">Tingkat menabung</div>
+            <div class="reports-stat-val" id="report-stat-rate">71,3%</div>
+            <div class="reports-stat-delta" id="report-stat-rate-sub">Dari total pemasukan</div>
+          </div>
+        </div>
+
+        <!-- Middle Row: 65% / 35% Split Layout (748px and 404px, height 330px) -->
+        <div class="reports-middle-grid">
+
+          <!-- Left Card (748px): Tren arus kas -->
+          <div class="figma-card" style="padding: 16px 20px;">
+            <div class="card-header-row">
+              <div class="card-title-group">
+                <span class="card-header-icon">📊</span>
+                <span class="card-section-title">Tren arus kas</span>
+              </div>
+              <button type="button" class="card-action-link" id="btn-chart-period">12 bulan</button>
+            </div>
+            <div class="card-subtitle-text">
+              Bandingkan pemasukan dan pengeluaran sepanjang tahun 2026.
+            </div>
+
+            <!-- Legend pills -->
+            <div class="reports-chart-legends">
+              <div class="chart-legend-badge income">Pemasukan</div>
+              <div class="chart-legend-badge expense">Pengeluaran</div>
+            </div>
+
+            <!-- 12-Month Grouped Bar Chart -->
+            <div class="grouped-chart-container" id="reports-bars-container">
+              <!-- Jan -->
+              <div class="grouped-month-col">
+                <div class="grouped-bars-wrapper">
+                  <div class="bar-income" style="height: 94px;" title="Jan Income: Rp 5.200.000"></div>
+                  <div class="bar-expense" style="height: 36px;" title="Jan Expense: Rp 2.000.000"></div>
+                </div>
+                <div class="grouped-month-label">Jan</div>
+              </div>
+              <!-- Feb -->
+              <div class="grouped-month-col">
+                <div class="grouped-bars-wrapper">
+                  <div class="bar-income" style="height: 97px;" title="Feb Income: Rp 5.400.000"></div>
+                  <div class="bar-expense" style="height: 40px;" title="Feb Expense: Rp 2.200.000"></div>
+                </div>
+                <div class="grouped-month-label">Feb</div>
+              </div>
+              <!-- Mar -->
+              <div class="grouped-month-col">
+                <div class="grouped-bars-wrapper">
+                  <div class="bar-income" style="height: 110px;" title="Mar Income: Rp 6.100.000"></div>
+                  <div class="bar-expense" style="height: 41px;" title="Mar Expense: Rp 2.300.000"></div>
+                </div>
+                <div class="grouped-month-label">Mar</div>
+              </div>
+              <!-- Apr -->
+              <div class="grouped-month-col">
+                <div class="grouped-bars-wrapper">
+                  <div class="bar-income" style="height: 104px;" title="Apr Income: Rp 5.800.000"></div>
+                  <div class="bar-expense" style="height: 45px;" title="Apr Expense: Rp 2.500.000"></div>
+                </div>
+                <div class="grouped-month-label">Apr</div>
+              </div>
+              <!-- Mei -->
+              <div class="grouped-month-col">
+                <div class="grouped-bars-wrapper">
+                  <div class="bar-income" style="height: 117px;" title="Mei Income: Rp 6.500.000"></div>
+                  <div class="bar-expense" style="height: 43px;" title="Mei Expense: Rp 2.400.000"></div>
+                </div>
+                <div class="grouped-month-label">Mei</div>
+              </div>
+              <!-- Jun -->
+              <div class="grouped-month-col">
+                <div class="grouped-bars-wrapper">
+                  <div class="bar-income" style="height: 122px;" title="Jun Income: Rp 6.800.000"></div>
+                  <div class="bar-expense" style="height: 38px;" title="Jun Expense: Rp 2.100.000"></div>
+                </div>
+                <div class="grouped-month-label">Jun</div>
+              </div>
+              <!-- Jul -->
+              <div class="grouped-month-col">
+                <div class="grouped-bars-wrapper">
+                  <div class="bar-income" style="height: 126px;" title="Jul Income: Rp 7.000.000"></div>
+                  <div class="bar-expense" style="height: 41px;" title="Jul Expense: Rp 2.300.000"></div>
+                </div>
+                <div class="grouped-month-label">Jul</div>
+              </div>
+              <!-- Agu -->
+              <div class="grouped-month-col">
+                <div class="grouped-bars-wrapper">
+                  <div class="bar-income" style="height: 130px;" title="Agu Income: Rp 7.200.000"></div>
+                  <div class="bar-expense" style="height: 50px;" title="Agu Expense: Rp 2.780.000"></div>
+                </div>
+                <div class="grouped-month-label">Agu</div>
+              </div>
+              <!-- Sep -->
+              <div class="grouped-month-col">
+                <div class="grouped-bars-wrapper">
+                  <div class="bar-income" style="height: 128px;" title="Sep Income: Rp 7.200.000"></div>
+                  <div class="bar-expense" style="height: 44px;" title="Sep Expense: Rp 2.450.000"></div>
+                </div>
+                <div class="grouped-month-label">Sep</div>
+              </div>
+              <!-- Okt (Active) -->
+              <div class="grouped-month-col">
+                <div class="grouped-bars-wrapper">
+                  <div class="bar-income active" style="height: 135px;" title="Okt Income: Rp 7.500.000"></div>
+                  <div class="bar-expense active" style="height: 39px;" title="Okt Expense: Rp 2.150.000"></div>
+                </div>
+                <div class="grouped-month-label active">Okt</div>
+              </div>
+              <!-- Nov -->
+              <div class="grouped-month-col">
+                <div class="grouped-bars-wrapper">
+                  <div class="bar-income" style="height: 0px;" title="Nov: Belum ada data"></div>
+                  <div class="bar-expense" style="height: 0px;" title="Nov: Belum ada data"></div>
+                </div>
+                <div class="grouped-month-label">Nov</div>
+              </div>
+              <!-- Des -->
+              <div class="grouped-month-col">
+                <div class="grouped-bars-wrapper">
+                  <div class="bar-income" style="height: 0px;" title="Des: Belum ada data"></div>
+                  <div class="bar-expense" style="height: 0px;" title="Des: Belum ada data"></div>
+                </div>
+                <div class="grouped-month-label">Des</div>
+              </div>
+            </div>
+            <div class="grouped-chart-baseline"></div>
+
+            <div class="chart-bottom-note">Nov dan Des belum memiliki data aktual.</div>
+          </div>
+
+          <!-- Right Card (404px): Komposisi pengeluaran -->
+          <div class="figma-card" style="padding: 16px 20px;">
+            <div class="card-header-row">
+              <div class="card-title-group">
+                <span class="card-header-icon">📊</span>
+                <span class="card-section-title">Komposisi pengeluaran</span>
+              </div>
+              <span style="font-size: 10px; font-weight: 500; color: #486F95;" id="report-comp-month">Oktober</span>
+            </div>
+            <div class="card-subtitle-text" id="report-comp-total">
+              Total Rp 2.150.000
+            </div>
+
+            <div style="margin-top: 14px;" id="reports-cat-progress-container">
+              <!-- Row 1: Makanan & minuman 34% -->
+              <div class="reports-cat-row">
+                <div class="reports-cat-header">
+                  <span>Makanan & minuman</span>
+                  <span>34%</span>
+                </div>
+                <div class="reports-cat-track">
+                  <div class="reports-cat-fill reports-cat-fill-0" style="width: 34%;"></div>
+                </div>
+              </div>
+
+              <!-- Row 2: Transportasi 28% -->
+              <div class="reports-cat-row">
+                <div class="reports-cat-header">
+                  <span>Transportasi</span>
+                  <span>28%</span>
+                </div>
+                <div class="reports-cat-track">
+                  <div class="reports-cat-fill reports-cat-fill-1" style="width: 28%;"></div>
+                </div>
+              </div>
+
+              <!-- Row 3: Hiburan 18% -->
+              <div class="reports-cat-row">
+                <div class="reports-cat-header">
+                  <span>Hiburan</span>
+                  <span>18%</span>
+                </div>
+                <div class="reports-cat-track">
+                  <div class="reports-cat-fill reports-cat-fill-2" style="width: 18%;"></div>
+                </div>
+              </div>
+
+              <!-- Row 4: Belanja 12% -->
+              <div class="reports-cat-row">
+                <div class="reports-cat-header">
+                  <span>Belanja</span>
+                  <span>12%</span>
+                </div>
+                <div class="reports-cat-track">
+                  <div class="reports-cat-fill reports-cat-fill-3" style="width: 12%;"></div>
+                </div>
+              </div>
+
+              <!-- Row 5: Lainnya 8% -->
+              <div class="reports-cat-row">
+                <div class="reports-cat-header">
+                  <span>Lainnya</span>
+                  <span>8%</span>
+                </div>
+                <div class="reports-cat-track">
+                  <div class="reports-cat-fill reports-cat-fill-4" style="width: 8%;"></div>
+                </div>
+              </div>
+            </div>
+
+            <div style="height: 1px; background: #E2E5DF; margin-top: 10px; margin-bottom: 8px;"></div>
+            <div style="font-size: 8px; color: #969C96;">Persentase dihitung dari pengeluaran tercatat.</div>
+          </div>
+
+        </div>
+
+        <!-- Bottom Card (1168px x 355px): Riwayat per bulan -->
+        <div class="figma-card" style="padding: 16px 20px;">
+          <div class="card-header-row">
+            <div class="card-title-group">
+              <span class="card-header-icon">📅</span>
+              <span class="card-section-title">Riwayat per bulan</span>
+            </div>
+            <button type="button" class="card-action-link" id="btn-report-select-month">Pilih bulan</button>
+          </div>
+          <div class="card-subtitle-text">
+            Pilih bulan untuk melihat rincian, transaksi, dan progres anggaran pada periode tersebut.
+          </div>
+
+          <div class="figma-table-wrapper" style="margin-top: 14px;">
+            <table class="reports-table">
+              <thead>
+                <tr>
+                  <th style="width: 17%;">Bulan</th>
+                  <th style="width: 17%;">Pemasukan</th>
+                  <th style="width: 17%;">Pengeluaran</th>
+                  <th style="width: 19%;">Arus kas bersih</th>
+                  <th style="width: 20%;">Perubahan pengeluaran</th>
+                  <th style="width: 10%; text-align: right;">Detail</th>
+                </tr>
+              </thead>
+              <tbody id="reports-monthly-table-body">
+                <tr>
+                  <td><strong>Oktober 2026</strong></td>
+                  <td style="color: var(--text-secondary);">Rp 7.500.000</td>
+                  <td style="color: var(--text-secondary);">Rp 2.150.000</td>
+                  <td><strong>Rp 5.350.000</strong></td>
+                  <td><span class="trend-badge-green">-12%</span></td>
+                  <td style="text-align: right;"><button type="button" class="card-action-link btn-view-period" data-period="2026-10">Lihat periode</button></td>
+                </tr>
+                <tr>
+                  <td>September 2026</td>
+                  <td style="color: var(--text-secondary);">Rp 7.200.000</td>
+                  <td style="color: var(--text-secondary);">Rp 2.450.000</td>
+                  <td><strong>Rp 4.750.000</strong></td>
+                  <td><span class="trend-badge-rose">+8%</span></td>
+                  <td style="text-align: right;"><button type="button" class="card-action-link btn-view-period" data-period="2026-09">Lihat periode</button></td>
+                </tr>
+                <tr>
+                  <td>Agustus 2026</td>
+                  <td style="color: var(--text-secondary);">Rp 7.200.000</td>
+                  <td style="color: var(--text-secondary);">Rp 2.780.000</td>
+                  <td><strong>Rp 4.420.000</strong></td>
+                  <td><span class="trend-badge-rose">+14%</span></td>
+                  <td style="text-align: right;"><button type="button" class="card-action-link btn-view-period" data-period="2026-08">Lihat periode</button></td>
+                </tr>
+                <tr>
+                  <td>Juli 2026</td>
+                  <td style="color: var(--text-secondary);">Rp 7.000.000</td>
+                  <td style="color: var(--text-secondary);">Rp 2.300.000</td>
+                  <td><strong>Rp 4.700.000</strong></td>
+                  <td><span class="trend-badge-green">-6%</span></td>
+                  <td style="text-align: right;"><button type="button" class="card-action-link btn-view-period" data-period="2026-07">Lihat periode</button></td>
+                </tr>
+                <tr>
+                  <td>Juni 2026</td>
+                  <td style="color: var(--text-secondary);">Rp 6.800.000</td>
+                  <td style="color: var(--text-secondary);">Rp 2.100.000</td>
+                  <td><strong>Rp 4.700.000</strong></td>
+                  <td><span class="trend-badge-green">-9%</span></td>
+                  <td style="text-align: right;"><button type="button" class="card-action-link btn-view-period" data-period="2026-06">Lihat periode</button></td>
+                </tr>
+                <tr>
+                  <td>Mei 2026</td>
+                  <td style="color: var(--text-secondary);">Rp 6.500.000</td>
+                  <td style="color: var(--text-secondary);">Rp 2.400.000</td>
+                  <td><strong>Rp 4.100.000</strong></td>
+                  <td><span class="trend-badge-rose">+4%</span></td>
+                  <td style="text-align: right;"><button type="button" class="card-action-link btn-view-period" data-period="2026-05">Lihat periode</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="planning-footer-note">
+          Laporan bulanan · Data contoh desain untuk memperlihatkan riwayat dan perbandingan periode.
         </div>
       </div>
 

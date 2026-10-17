@@ -1926,6 +1926,272 @@ body {
 }
 
 /* ==========================================================================
+   SCREEN 05: FIGMA 1:1 LAPORAN BULANAN / LAPORAN KEUANGAN
+   ========================================================================== */
+.reports-top-controls {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-bottom: 14px;
+}
+
+.reports-btn-pill {
+  height: 32px;
+  padding: 0 14px;
+  background: #FFFFFF;
+  border: 1px solid var(--border-main);
+  border-radius: 9px;
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.reports-btn-pill:hover {
+  background: var(--bg-hover);
+}
+
+.reports-stat-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+@media (max-width: 992px) {
+  .reports-stat-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 576px) {
+  .reports-stat-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+.reports-stat-card {
+  background: #FFFFFF;
+  border: 1px solid var(--border-main);
+  border-radius: 15px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  min-height: 112px;
+}
+
+.reports-stat-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: #6F7770;
+  line-height: 12px;
+  margin-bottom: 8px;
+}
+
+.reports-stat-val {
+  font-size: 19px;
+  font-weight: 600;
+  color: #202420;
+  line-height: 23px;
+  margin-bottom: 8px;
+}
+
+.reports-stat-delta {
+  font-size: 10px;
+  font-weight: 500;
+  color: #2D7653;
+  line-height: 12px;
+}
+
+.reports-stat-delta.rose {
+  color: #A35454;
+}
+
+.reports-middle-grid {
+  display: grid;
+  grid-template-columns: 65% calc(35% - 18px);
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+@media (max-width: 1080px) {
+  .reports-middle-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.reports-chart-legends {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  margin-bottom: 14px;
+}
+
+.chart-legend-badge {
+  height: 21px;
+  padding: 0 12px;
+  border-radius: 7px;
+  font-size: 9px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chart-legend-badge.income {
+  background: #EAF4EE;
+  border: 1px solid #EAF4EE;
+  color: #2D7653;
+}
+
+.chart-legend-badge.expense {
+  background: #F8F9F7;
+  border: 1px solid #F8F9F7;
+  color: #6F7770;
+}
+
+.grouped-chart-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  height: 160px;
+  padding: 10px 0 0 0;
+  position: relative;
+  overflow-x: auto;
+}
+
+.grouped-month-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  min-width: 44px;
+}
+
+.grouped-bars-wrapper {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 135px;
+  width: 100%;
+  justify-content: center;
+}
+
+.bar-income {
+  width: 17px;
+  background: #A7C9B3;
+  border-radius: 3px 3px 0 0;
+  transition: height 0.3s ease;
+}
+
+.bar-income.active {
+  background: #2D7653;
+}
+
+.bar-expense {
+  width: 17px;
+  background: #D8DDD7;
+  border-radius: 3px 3px 0 0;
+  transition: height 0.3s ease;
+}
+
+.bar-expense.active {
+  background: #8D9A90;
+}
+
+.grouped-month-label {
+  font-size: 9px;
+  color: #969C96;
+  text-align: center;
+  margin-top: 6px;
+}
+
+.grouped-month-label.active {
+  font-weight: 600;
+  color: #202420;
+}
+
+.grouped-chart-baseline {
+  width: 100%;
+  height: 1px;
+  background: #E2E5DF;
+  margin-top: 2px;
+}
+
+.chart-bottom-note {
+  font-size: 9px;
+  color: #969C96;
+  margin-top: 8px;
+}
+
+/* Category Progress Rows */
+.reports-cat-row {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 12px;
+}
+
+.reports-cat-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.reports-cat-track {
+  width: 100%;
+  height: 6px;
+  background: #EDF0EB;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.reports-cat-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.reports-cat-fill-0 { background: #2D7653; }
+.reports-cat-fill-1 { background: #87A992; }
+.reports-cat-fill-2 { background: #B1BCB2; }
+.reports-cat-fill-3 { background: #C5CDC5; }
+.reports-cat-fill-4 { background: #D8DED7; }
+
+/* Reports History Table */
+.reports-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.reports-table th {
+  font-size: 9px;
+  font-weight: 500;
+  color: #969C96;
+  text-align: left;
+  padding: 8px 0;
+  border-bottom: 1px solid #E2E5DF;
+}
+
+.reports-table td {
+  font-size: 10px;
+  color: #202420;
+  padding: 12px 0;
+  border-bottom: 1px solid #E2E5DF;
+  vertical-align: middle;
+}
+
+.reports-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* ==========================================================================
    MODALS (Figma clean white cards, subtle backdrop)
    ========================================================================== */
 .modal-overlay {

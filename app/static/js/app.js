@@ -161,6 +161,23 @@ class App {
     this.modalAbout = document.getElementById('modal-about');
     this.btnOpenAbout = document.getElementById('btn-open-about');
     this.btnOpenHelp = document.getElementById('btn-open-help');
+
+    // Tab 5: Laporan Keuangan (Screen 05)
+    this.btnExportReport = document.getElementById('btn-export-report');
+    this.btnReportMonthPicker = document.getElementById('btn-report-month-picker');
+    this.reportStatIncome = document.getElementById('report-stat-income');
+    this.reportStatIncomeSub = document.getElementById('report-stat-income-sub');
+    this.reportStatExpense = document.getElementById('report-stat-expense');
+    this.reportStatExpenseSub = document.getElementById('report-stat-expense-sub');
+    this.reportStatNet = document.getElementById('report-stat-net');
+    this.reportStatNetSub = document.getElementById('report-stat-net-sub');
+    this.reportStatRate = document.getElementById('report-stat-rate');
+    this.reportStatRateSub = document.getElementById('report-stat-rate-sub');
+    this.reportCompMonth = document.getElementById('report-comp-month');
+    this.reportCompTotal = document.getElementById('report-comp-total');
+    this.reportsCatProgressContainer = document.getElementById('reports-cat-progress-container');
+    this.reportsMonthlyTableBody = document.getElementById('reports-monthly-table-body');
+    this.btnReportSelectMonth = document.getElementById('btn-report-select-month');
   }
 
   attachEventListeners() {
@@ -284,6 +301,27 @@ class App {
     if (this.btnAnalyzePatterns) {
       this.btnAnalyzePatterns.addEventListener('click', () => this.handleAnalyzePatterns());
     }
+
+    // Tab 5 Events (Laporan Keuangan & CSV Export)
+    if (this.btnExportReport) {
+      this.btnExportReport.addEventListener('click', () => this.handleExportReport());
+    }
+    if (this.btnReportMonthPicker) {
+      this.btnReportMonthPicker.addEventListener('click', () => {
+        this.showAlert('Menampilkan periode laporan aktif: Oktober 2026', 'info');
+      });
+    }
+    if (this.btnReportSelectMonth) {
+      this.btnReportSelectMonth.addEventListener('click', () => {
+        this.showAlert('Menampilkan periode laporan aktif: Oktober 2026', 'info');
+      });
+    }
+    document.querySelectorAll('.btn-view-period').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const period = e.currentTarget.getAttribute('data-period');
+        this.showAlert(`Membuka rincian periode: ${period}`, 'info');
+      });
+    });
   }
 
   switchTab(tabId) {
@@ -294,7 +332,8 @@ class App {
       'tab-dashboard': { title: 'Dashboard Finansial', intro: 'Ringkasan kekayaan bersih, rekening aktif, pagu anggaran, dan mutasi terkini.' },
       'tab-mutasi': { title: 'Mutasi & Suara AI', intro: 'Catat transaksi lewat teks atau suara, periksa draft, lalu konfirmasi ke buku besar.' },
       'tab-planning': { title: 'Anggaran & Tabungan', intro: 'Atur pagu bulanan dan pantau progres tujuan tabungan.' },
-      'tab-copilot': { title: 'Penasihat Finansial AI', intro: 'Tanyakan rencana pembelian, evaluasi kelayakan anggaran, dan pantau pola pengeluaran berbasis AI.' }
+      'tab-copilot': { title: 'Penasihat Finansial AI', intro: 'Tanyakan rencana pembelian, evaluasi kelayakan anggaran, dan pantau pola pengeluaran berbasis AI.' },
+      'tab-reports': { title: 'Laporan Keuangan', intro: 'Tinjau arus kas, komposisi pengeluaran, dan perubahan dari bulan ke bulan.' }
     };
 
     if (this.pageTitle && titles[tabId]) this.pageTitle.textContent = titles[tabId].title;
@@ -322,6 +361,8 @@ class App {
       this.loadPlanningData();
     } else if (tabId === 'tab-copilot') {
       this.loadCopilotData();
+    } else if (tabId === 'tab-reports') {
+      this.loadReportsData();
     }
   }
 
@@ -1374,6 +1415,97 @@ class App {
         this.btnAnalyzePatterns.disabled = false;
         this.btnAnalyzePatterns.innerHTML = `Analisis ulang`;
       }
+    }
+  }
+
+  // ====================================================================
+  // SCREEN 05: LAPORAN KEUANGAN LOGIC & CSV EXPORT
+  // ====================================================================
+  loadReportsData() {
+    // If transactions exist, calculate actual income, expense, and net cashflow for this month
+    if (this.transactions && this.transactions.length > 0) {
+      let incomeTotal = 0;
+      let expenseTotal = 0;
+      let incomeCount = 0;
+      const catSpent = {};
+
+      this.transactions.forEach((tx) => {
+        const amount = parseFloat(tx.amount) || 0;
+        if (tx.type === 'income') {
+          incomeTotal += amount;
+          incomeCount += 1;
+        } else if (tx.type === 'expense') {
+          expenseTotal += amount;
+          const cat = tx.category_name || 'Lainnya';
+          catSpent[cat] = (catSpent[cat] || 0) + amount;
+        }
+      });
+
+      // If we have actual transactions, dynamically enrich the stats
+      if (incomeTotal > 0 || expenseTotal > 0) {
+        const netCashflow = incomeTotal - expenseTotal;
+        const savingRate = incomeTotal > 0 ? ((netCashflow / incomeTotal) * 100).toFixed(1) : 0;
+
+        if (this.reportStatIncome) this.reportStatIncome.textContent = this.formatIDR(incomeTotal);
+        if (this.reportStatIncomeSub) this.reportStatIncomeSub.textContent = `Dari ${incomeCount} transaksi tercatat`;
+        if (this.reportStatExpense) this.reportStatExpense.textContent = this.formatIDR(expenseTotal);
+        if (this.reportStatNet) this.reportStatNet.textContent = this.formatIDR(netCashflow);
+        if (this.reportStatRate) this.reportStatRate.textContent = `${savingRate}%`;
+
+        if (this.reportCompTotal) this.reportCompTotal.textContent = `Total ${this.formatIDR(expenseTotal)}`;
+
+        // Render dynamic category bars if expense data exists
+        if (expenseTotal > 0 && this.reportsCatProgressContainer) {
+          const sortedCats = Object.entries(catSpent).sort((a, b) => b[1] - a[1]);
+          if (sortedCats.length > 0) {
+            this.reportsCatProgressContainer.innerHTML = '';
+            sortedCats.slice(0, 5).forEach(([catName, spent], idx) => {
+              const pct = Math.round((spent / expenseTotal) * 100);
+              const row = document.createElement('div');
+              row.className = 'reports-cat-row';
+              row.innerHTML = `
+                <div class="reports-cat-header">
+                  <span>${catName}</span>
+                  <span>${pct}%</span>
+                </div>
+                <div class="reports-cat-track">
+                  <div class="reports-cat-fill reports-cat-fill-${idx % 5}" style="width: ${pct}%;"></div>
+                </div>
+              `;
+              this.reportsCatProgressContainer.appendChild(row);
+            });
+          }
+        }
+      }
+    }
+  }
+
+  handleExportReport() {
+    try {
+      // Build CSV Data from report table
+      const rows = [
+        ['Periode', 'Pemasukan (IDR)', 'Pengeluaran (IDR)', 'Arus Kas Bersih (IDR)', 'Perubahan Pengeluaran'],
+        ['Oktober 2026', '7500000', '2150000', '5350000', '-12%'],
+        ['September 2026', '7200000', '2450000', '4750000', '+8%'],
+        ['Agustus 2026', '7200000', '2780000', '4420000', '+14%'],
+        ['Juli 2026', '7000000', '2300000', '4700000', '-6%'],
+        ['Juni 2026', '6800000', '2100000', '4700000', '-9%'],
+        ['Mei 2026', '6500000', '2400000', '4100000', '+4%']
+      ];
+
+      const csvContent = 'data:text/csv;charset=utf-8,' + rows.map(e => e.join(',')).join('\n');
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement('a');
+      link.setAttribute('href', encodedUri);
+      link.setAttribute('download', `Laporan_Keuangan_Oktober_2026.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      this.showAlert('Laporan keuangan berhasil diekspor ke file CSV.', 'success');
+    } catch (err) {
+      console.error('Gagal mengekspor laporan:', err);
+      this.showAlert('Gagal mengekspor laporan keuangan.', 'error');
     }
   }
 }
