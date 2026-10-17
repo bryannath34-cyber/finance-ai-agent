@@ -99,7 +99,10 @@ def login(login_data: LoginRequest, request: Request, response: Response):
     session_token, expires_at = create_user_session(user["id"], client_ip, user_agent)
     csrf_token = generate_secure_token(24)
 
-    is_production = settings.APP_ENV.lower() == "production"
+    is_https = (
+        request.url.scheme == "https" or 
+        request.headers.get("X-Forwarded-Proto") == "https"
+    )
 
     # Set Cookie Sesi (HttpOnly agar tidak bisa dicuri XSS)
     response.set_cookie(
@@ -108,7 +111,7 @@ def login(login_data: LoginRequest, request: Request, response: Response):
         max_age=settings.SESSION_EXPIRE_HOURS * 3600,
         httponly=True,
         samesite="lax",
-        secure=is_production,
+        secure=is_https,
         path="/"
     )
 
@@ -119,7 +122,7 @@ def login(login_data: LoginRequest, request: Request, response: Response):
         max_age=settings.SESSION_EXPIRE_HOURS * 3600,
         httponly=False,
         samesite="lax",
-        secure=is_production,
+        secure=is_https,
         path="/"
     )
 

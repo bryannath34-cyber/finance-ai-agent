@@ -86,20 +86,22 @@ def run_tests():
     # 3. Test Profile
     s_me, r_me = client.request("GET", "/auth/me")
     passed = (s_me == 200 and r_me.get("data", {}).get("username") == username)
-    print_test("3. Session Verification (/auth/me)", passed, f"Username: {r_me.get('data', {}).get('username')}")
+    detail_me = f"Username: {r_me.get('data', {}).get('username')}" if passed else f"HTTP {s_me}: {r_me}"
+    print_test("3. Session Verification (/auth/me)", passed, detail_me)
 
     # 4. Test Accounts & Balances
     s_acc, r_acc = client.request("GET", "/accounts")
     accounts = r_acc.get("data", []) if isinstance(r_acc, dict) else []
     passed = (s_acc == 200 and len(accounts) >= 3)
-    acc_summary = ", ".join([f"{a['name']} (Rp {float(a['current_balance']):,.0f})" for a in accounts])
-    print_test("4. Accounts & Netting Balances (/accounts)", passed, acc_summary)
+    detail_acc = ", ".join([f"{a['name']} (Rp {float(a['current_balance']):,.0f})" for a in accounts]) if passed else f"HTTP {s_acc}: {r_acc}"
+    print_test("4. Accounts & Netting Balances (/accounts)", passed, detail_acc)
 
     # 5. Test Categories
     s_cat, r_cat = client.request("GET", "/categories")
     categories = r_cat.get("data", []) if isinstance(r_cat, dict) else []
     passed = (s_cat == 200 and len(categories) >= 9)
-    print_test("5. Categories Retrieval (/categories)", passed, f"Total Kategori: {len(categories)}")
+    detail_cat = f"Total Kategori: {len(categories)}" if passed else f"HTTP {s_cat}: {r_cat}"
+    print_test("5. Categories Retrieval (/categories)", passed, detail_cat)
 
     # 6. Test AI Extraction (Cohere Command A)
     ai_prompt = "Makan siang di kantin 25rb pake gopay, tf 50rb dari bca ke gopay admin 1000"
