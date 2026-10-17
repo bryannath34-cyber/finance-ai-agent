@@ -568,3 +568,183 @@ h1, h2, h3, h4, .brand-text {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* ==========================================================================
+   Fase 7: Planning & AI Copilot Styles
+   ========================================================================== */
+
+/* Modern Tab Navigation */
+.tab-nav {
+  display: flex;
+  gap: 0.5rem;
+  background: rgba(18, 24, 38, 0.6);
+  padding: 0.35rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-glass);
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+}
+
+.tab-btn {
+  flex: 1;
+  min-width: 150px;
+  padding: 0.65rem 1rem;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  font-size: 0.9rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.tab-btn:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.tab-btn.active {
+  color: #fff;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(99, 102, 241, 0.25));
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.15);
+}
+
+/* Tab Panels */
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+  animation: fadeIn 0.25s ease-out;
+}
+
+/* Progress Meters */
+.progress-container {
+  width: 100%;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin: 0.5rem 0;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.progress-fill.fill-safe {
+  background: linear-gradient(90deg, #10b981, #06b6d4);
+}
+
+.progress-fill.fill-warn {
+  background: linear-gradient(90deg, #f59e0b, #f97316);
+}
+
+.progress-fill.fill-danger {
+  background: linear-gradient(90deg, #f43f5e, #e11d48);
+}
+
+/* Savings Goal Cards */
+.goals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.25rem;
+  margin-top: 1rem;
+}
+
+.goal-card {
+  padding: 1.25rem;
+  border-radius: var(--radius-md);
+  background: rgba(18, 24, 38, 0.7);
+  border: 1px solid var(--border-glass);
+  transition: var(--transition);
+}
+
+.goal-card:hover {
+  border-color: rgba(99, 102, 241, 0.3);
+  transform: translateY(-2px);
+}
+
+/* AI Copilot & Verdicts */
+.verdict-box {
+  padding: 1.25rem;
+  border-radius: var(--radius-md);
+  margin: 1.25rem 0;
+  border: 1px solid transparent;
+}
+
+.verdict-aman {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #34d399;
+}
+
+.verdict-waspada {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #fbbf24;
+}
+
+.verdict-berisiko {
+  background: rgba(244, 63, 94, 0.12);
+  border-color: rgba(244, 63, 94, 0.3);
+  color: #fb7185;
+}
+
+.snapshot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.snapshot-item {
+  background: rgba(12, 17, 29, 0.6);
+  padding: 0.75rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-glass);
+}
+
+.snapshot-label {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+.snapshot-val {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-top: 0.2rem;
+}
+
+/* Modal Popup */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(10, 14, 23, 0.85);
+  backdrop-filter: blur(16px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.modal-content {
+  width: 100%;
+  max-width: 460px;
+  padding: 2rem;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+

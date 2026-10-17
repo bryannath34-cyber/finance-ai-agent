@@ -147,6 +147,38 @@ def run_tests():
         detail_rev = r_rev.get("message", str(r_rev)) if isinstance(r_rev, dict) else str(r_rev)
         print_test("10. Reversal Transaction (/transactions/{id}/reverse)", passed, detail_rev)
 
+    # 11. Test Monthly Budget & Categories (/planning/budget)
+    import datetime
+    now = datetime.datetime.now()
+    s_bset, r_bset = client.request("POST", "/planning/budget", {"period_year": now.year, "period_month": now.month, "limit_amount": 5000000})
+    s_bget, r_bget = client.request("GET", "/planning/budget")
+    passed = (s_bget == 200 and r_bget.get("data", {}).get("total_limit") is not None)
+    detail_b = f"Pagu: Rp {float(r_bget.get('data', {}).get('total_limit', 0)):,.0f}, Terpakai: Rp {float(r_bget.get('data', {}).get('total_spent', 0)):,.0f}" if passed else f"HTTP {s_bget}: {r_bget}"
+    print_test("11. Monthly Budget Tracking (/planning/budget)", passed, detail_b)
+
+    # 12. Test Savings Goals (/planning/goals)
+    s_goals, r_goals = client.request("GET", "/planning/goals")
+    passed = (s_goals == 200 and isinstance(r_goals.get("data"), list))
+    detail_g = f"Total Target: {len(r_goals.get('data', []))}" if passed else f"HTTP {s_goals}: {r_goals}"
+    print_test("12. Savings Goals Tracking (/planning/goals)", passed, detail_g)
+
+    # 13. Test AI Purchase Advisory Copilot (/planning/advisory/purchase)
+    copilot_query = "Gue mau beli headset gaming Rp350.000 pake BCA, menurut lu aman gak?"
+    s_adv, r_adv = client.request("POST", "/planning/advisory/purchase", {"query": copilot_query})
+    passed = (s_adv == 200 and r_adv.get("data", {}).get("verdict") is not None)
+    if passed:
+        adv_data = r_adv.get("data", {})
+        detail_adv = f"Barang: {adv_data.get('item_name')}, Vonis: {adv_data.get('verdict')}, Advice: {adv_data.get('advice')[:60]}..."
+    else:
+        detail_adv = f"HTTP {s_adv}: {r_adv}"
+    print_test("13. AI Purchase Advisory Copilot (/planning/advisory/purchase)", passed, detail_adv)
+
+    # 14. Test Spending Pattern Detective (/planning/advisory/spending-patterns)
+    s_pat, r_pat = client.request("GET", "/planning/advisory/spending-patterns")
+    passed = (s_pat == 200 and r_pat.get("data", {}).get("ai_summary") is not None)
+    detail_pat = f"Summary: {r_pat.get('data', {}).get('ai_summary', '')[:60]}..." if passed else f"HTTP {s_pat}: {r_pat}"
+    print_test("14. Spending Pattern Detective (/planning/advisory/spending-patterns)", passed, detail_pat)
+
     print("=" * 65)
     print("🏁 E2E TEST RUN COMPLETED!")
     print("=" * 65)

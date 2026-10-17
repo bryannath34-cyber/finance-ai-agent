@@ -148,4 +148,41 @@ export const api = {
         body: JSON.stringify({ transaction_id: transactionId, reason }),
       }),
   },
+
+  // Planning & AI Advisory (Fase 7)
+  planning: {
+    getBudget: (year = null, month = null) =>
+      request(`/planning/budget${year && month ? `?year=${year}&month=${month}` : ''}`),
+    setMonthlyBudget: (year, month, limitAmount) =>
+      request('/planning/budget', {
+        method: 'POST',
+        body: JSON.stringify({ period_year: year, period_month: month, limit_amount: limitAmount }),
+      }),
+    setCategoryBudget: (categoryId, year, month, limitAmount) =>
+      request('/planning/budget/category', {
+        method: 'POST',
+        body: JSON.stringify({ category_id: categoryId, period_year: year, period_month: month, limit_amount: limitAmount }),
+      }),
+    getGoals: () => request('/planning/goals'),
+    createGoal: (data) =>
+      request('/planning/goals', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    updateGoalStatus: (goalId, status) =>
+      request(`/planning/goals/${goalId}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+      }),
+    consultPurchase: (query, targetAccountId = null) =>
+      request('/planning/advisory/purchase', {
+        method: 'POST',
+        body: JSON.stringify({ query, target_account_id: targetAccountId }),
+      }),
+    getScenarios: (limit = 10) =>
+      request(`/planning/advisory/scenarios?limit=${limit}`),
+    getSpendingPatterns: () =>
+      request('/planning/advisory/spending-patterns'),
+  },
 };
+
