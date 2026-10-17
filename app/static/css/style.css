@@ -79,6 +79,14 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+a {
+  color: var(--text-primary);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--brand-dark);
+}
+
 /* ==========================================================================
    APP SHELL LAYOUT (Sidebar + Main Workspace)
    ========================================================================== */
@@ -587,18 +595,34 @@ body {
 }
 
 .card-action-link {
+  font-family: 'Inter', sans-serif;
   font-weight: 500;
-  font-size: 10px;
-  line-height: 12px;
-  color: var(--accent-blue);
-  background: none;
-  border: none;
+  font-size: 10.5px;
+  line-height: 13px;
+  color: var(--text-primary);
+  background: #F4F5F2;
+  border: 1px solid #E2E5DF;
+  border-radius: 6px;
+  padding: 3px 8px;
   cursor: pointer;
   text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+  user-select: none;
 }
 
 .card-action-link:hover {
-  text-decoration: underline;
+  background: #EAECE7;
+  border-color: #D6DAD3;
+  color: #111411;
+  text-decoration: none;
+}
+
+.card-action-link:active {
+  background: #E2E5DF;
+  transform: translateY(1px);
 }
 
 /* ==========================================================================
@@ -2549,18 +2573,31 @@ body {
 .security-action-link {
   font-family: 'Inter', sans-serif;
   font-weight: 500;
-  font-size: 10px;
-  line-height: 12px;
-  color: #486F95;
-  background: none;
-  border: none;
+  font-size: 10.5px;
+  line-height: 13px;
+  color: var(--text-primary);
+  background: #F4F5F2;
+  border: 1px solid #E2E5DF;
+  border-radius: 6px;
+  padding: 3px 8px;
   cursor: pointer;
-  padding: 0;
-  transition: opacity 0.15s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  transition: all 0.15s ease;
+  user-select: none;
 }
 
 .security-action-link:hover {
-  text-decoration: underline;
+  background: #EAECE7;
+  border-color: #D6DAD3;
+  color: #111411;
+  text-decoration: none;
+}
+
+.security-action-link:active {
+  background: #E2E5DF;
+  transform: translateY(1px);
 }
 
 .security-bottom-note {
@@ -2862,19 +2899,21 @@ body {
 }
 
 .auth-link-action {
-  color: #486F95;
-  font-weight: 500;
+  color: var(--text-primary);
+  font-weight: 600;
   cursor: pointer;
-  text-decoration: none;
+  text-decoration: underline;
+  text-underline-offset: 3px;
   background: none;
   border: none;
   padding: 0;
-  font-size: 10px;
+  font-size: 11px;
   font-family: inherit;
+  transition: color 0.15s ease;
 }
 
 .auth-link-action:hover {
-  text-decoration: underline;
+  color: #000000;
 }
 
 .auth-card-footer-note {

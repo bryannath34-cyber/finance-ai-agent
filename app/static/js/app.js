@@ -177,6 +177,8 @@ class App {
     this.btnAddCategoryBudget = document.getElementById('btn-add-category-budget');
     this.btnSetBudgetMonthPill = document.getElementById('btn-set-budget-month-pill');
     this.btnAddSavingsGoal = document.getElementById('btn-add-savings-goal');
+    this.btnOpenCreateGoalMini = document.getElementById('btn-open-create-goal-mini');
+    this.btnPlanningPeriodPicker = document.getElementById('btn-planning-period-picker');
     this.btnPlanContribution = document.getElementById('btn-plan-contribution');
     this.planningCurrentMonthLabel = document.getElementById('planning-current-month-label');
     this.insightTabunganHeadline = document.getElementById('insight-tabungan-headline');
@@ -226,9 +228,17 @@ class App {
     this.btnOpenAbout = document.getElementById('btn-open-about');
     this.btnOpenHelp = document.getElementById('btn-open-help');
 
+    // Modal: Add Account
+    this.modalAddAccount = document.getElementById('modal-add-account');
+    this.formAddAccount = document.getElementById('form-add-account');
+    this.inputAccName = document.getElementById('input-acc-name');
+    this.selectAccType = document.getElementById('select-acc-type');
+    this.inputAccBalance = document.getElementById('input-acc-balance');
+
     // Tab 5: Laporan Keuangan (Screen 05)
     this.btnExportReport = document.getElementById('btn-export-report');
     this.btnReportMonthPicker = document.getElementById('btn-report-month-picker');
+    this.btnReportSelectMonth = document.getElementById('btn-report-select-month');
     this.reportCurrentMonthLabel = document.getElementById('report-current-month-label');
     this.reportStatIncome = document.getElementById('report-stat-income');
     this.reportStatIncomeSub = document.getElementById('report-stat-income-sub');
@@ -372,6 +382,14 @@ class App {
     bindOpenModal(this.btnOpenAbout, this.modalAbout);
     bindOpenModal(this.btnOpenHelp, this.modalAbout);
 
+    // Explicit fallback click handler for + Tambah on Tujuan Tabungan mini card
+    if (this.btnOpenCreateGoalMini) {
+      this.btnOpenCreateGoalMini.addEventListener('click', () => {
+        this.openModal(this.modalCreateGoal);
+        this.populateGoalAccSelect();
+      });
+    }
+
     if (this.btnPlanContribution) {
       this.btnPlanContribution.addEventListener('click', () => {
         this.openModal(this.modalCreateGoal);
@@ -471,6 +489,29 @@ class App {
     if (this.btnReportSelectMonth) {
       this.btnReportSelectMonth.addEventListener('click', pickReportMonth);
     }
+    if (this.btnPlanningPeriodPicker) {
+      this.btnPlanningPeriodPicker.addEventListener('click', pickReportMonth);
+    }
+
+    // Additional action links
+    const btnViewAllBudgetHistory = document.getElementById('btn-view-all-budget-history');
+    if (btnViewAllBudgetHistory) {
+      btnViewAllBudgetHistory.addEventListener('click', () => this.switchTab('tab-mutasi'));
+    }
+
+    const btnSaveScenarioHistory = document.getElementById('btn-save-scenario-history');
+    if (btnSaveScenarioHistory) {
+      btnSaveScenarioHistory.addEventListener('click', () => {
+        this.showAlert('Analisis evaluasi disusun oleh OCI GenAI Cohere Command A.', 'info');
+      });
+    }
+
+    const btnChartPeriod = document.getElementById('btn-chart-period');
+    if (btnChartPeriod) {
+      btnChartPeriod.addEventListener('click', () => {
+        this.showAlert('Rentang grafik: 12 Bulan Aktif (2026)', 'info');
+      });
+    }
 
     document.querySelectorAll('.btn-view-period').forEach((btn) => {
       btn.addEventListener('click', (e) => {
@@ -493,7 +534,32 @@ class App {
     bindOpenModal(this.btnChangePassword, this.modalChangePassword);
     bindOpenModal(this.btnSettingsBackupStatus, this.modalBackupStatus);
     bindOpenModal(this.btnSettingsPrivacyPolicy, this.modalPrivacyPolicy);
-    bindOpenModal(this.btnAddAccountSettings, this.modalCreateGoal, () => this.populateGoalAccSelect());
+    bindOpenModal(this.btnAddAccountSettings, this.modalAddAccount);
+
+    if (this.formAddAccount) {
+      this.formAddAccount.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = (this.inputAccName ? this.inputAccName.value : '').trim();
+        const type = this.selectAccType ? this.selectAccType.value : 'BANK';
+        const bal = this.inputAccBalance ? parseFloat(this.inputAccBalance.value) || 0 : 0;
+        if (!name) return;
+        try {
+          await api.accounts.create({
+            name,
+            type,
+            opening_balance: bal,
+            opening_balance_date: new Date().toISOString().split('T')[0]
+          });
+          this.closeModals();
+          this.showAlert(`Rekening '${name}' berhasil ditambahkan!`, 'success');
+          await this.loadAccounts();
+          if (this.inputAccName) this.inputAccName.value = '';
+          if (this.inputAccBalance) this.inputAccBalance.value = '0';
+        } catch (err) {
+          this.showAlert(`Gagal menambah rekening: ${err.message}`, 'error');
+        }
+      });
+    }
 
     if (this.btnSettingsExportCsv) {
       this.btnSettingsExportCsv.addEventListener('click', () => this.handleExportReport());

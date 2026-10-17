@@ -1113,7 +1113,7 @@
                 </span>
                 <span class="card-section-title">Komposisi pengeluaran</span>
               </div>
-              <span style="font-size: 10px; font-weight: 500; color: #486F95;" id="report-comp-month">Oktober</span>
+              <span style="font-size: 10px; font-weight: 600; color: var(--text-secondary);" id="report-comp-month">Oktober</span>
             </div>
             <div class="card-subtitle-text" id="report-comp-total">
               Total Rp 2.150.000
@@ -1931,6 +1931,39 @@
         <div style="display: flex; justify-content: flex-end; gap: 8px;">
           <button type="button" class="btn-secondary-light btn-close-modal">Batal</button>
           <button type="submit" class="btn-primary-dark">Buat Target</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Tambah Rekening Baru -->
+  <div id="modal-add-account" class="modal-overlay" style="display: none;">
+    <div class="modal-content" style="max-width: 440px;">
+      <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 7px;">
+        <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="21" x2="21" y2="21"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="12 3 3 8 21 8"/><line x1="6" y1="10" x2="6" y2="21"/><line x1="10" y1="10" x2="10" y2="21"/><line x1="14" y1="10" x2="14" y2="21"/><line x1="18" y1="10" x2="18" y2="21"/></svg>
+        <span>Tambah Rekening Baru</span>
+      </h3>
+      <p style="font-size: 10px; color: var(--text-secondary); margin-bottom: 16px;">Tambahkan rekening bank, dompet digital, atau pos kas tunai.</p>
+      <form id="form-add-account">
+        <div style="margin-bottom: 10px;">
+          <label style="font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Nama Rekening</label>
+          <input type="text" id="input-acc-name" class="auth-input" placeholder="Contoh: Mandiri Utama / Tabungan" required>
+        </div>
+        <div style="margin-bottom: 10px;">
+          <label style="font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Tipe Rekening</label>
+          <select id="select-acc-type" class="auth-input" style="width: 100%; height: 34px;">
+            <option value="BANK">Bank</option>
+            <option value="EWALLET">E-Wallet</option>
+            <option value="CASH">Kas Tunai</option>
+          </select>
+        </div>
+        <div style="margin-bottom: 16px;">
+          <label style="font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Saldo Awal (Rp)</label>
+          <input type="number" id="input-acc-balance" class="auth-input" placeholder="0" min="0" step="1000" value="0" required>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+          <button type="button" class="btn-secondary-light btn-close-modal">Batal</button>
+          <button type="submit" class="btn-primary-dark">Simpan Rekening</button>
         </div>
       </form>
     </div>
