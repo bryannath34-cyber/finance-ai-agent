@@ -80,10 +80,19 @@ def root_health():
 # 5. Static Files & Single Page Application (SPA) Serving
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 os.makedirs(STATIC_DIR, exist_ok=True)
+os.makedirs(os.path.join(STATIC_DIR, "css"), exist_ok=True)
+os.makedirs(os.path.join(STATIC_DIR, "js"), exist_ok=True)
 
+# Mount /static, /css, dan /js agar semua variasi path aset statis dapat diakses
 app.mount(f"{settings.APP_PREFIX}/static", StaticFiles(directory=STATIC_DIR), name="static")
+app.mount(f"{settings.APP_PREFIX}/css", StaticFiles(directory=os.path.join(STATIC_DIR, "css")), name="css")
+app.mount(f"{settings.APP_PREFIX}/js", StaticFiles(directory=os.path.join(STATIC_DIR, "js")), name="js")
 
-@app.api_route(f"{settings.APP_PREFIX}", methods=["GET", "HEAD"], response_class=HTMLResponse)
+@app.get(f"{settings.APP_PREFIX}", include_in_schema=False)
+def redirect_to_trailing_slash():
+    """Memastikan URL selalu berakhiran slash agar path relatif HTML berfungsi."""
+    return RedirectResponse(url=f"{settings.APP_PREFIX}/")
+
 @app.api_route(f"{settings.APP_PREFIX}/", methods=["GET", "HEAD"], response_class=HTMLResponse)
 def serve_index():
     """Menyajikan halaman antarmuka web SPA tunggal."""
@@ -97,6 +106,7 @@ def serve_index():
 
 @app.get("/", include_in_schema=False)
 def root_redirect():
-    """Mengarahkan traffic root langsung ke prefix aplikasi /finance."""
+    """Mengarahkan traffic root langsung ke prefix aplikasi /finance/."""
     return RedirectResponse(url=f"{settings.APP_PREFIX}/")
+
 
