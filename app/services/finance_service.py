@@ -122,7 +122,7 @@ class FinanceService:
         }
 
     @staticmethod
-    def reverse_transaction(user_id: int, transaction_id: int, reason: str = "Koreksi pencatatan") -> Dict[str, Any]:
+    def reverse_transaction(user_id: int, transaction_id: int, reason: str = "Koreksi pencatatan", ip_address: str = "127.0.0.1") -> Dict[str, Any]:
         """
         Eksekusi Jurnal Pembalik (Reversal Transaction):
         - Transaksi dibalik bersifat append-only dengan is_reversal = TRUE dan ledger_role = 'REVERSAL'.
@@ -165,7 +165,7 @@ class FinanceService:
                     admin_fee_tx = cur.fetchone()
 
                 # 4. Insert Jurnal Pembalik untuk Transaksi Utama
-                rev_desc = f"[PEMBALIK] {target_tx['description'] or ''} (Alasan: {reason})".strip()
+                rev_desc = f"[PEMBALIK] {target_tx['description'] or ''} (Alasan: {reason})".strip()[:255]
                 cur.execute("""
                     INSERT INTO transactions (
                         user_id, draft_id, ledger_role, reverses_transaction_id, type, amount,
@@ -186,7 +186,7 @@ class FinanceService:
                 # 5. Insert Jurnal Pembalik untuk Biaya Admin jika ada (TRANSFER majemuk)
                 admin_rev_id = None
                 if admin_fee_tx:
-                    fee_rev_desc = f"[PEMBALIK BIAYA ADMIN] {admin_fee_tx['description'] or ''}".strip()
+                    fee_rev_desc = f"[PEMBALIK BIAYA ADMIN] {admin_fee_tx['description'] or ''}".strip()[:255]
                     cur.execute("""
                         INSERT INTO transactions (
                             user_id, draft_id, ledger_role, reverses_transaction_id, type, amount,
@@ -205,10 +205,12 @@ class FinanceService:
                     admin_rev_id = cur.lastrowid
 
                 # 6. Audit Log
+                audit_details = f"Reversal dibuat untuk Tx ID: {transaction_id}. Alasan: {reason}"[:255]
+                client_ip = (ip_address or "127.0.0.1")[:45]
                 cur.execute("""
-                    INSERT INTO system_audit_logs (user_id, event_type, details)
-                    VALUES (%s, 'REVERSAL_CREATED', %s)
-                """, (user_id, f"Reversal dibuat untuk Tx ID: {transaction_id}. Alasan: {reason}"))
+                    INSERT INTO system_audit_logs (user_id, event_type, details, ip_address)
+                    VALUES (%s, 'REVERSAL_CREATED', %s, %s)
+                """, (user_id, audit_details, client_ip))
 
                 conn.commit()
 

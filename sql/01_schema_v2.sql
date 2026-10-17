@@ -252,7 +252,7 @@ CREATE TABLE system_audit_logs (
         'CRITICAL_ERROR'
     ) NOT NULL,
     details VARCHAR(255) NOT NULL,
-    ip_address VARCHAR(45) NOT NULL,
+    ip_address VARCHAR(45) NOT NULL DEFAULT '127.0.0.1',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_audit_user FOREIGN KEY (user_id) REFERENCES app_users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;

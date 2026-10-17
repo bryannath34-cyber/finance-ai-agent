@@ -115,7 +115,7 @@ class TransactionService:
         return {"success": True, "message": "Draft transaksi berhasil dibatalkan."}
 
     @staticmethod
-    def confirm_batch(user_id: int, batch_id: str) -> Dict[str, Any]:
+    def confirm_batch(user_id: int, batch_id: str, ip_address: str = "127.0.0.1") -> Dict[str, Any]:
         """
         Alur Konfirmasi Batch Atomik:
         1. SELECT ... FOR UPDATE pada batch draft untuk mencegah race condition / double-click.
@@ -168,10 +168,21 @@ class TransactionService:
                 if not pending_drafts:
                     raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Tidak ada draf pending yang tersisa untuk dikonfirmasi.")
 
-                # 2. Cari Kategori Sistem "Biaya Admin" untuk user
-                cur.execute("SELECT id FROM categories WHERE user_id = %s AND is_system = TRUE AND name = 'Biaya Admin'", (user_id,))
+                # 2. Cari Kategori Sistem "Biaya Admin" untuk user (dengan auto-fallback)
+                cur.execute("""
+                    SELECT id FROM categories 
+                    WHERE user_id = %s AND (is_system = TRUE OR name = 'Biaya Admin')
+                    ORDER BY is_system DESC LIMIT 1
+                """, (user_id,))
                 admin_cat_row = cur.fetchone()
-                admin_cat_id = admin_cat_row["id"] if admin_cat_row else None
+                if admin_cat_row:
+                    admin_cat_id = admin_cat_row["id"]
+                else:
+                    cur.execute("""
+                        INSERT INTO categories (user_id, name, type, is_system, is_active)
+                        VALUES (%s, 'Biaya Admin', 'EXPENSE', TRUE, TRUE)
+                    """, (user_id,))
+                    admin_cat_id = cur.lastrowid
 
                 # 3. Update status draft ke CONFIRMED
                 cur.execute("""
@@ -225,10 +236,12 @@ class TransactionService:
                         admin_fee_count += 1
 
                 # 5. Catat Audit Log
+                audit_details = f"Batch {batch_id} dikonfirmasi: {primary_count} transaksi utama, {admin_fee_count} biaya admin."[:255]
+                client_ip = (ip_address or "127.0.0.1")[:45]
                 cur.execute("""
-                    INSERT INTO system_audit_logs (user_id, event_type, details)
-                    VALUES (%s, 'BATCH_CONFIRMED', %s)
-                """, (user_id, f"Batch {batch_id} dikonfirmasi: {primary_count} transaksi utama, {admin_fee_count} biaya admin."))
+                    INSERT INTO system_audit_logs (user_id, event_type, details, ip_address)
+                    VALUES (%s, 'BATCH_CONFIRMED', %s, %s)
+                """, (user_id, audit_details, client_ip))
 
                 conn.commit()
 

@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from app.core.security import get_current_user
 from app.schemas.common import DataResponse, BaseResponse
 from app.schemas.transaction import (
@@ -14,6 +14,15 @@ from app.services.transaction_service import TransactionService
 from app.services.finance_service import FinanceService
 
 router = APIRouter(prefix="/transactions", tags=["Transactions"])
+
+def _get_client_ip(request: Request) -> str:
+    """Ekstraksi IP Address asli klien dengan prioritas X-Forwarded-For."""
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0].strip()[:45]
+    if request.client and request.client.host:
+        return request.client.host[:45]
+    return "127.0.0.1"
 
 @router.get("/drafts/{batch_id}", response_model=DataResponse[List[DraftItemResponse]])
 def get_batch_drafts(batch_id: str, user: dict = Depends(get_current_user)):
@@ -39,14 +48,19 @@ def cancel_draft(draft_id: int, user: dict = Depends(get_current_user)):
     return BaseResponse(success=True, message=res["message"])
 
 @router.post("/confirm-batch", response_model=ConfirmBatchResponse)
-def confirm_batch(payload: ConfirmBatchRequest, user: dict = Depends(get_current_user)):
+def confirm_batch(
+    payload: ConfirmBatchRequest,
+    request: Request,
+    user: dict = Depends(get_current_user)
+):
     """
     Mengonfirmasi seluruh draft yang valid pada batch sekaligus:
     - Transaksi database atomik (SELECT ... FOR UPDATE)
     - Menyimpan ke buku besar transactions (PRIMARY dan ADMIN_FEE)
     - Menolak jika batch telah kedaluwarsa atau kosong
     """
-    res = TransactionService.confirm_batch(user["id"], payload.batch_id)
+    client_ip = _get_client_ip(request)
+    res = TransactionService.confirm_batch(user["id"], payload.batch_id, ip_address=client_ip)
     return ConfirmBatchResponse(**res)
 
 @router.get("", response_model=DataResponse[List[TransactionItemResponse]])
@@ -67,6 +81,7 @@ def list_transactions(
 def reverse_transaction(
     transaction_id: int,
     payload: ReverseTransactionRequest,
+    request: Request,
     user: dict = Depends(get_current_user)
 ):
     """
@@ -74,13 +89,16 @@ def reverse_transaction(
     - Menghasilkan baris pembalik ber-ledger_role = 'REVERSAL'
     - Jika mutasi berupa TRANSFER berbiaya admin, membalik biaya admin secara atomik
     """
+    client_ip = _get_client_ip(request)
     res = FinanceService.reverse_transaction(
         user_id=user["id"],
         transaction_id=transaction_id,
-        reason=payload.reason or "Koreksi pencatatan"
+        reason=payload.reason or "Koreksi pencatatan",
+        ip_address=client_ip
     )
     return DataResponse(
         success=True,
         message=res["message"],
         data=res
     )
+
