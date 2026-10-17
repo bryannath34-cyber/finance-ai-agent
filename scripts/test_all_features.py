@@ -147,6 +147,40 @@ def run_tests():
         detail_rev = r_rev.get("message", str(r_rev)) if isinstance(r_rev, dict) else str(r_rev)
         print_test("10. Reversal Transaction (/transactions/{id}/reverse)", passed, detail_rev)
 
+    # 10b. Test Transaction CRUD: Create, Update, and Delete
+    if accounts and categories:
+        src_id = accounts[0]["id"]
+        cat_id = categories[0]["id"]
+        import datetime
+        today_str = datetime.date.today().strftime("%Y-%m-%d")
+
+        # Create manual transaction
+        s_c, r_c = client.request("POST", "/transactions", {
+            "type": "EXPENSE",
+            "amount": 15000,
+            "source_account_id": src_id,
+            "category_id": cat_id,
+            "description": "Uji coba CRUD Transaksi",
+            "transaction_date": today_str
+        })
+        passed_c = (s_c == 200 and isinstance(r_c, dict) and r_c.get("data", {}).get("id") is not None)
+        crud_tx_id = r_c.get("data", {}).get("id") if passed_c else None
+        print_test("10b. Create Manual Transaction (/transactions)", passed_c, f"Created ID: {crud_tx_id}")
+
+        if crud_tx_id:
+            # Update transaction
+            s_u, r_u = client.request("PUT", f"/transactions/{crud_tx_id}", {
+                "amount": 25000,
+                "description": "Uji coba CRUD Transaksi (Updated)"
+            })
+            passed_u = (s_u == 200)
+            print_test("10c. Update Transaction (/transactions/{id})", passed_u, r_u.get("message", str(r_u)) if isinstance(r_u, dict) else str(r_u))
+
+            # Delete transaction
+            s_d, r_d = client.request("DELETE", f"/transactions/{crud_tx_id}")
+            passed_d = (s_d == 200)
+            print_test("10d. Delete Transaction (/transactions/{id})", passed_d, r_d.get("message", str(r_d)) if isinstance(r_d, dict) else str(r_d))
+
     # 11. Test Monthly Budget & Categories (/planning/budget)
     import datetime
     now = datetime.datetime.now()

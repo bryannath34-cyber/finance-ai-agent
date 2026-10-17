@@ -3,6 +3,7 @@ import logging
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta, timezone, date
 from decimal import Decimal
+import pymysql
 from fastapi import HTTPException, status
 from app.core.database import get_db_connection, get_db_cursor
 
@@ -455,105 +456,130 @@ class TransactionService:
         Menyunting transaksi buku besar (nominal, tanggal, kategori, rekening, deskripsi).
         Memvalidasi aturan bisnis dan sinkronisasi saldo real-time.
         """
-        with get_db_connection() as conn:
-            with conn.cursor() as cur:
-                # 1. Kunci baris transaksi
-                cur.execute("""
-                    SELECT id, draft_id, ledger_role, parent_transaction_id, reverses_transaction_id,
-                           type, amount, source_account_id, destination_account_id, category_id,
-                           description, transaction_date, is_reversal
-                    FROM transactions
-                    WHERE id = %s AND user_id = %s
-                    FOR UPDATE
-                """, (transaction_id, user_id))
-                tx = cur.fetchone()
-                if not tx:
-                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transaksi tidak ditemukan.")
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    # 1. Kunci baris transaksi (tanpa FOR UPDATE agar aman jika hak UPDATE belum diberikan)
+                    cur.execute("""
+                        SELECT id, draft_id, ledger_role, parent_transaction_id, reverses_transaction_id,
+                               type, amount, source_account_id, destination_account_id, category_id,
+                               description, transaction_date, is_reversal
+                        FROM transactions
+                        WHERE id = %s AND user_id = %s
+                    """, (transaction_id, user_id))
+                    tx = cur.fetchone()
+                    if not tx:
+                        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transaksi tidak ditemukan.")
 
-                if tx["is_reversal"]:
-                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Jurnal pembalik tidak dapat disunting secara manual.")
+                    if tx["is_reversal"]:
+                        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Jurnal pembalik tidak dapat disunting secara manual.")
 
-                # Cek apakah transaksi sudah pernah dibalik
-                cur.execute("SELECT id FROM transactions WHERE reverses_transaction_id = %s AND user_id = %s", (transaction_id, user_id))
-                if cur.fetchone():
-                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Transaksi yang telah dibalik tidak dapat disunting.")
+                    # Cek apakah transaksi sudah pernah dibalik
+                    cur.execute("SELECT id FROM transactions WHERE reverses_transaction_id = %s AND user_id = %s", (transaction_id, user_id))
+                    if cur.fetchone():
+                        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Transaksi yang telah dibalik tidak dapat disunting.")
 
-                tx_type = tx["type"]
+                    tx_type = tx["type"]
 
-                # Nilai baru dengan fallback ke nilai lama
-                new_amount = update_data.get("amount") if update_data.get("amount") is not None else tx["amount"]
-                new_desc = update_data.get("description") if "description" in update_data else tx["description"]
-                new_date = update_data.get("transaction_date") if update_data.get("transaction_date") is not None else tx["transaction_date"]
-                if isinstance(new_date, str):
+                    # Nilai baru dengan fallback ke nilai lama
+                    new_amount = update_data.get("amount") if update_data.get("amount") is not None else tx["amount"]
+                    new_desc = update_data.get("description") if "description" in update_data else tx["description"]
+                    new_date = update_data.get("transaction_date") if update_data.get("transaction_date") is not None else tx["transaction_date"]
+                    if isinstance(new_date, str):
+                        try:
+                            new_date = datetime.strptime(new_date, "%Y-%m-%d").date()
+                        except ValueError:
+                            new_date = tx["transaction_date"]
+
+                    new_src = update_data.get("source_account_id") if "source_account_id" in update_data else tx["source_account_id"]
+                    new_dest = update_data.get("destination_account_id") if "destination_account_id" in update_data else tx["destination_account_id"]
+                    new_cat = update_data.get("category_id") if "category_id" in update_data else tx["category_id"]
+
+                    # Validasi konsistensi berdasarkan tipe
+                    if tx_type == "EXPENSE":
+                        new_dest = None
+                        if not new_src:
+                            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Rekening sumber wajib diisi untuk pengeluaran.")
+                        if not new_cat:
+                            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Kategori wajib dipilih untuk pengeluaran.")
+                    elif tx_type == "INCOME":
+                        new_src = None
+                        if not new_dest:
+                            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Rekening tujuan wajib diisi untuk pemasukan.")
+                        if not new_cat:
+                            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Kategori wajib dipilih untuk pemasukan.")
+                    elif tx_type == "TRANSFER":
+                        new_cat = None
+                        if not new_src or not new_dest:
+                            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Rekening sumber dan tujuan wajib diisi untuk transfer.")
+                        if new_src == new_dest:
+                            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Rekening sumber dan tujuan tidak boleh sama.")
+
+                    # Verifikasi rekening dan kategori jika diubah
+                    if new_src:
+                        cur.execute("SELECT id FROM accounts WHERE id = %s AND user_id = %s", (new_src, user_id))
+                        if not cur.fetchone():
+                            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rekening sumber tidak valid.")
+                    if new_dest:
+                        cur.execute("SELECT id FROM accounts WHERE id = %s AND user_id = %s", (new_dest, user_id))
+                        if not cur.fetchone():
+                            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rekening tujuan tidak valid.")
+                    if new_cat:
+                        cur.execute("SELECT id FROM categories WHERE id = %s AND user_id = %s", (new_cat, user_id))
+                        if not cur.fetchone():
+                            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kategori tidak valid.")
+
+                    # Update baris transaksi utama
+                    cur.execute("""
+                        UPDATE transactions
+                        SET amount = %s, source_account_id = %s, destination_account_id = %s,
+                            category_id = %s, description = %s, transaction_date = %s
+                        WHERE id = %s AND user_id = %s
+                    """, (new_amount, new_src, new_dest, new_cat, new_desc, new_date, transaction_id, user_id))
+
+                    # Jika ada transaksi anak biaya admin (ADMIN_FEE)
+                    cur.execute("""
+                        UPDATE transactions
+                        SET source_account_id = %s, transaction_date = %s
+                        WHERE parent_transaction_id = %s AND user_id = %s
+                    """, (new_src, new_date, transaction_id, user_id))
+
+                    # Audit Log
                     try:
-                        new_date = datetime.strptime(new_date, "%Y-%m-%d").date()
-                    except ValueError:
-                        new_date = tx["transaction_date"]
+                        audit_details = f"Transaksi ID {transaction_id} diperbarui: Rp {new_amount} ({tx_type})."[:255]
+                        client_ip = (ip_address or "127.0.0.1")[:45]
+                        cur.execute("""
+                            INSERT INTO system_audit_logs (user_id, event_type, details, ip_address)
+                            VALUES (%s, 'TRANSACTION_UPDATED', %s, %s)
+                        """, (user_id, audit_details, client_ip))
+                    except Exception as e_audit:
+                        logger.warning("Audit log transaksi gagal: %s", e_audit)
 
-                new_src = update_data.get("source_account_id") if "source_account_id" in update_data else tx["source_account_id"]
-                new_dest = update_data.get("destination_account_id") if "destination_account_id" in update_data else tx["destination_account_id"]
-                new_cat = update_data.get("category_id") if "category_id" in update_data else tx["category_id"]
+                    conn.commit()
 
-                # Validasi konsistensi berdasarkan tipe
-                if tx_type == "EXPENSE":
-                    new_dest = None
-                    if not new_src:
-                        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Rekening sumber wajib diisi untuk pengeluaran.")
-                    if not new_cat:
-                        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Kategori wajib dipilih untuk pengeluaran.")
-                elif tx_type == "INCOME":
-                    new_src = None
-                    if not new_dest:
-                        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Rekening tujuan wajib diisi untuk pemasukan.")
-                    if not new_cat:
-                        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Kategori wajib dipilih untuk pemasukan.")
-                elif tx_type == "TRANSFER":
-                    new_cat = None
-                    if not new_src or not new_dest:
-                        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Rekening sumber dan tujuan wajib diisi untuk transfer.")
-                    if new_src == new_dest:
-                        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Rekening sumber dan tujuan tidak boleh sama.")
-
-                # Verifikasi rekening dan kategori jika diubah
-                if new_src:
-                    cur.execute("SELECT id FROM accounts WHERE id = %s AND user_id = %s", (new_src, user_id))
-                    if not cur.fetchone():
-                        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rekening sumber tidak valid.")
-                if new_dest:
-                    cur.execute("SELECT id FROM accounts WHERE id = %s AND user_id = %s", (new_dest, user_id))
-                    if not cur.fetchone():
-                        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rekening tujuan tidak valid.")
-                if new_cat:
-                    cur.execute("SELECT id FROM categories WHERE id = %s AND user_id = %s", (new_cat, user_id))
-                    if not cur.fetchone():
-                        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kategori tidak valid.")
-
-                # Update baris transaksi utama
-                cur.execute("""
-                    UPDATE transactions
-                    SET amount = %s, source_account_id = %s, destination_account_id = %s,
-                        category_id = %s, description = %s, transaction_date = %s
-                    WHERE id = %s AND user_id = %s
-                """, (new_amount, new_src, new_dest, new_cat, new_desc, new_date, transaction_id, user_id))
-
-                # Jika ada transaksi anak biaya admin (ADMIN_FEE)
-                cur.execute("""
-                    UPDATE transactions
-                    SET source_account_id = %s, transaction_date = %s
-                    WHERE parent_transaction_id = %s AND user_id = %s
-                """, (new_src, new_date, transaction_id, user_id))
-
-                # Audit Log
-                audit_details = f"Transaksi ID {transaction_id} diperbarui: Rp {new_amount} ({tx_type})."[:255]
-                client_ip = (ip_address or "127.0.0.1")[:45]
-                cur.execute("""
-                    INSERT INTO system_audit_logs (user_id, event_type, details, ip_address)
-                    VALUES (%s, 'TRANSACTION_UPDATED', %s, %s)
-                """, (user_id, audit_details, client_ip))
-
-                conn.commit()
-
-        return TransactionService.get_transaction_by_id(user_id, transaction_id)
+            return TransactionService.get_transaction_by_id(user_id, transaction_id)
+        except HTTPException:
+            raise
+        except pymysql.MySQLError as e:
+            err_code = e.args[0] if e.args else None
+            err_msg = str(e)
+            logger.error("MySQL error saat memperbarui transaksi %s: %s", transaction_id, e)
+            if err_code == 1142 or "command denied" in err_msg.lower():
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Database user 'fin_bot_app' belum memiliki hak akses UPDATE pada tabel transactions. Silakan jalankan: GRANT SELECT, INSERT, UPDATE, DELETE ON personal_finance.transactions TO 'fin_bot_app'@'%'; FLUSH PRIVILEGES;"
+                )
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Database error saat memperbarui transaksi: {err_msg}"
+                )
+        except Exception as e:
+            logger.error("Error tidak terduga saat memperbarui transaksi %s: %s", transaction_id, e)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Gagal memperbarui transaksi: {str(e)}"
+            )
 
     @staticmethod
     def delete_transaction(user_id: int, transaction_id: int, ip_address: str = "127.0.0.1") -> Dict[str, Any]:
@@ -563,51 +589,84 @@ class TransactionService:
         - Mencegah penghapusan jika transaksi telah memiliki jurnal pembalik.
         - Menghapus draft terkait jika tidak ada transaksi lain yang merujuk.
         """
-        with get_db_connection() as conn:
-            with conn.cursor() as cur:
-                # 1. Kunci dan periksa transaksi
-                cur.execute("""
-                    SELECT id, draft_id, ledger_role, parent_transaction_id, reverses_transaction_id, is_reversal, amount, type
-                    FROM transactions
-                    WHERE id = %s AND user_id = %s
-                    FOR UPDATE
-                """, (transaction_id, user_id))
-                tx = cur.fetchone()
-                if not tx:
-                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transaksi tidak ditemukan.")
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    # 1. Kunci dan periksa transaksi (tanpa FOR UPDATE agar aman jika hak UPDATE belum diberikan)
+                    cur.execute("""
+                        SELECT id, draft_id, ledger_role, parent_transaction_id, reverses_transaction_id, is_reversal, amount, type
+                        FROM transactions
+                        WHERE id = %s AND user_id = %s
+                    """, (transaction_id, user_id))
+                    tx = cur.fetchone()
+                    if not tx:
+                        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transaksi tidak ditemukan.")
 
-                # Cek apakah ada jurnal pembalik yang membalik transaksi ini
-                cur.execute("SELECT id FROM transactions WHERE reverses_transaction_id = %s AND user_id = %s", (transaction_id, user_id))
-                rev = cur.fetchone()
-                if rev:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="Transaksi ini telah dibalik oleh jurnal pembalik. Hapus transaksi jurnal pembalik terlebih dahulu."
-                    )
+                    # Cek apakah ada jurnal pembalik yang membalik transaksi ini
+                    cur.execute("SELECT id FROM transactions WHERE reverses_transaction_id = %s AND user_id = %s", (transaction_id, user_id))
+                    rev = cur.fetchone()
+                    if rev:
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Transaksi ini telah dibalik oleh jurnal pembalik. Hapus transaksi jurnal pembalik terlebih dahulu."
+                        )
 
-                draft_id = tx["draft_id"]
+                    draft_id = tx["draft_id"]
 
-                # 2. Hapus transaksi anak (misal: ADMIN_FEE yang merujuk parent_transaction_id ini)
-                cur.execute("DELETE FROM transactions WHERE parent_transaction_id = %s AND user_id = %s", (transaction_id, user_id))
+                    # 2. Hapus transaksi anak (misal: ADMIN_FEE yang merujuk parent_transaction_id ini)
+                    cur.execute("DELETE FROM transactions WHERE parent_transaction_id = %s AND user_id = %s", (transaction_id, user_id))
 
-                # 3. Hapus transaksi ini
-                cur.execute("DELETE FROM transactions WHERE id = %s AND user_id = %s", (transaction_id, user_id))
+                    # 3. Hapus transaksi ini
+                    cur.execute("DELETE FROM transactions WHERE id = %s AND user_id = %s", (transaction_id, user_id))
 
-                # 4. Hapus draft jika tidak ada lagi transaksi yang menggunakannya
-                if draft_id:
-                    cur.execute("SELECT id FROM transactions WHERE draft_id = %s AND user_id = %s LIMIT 1", (draft_id, user_id))
-                    if not cur.fetchone():
-                        cur.execute("DELETE FROM transaction_drafts WHERE id = %s AND user_id = %s", (draft_id, user_id))
+                    # 4. Hapus draft jika tidak ada lagi transaksi yang menggunakannya (graceful)
+                    if draft_id:
+                        try:
+                            cur.execute("SELECT id FROM transactions WHERE draft_id = %s AND user_id = %s LIMIT 1", (draft_id, user_id))
+                            if not cur.fetchone():
+                                cur.execute("DELETE FROM transaction_drafts WHERE id = %s AND user_id = %s", (draft_id, user_id))
+                        except Exception as e_draft:
+                            logger.warning("Draft ID %s tidak dapat dibersihkan otomatis: %s", draft_id, e_draft)
 
-                # 5. Audit Log
-                audit_details = f"Transaksi ID {transaction_id} ({tx['type']} Rp {tx['amount']}) berhasil dihapus."[:255]
-                client_ip = (ip_address or "127.0.0.1")[:45]
-                cur.execute("""
-                    INSERT INTO system_audit_logs (user_id, event_type, details, ip_address)
-                    VALUES (%s, 'TRANSACTION_DELETED', %s, %s)
-                """, (user_id, audit_details, client_ip))
+                    # 5. Audit Log (graceful)
+                    try:
+                        audit_details = f"Transaksi ID {transaction_id} ({tx['type']} Rp {tx['amount']}) berhasil dihapus."[:255]
+                        client_ip = (ip_address or "127.0.0.1")[:45]
+                        cur.execute("""
+                            INSERT INTO system_audit_logs (user_id, event_type, details, ip_address)
+                            VALUES (%s, 'TRANSACTION_DELETED', %s, %s)
+                        """, (user_id, audit_details, client_ip))
+                    except Exception as e_audit:
+                        logger.warning("Pencatatan audit log transaksi gagal: %s", e_audit)
 
-                conn.commit()
+                    conn.commit()
 
-        logger.info("Transaksi ID %s berhasil dihapus untuk User ID %s", transaction_id, user_id)
-        return {"success": True, "message": "Transaksi berhasil dihapus dari buku besar."}
+            logger.info("Transaksi ID %s berhasil dihapus untuk User ID %s", transaction_id, user_id)
+            return {"success": True, "message": "Transaksi berhasil dihapus dari buku besar."}
+        except HTTPException:
+            raise
+        except pymysql.MySQLError as e:
+            err_code = e.args[0] if e.args else None
+            err_msg = str(e)
+            logger.error("MySQL error saat menghapus transaksi %s: %s", transaction_id, e)
+            if err_code == 1142 or "command denied" in err_msg.lower():
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Database user 'fin_bot_app' belum memiliki hak akses DELETE pada tabel transactions. Silakan jalankan sql/05_fix_transaction_crud_grants.sql di MySQL: GRANT SELECT, INSERT, UPDATE, DELETE ON personal_finance.transactions TO 'fin_bot_app'@'%'; FLUSH PRIVILEGES;"
+                )
+            elif err_code == 1451 or "foreign key constraint fails" in err_msg.lower():
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Transaksi tidak dapat dihapus karena masih terikat dengan relasi data transaksi lain."
+                )
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Database error saat menghapus transaksi: {err_msg}"
+                )
+        except Exception as e:
+            logger.error("Error tidak terduga saat menghapus transaksi %s: %s", transaction_id, e)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Gagal menghapus transaksi: {str(e)}"
+            )

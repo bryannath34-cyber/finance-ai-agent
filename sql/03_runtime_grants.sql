@@ -34,26 +34,15 @@ ON personal_finance.categories
 TO 'fin_bot_app'@'10.10.2.%';
 
 -- ============================================================================
--- 4. HAK AKSES DRAFT TRANSAKSI & BUKU BESAR
+-- 4. HAK AKSES DRAFT TRANSAKSI & BUKU BESAR (Mendukung CRUD Penuh)
 -- ============================================================================
--- transaction_drafts: Diizinkan INSERT hasil ekstraksi AI dan UPDATE saat edit draft
-GRANT SELECT, INSERT, UPDATE (
-    amount, 
-    admin_fee, 
-    source_account_id, 
-    destination_account_id, 
-    category_id, 
-    description, 
-    transaction_date, 
-    status, 
-    confirmed_at, 
-    cancelled_at
-) 
+-- transaction_drafts: Diizinkan SELECT, INSERT, UPDATE (saat edit draft), dan DELETE (pembersihan)
+GRANT SELECT, INSERT, UPDATE, DELETE 
 ON personal_finance.transaction_drafts 
 TO 'fin_bot_app'@'10.10.2.%';
 
--- transactions: IMMUTABLE LEDGER (Hanya SELECT dan INSERT, TANPA UPDATE/DELETE)
-GRANT SELECT, INSERT 
+-- transactions: Buku besar transaksi (Mendukung pencatatan, penyuntingan, dan penghapusan transaksi)
+GRANT SELECT, INSERT, UPDATE, DELETE 
 ON personal_finance.transactions 
 TO 'fin_bot_app'@'10.10.2.%';
 

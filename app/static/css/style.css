@@ -3871,6 +3871,28 @@ a:hover {
   gap: 8px;
 }
 
+#alert-box {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 10005;
+  min-width: 280px;
+  max-width: 460px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25), 0 8px 10px -6px rgba(0, 0, 0, 0.15);
+  animation: toastSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .alert-success { background: var(--accent-green-bg); color: var(--accent-green); border: 1px solid var(--accent-green-border); }
 .alert-error { background: var(--accent-rose-bg); color: var(--accent-rose); border: 1px solid #F0D5D5; }
 .alert-warning { background: var(--accent-amber-bg); color: var(--accent-amber); border: 1px solid #EBDCB9; }

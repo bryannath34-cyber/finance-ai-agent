@@ -31,8 +31,8 @@ async function request(endpoint, options = {}) {
     }
   }
 
-  // Set default JSON Content-Type unless FormData is passed
-  if (!(options.body instanceof FormData) && !headers['Content-Type']) {
+  // Set default JSON Content-Type only if options.body is provided and not FormData
+  if (options.body && !(options.body instanceof FormData) && !headers['Content-Type']) {
     headers['Content-Type'] = 'application/json';
   }
 

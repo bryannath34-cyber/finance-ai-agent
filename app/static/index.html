@@ -1913,6 +1913,7 @@
       <form id="form-edit-tx">
         <input type="hidden" id="edit-tx-id">
         <input type="hidden" id="edit-tx-type">
+        <div id="edit-tx-error" class="alert-box alert-error" style="display: none; margin-bottom: 12px; font-size: 11px; line-height: 1.5;"></div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
           <div>
@@ -1968,6 +1969,8 @@
         <!-- Filled dynamically -->
       </div>
       <input type="hidden" id="delete-tx-id">
+
+      <div id="delete-tx-error" class="alert-box alert-error" style="display: none; margin-bottom: 14px; font-size: 11px; line-height: 1.5;"></div>
 
       <div style="display: flex; justify-content: flex-end; gap: 8px;">
         <button type="button" class="btn-secondary-light btn-close-modal">Batal</button>

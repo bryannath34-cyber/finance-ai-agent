@@ -146,11 +146,13 @@ class App {
     this.editTxCategoryGroup = document.getElementById('edit-tx-category-group');
     this.editTxCategory = document.getElementById('edit-tx-category');
     this.editTxDescription = document.getElementById('edit-tx-description');
+    this.editTxError = document.getElementById('edit-tx-error');
     this.btnSubmitEditTx = document.getElementById('btn-submit-edit-tx');
 
     this.modalDeleteTx = document.getElementById('modal-delete-tx');
     this.deleteTxId = document.getElementById('delete-tx-id');
     this.deleteTxInfo = document.getElementById('delete-tx-info');
+    this.deleteTxError = document.getElementById('delete-tx-error');
     this.btnConfirmDeleteTx = document.getElementById('btn-confirm-delete-tx');
 
     // Right Column Mini Cards
@@ -1417,6 +1419,11 @@ class App {
     if (!this.formEditTx) return;
     this.formEditTx.reset();
 
+    if (this.editTxError) {
+      this.editTxError.style.display = 'none';
+      this.editTxError.innerHTML = '';
+    }
+
     this.editTxId.value = tx.id;
     this.editTxType.value = tx.type;
 
@@ -1456,6 +1463,11 @@ class App {
 
   async handleUpdateTransaction(e) {
     e.preventDefault();
+    if (this.editTxError) {
+      this.editTxError.style.display = 'none';
+      this.editTxError.innerHTML = '';
+    }
+
     const txId = parseInt(this.editTxId.value, 10);
     const type = this.editTxType.value;
     const amount = parseFloat(this.editTxAmount.value);
@@ -1463,11 +1475,21 @@ class App {
     const desc = this.editTxDescription.value.trim();
 
     if (!amount || amount <= 0) {
-      this.showAlert('Nominal harus lebih dari 0.', 'error');
+      const msg = 'Nominal harus lebih dari 0.';
+      if (this.editTxError) {
+        this.editTxError.innerHTML = `<span>${msg}</span>`;
+        this.editTxError.style.display = 'flex';
+      }
+      this.showAlert(msg, 'error');
       return;
     }
     if (!txDate) {
-      this.showAlert('Tanggal transaksi wajib dipilih.', 'error');
+      const msg = 'Tanggal transaksi wajib dipilih.';
+      if (this.editTxError) {
+        this.editTxError.innerHTML = `<span>${msg}</span>`;
+        this.editTxError.style.display = 'flex';
+      }
+      this.showAlert(msg, 'error');
       return;
     }
 
@@ -1481,11 +1503,15 @@ class App {
       const srcId = parseInt(this.editTxSourceAccount.value, 10);
       const catId = parseInt(this.editTxCategory.value, 10);
       if (!srcId) {
-        this.showAlert('Rekening sumber wajib dipilih.', 'error');
+        const msg = 'Rekening sumber wajib dipilih.';
+        if (this.editTxError) { this.editTxError.innerHTML = `<span>${msg}</span>`; this.editTxError.style.display = 'flex'; }
+        this.showAlert(msg, 'error');
         return;
       }
       if (!catId) {
-        this.showAlert('Kategori pengeluaran wajib dipilih.', 'error');
+        const msg = 'Kategori pengeluaran wajib dipilih.';
+        if (this.editTxError) { this.editTxError.innerHTML = `<span>${msg}</span>`; this.editTxError.style.display = 'flex'; }
+        this.showAlert(msg, 'error');
         return;
       }
       payload.source_account_id = srcId;
@@ -1494,11 +1520,15 @@ class App {
       const destId = parseInt(this.editTxDestAccount.value, 10);
       const catId = parseInt(this.editTxCategory.value, 10);
       if (!destId) {
-        this.showAlert('Rekening tujuan wajib dipilih.', 'error');
+        const msg = 'Rekening tujuan wajib dipilih.';
+        if (this.editTxError) { this.editTxError.innerHTML = `<span>${msg}</span>`; this.editTxError.style.display = 'flex'; }
+        this.showAlert(msg, 'error');
         return;
       }
       if (!catId) {
-        this.showAlert('Kategori pemasukan wajib dipilih.', 'error');
+        const msg = 'Kategori pemasukan wajib dipilih.';
+        if (this.editTxError) { this.editTxError.innerHTML = `<span>${msg}</span>`; this.editTxError.style.display = 'flex'; }
+        this.showAlert(msg, 'error');
         return;
       }
       payload.destination_account_id = destId;
@@ -1507,11 +1537,15 @@ class App {
       const srcId = parseInt(this.editTxSourceAccount.value, 10);
       const destId = parseInt(this.editTxDestAccount.value, 10);
       if (!srcId || !destId) {
-        this.showAlert('Rekening sumber dan tujuan wajib dipilih.', 'error');
+        const msg = 'Rekening sumber dan tujuan wajib dipilih.';
+        if (this.editTxError) { this.editTxError.innerHTML = `<span>${msg}</span>`; this.editTxError.style.display = 'flex'; }
+        this.showAlert(msg, 'error');
         return;
       }
       if (srcId === destId) {
-        this.showAlert('Rekening sumber dan tujuan tidak boleh sama.', 'error');
+        const msg = 'Rekening sumber dan tujuan tidak boleh sama.';
+        if (this.editTxError) { this.editTxError.innerHTML = `<span>${msg}</span>`; this.editTxError.style.display = 'flex'; }
+        this.showAlert(msg, 'error');
         return;
       }
       payload.source_account_id = srcId;
@@ -1523,10 +1557,15 @@ class App {
 
     try {
       const res = await api.transactions.update(txId, payload);
-      this.showAlert(res.message || 'Transaksi berhasil diperbarui!', 'success');
       this.closeModals();
+      this.showAlert(res.message || 'Transaksi berhasil diperbarui!', 'success');
       await Promise.all([this.loadAccounts(), this.loadHistory(), this.loadBudgetOverview(), this.loadReportsData()]);
     } catch (err) {
+      console.error('[Update Transaction Error]', err);
+      if (this.editTxError) {
+        this.editTxError.innerHTML = `<svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>${err.message || 'Gagal memperbarui transaksi.'}</span>`;
+        this.editTxError.style.display = 'flex';
+      }
       this.showAlert(`Gagal memperbarui transaksi: ${err.message}`, 'error');
     } finally {
       this.btnSubmitEditTx.disabled = false;
@@ -1537,6 +1576,12 @@ class App {
   openDeleteTxModal(tx) {
     if (!this.modalDeleteTx) return;
     this.deleteTxId.value = tx.id;
+
+    if (this.deleteTxError) {
+      this.deleteTxError.style.display = 'none';
+      this.deleteTxError.innerHTML = '';
+    }
+
     if (this.deleteTxInfo) {
       this.deleteTxInfo.innerHTML = `
         <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
@@ -1562,17 +1607,41 @@ class App {
 
   async handleConfirmDeleteTransaction() {
     const txId = parseInt(this.deleteTxId.value, 10);
-    if (!txId) return;
+    if (!txId) {
+      if (this.deleteTxError) {
+        this.deleteTxError.innerHTML = `<span>ID transaksi tidak valid.</span>`;
+        this.deleteTxError.style.display = 'flex';
+      }
+      return;
+    }
+
+    if (this.deleteTxError) {
+      this.deleteTxError.style.display = 'none';
+      this.deleteTxError.innerHTML = '';
+    }
 
     this.btnConfirmDeleteTx.disabled = true;
     this.btnConfirmDeleteTx.innerHTML = `<span class="loading-spinner"></span> Menghapus...`;
 
     try {
       const res = await api.transactions.delete(txId);
-      this.showAlert(res.message || 'Transaksi berhasil dihapus dari buku besar.', 'success');
       this.closeModals();
+      this.showAlert(res.message || 'Transaksi berhasil dihapus dari buku besar.', 'success');
       await Promise.all([this.loadAccounts(), this.loadHistory(), this.loadBudgetOverview(), this.loadReportsData()]);
     } catch (err) {
+      console.error('[Delete Transaction Error]', err);
+      if (this.deleteTxError) {
+        this.deleteTxError.innerHTML = `
+          <div style="display: flex; align-items: flex-start; gap: 8px;">
+            <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0; margin-top: 1px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <div>
+              <strong style="display: block; margin-bottom: 2px;">Gagal Menghapus Transaksi:</strong>
+              <span>${err.message || 'Terjadi kesalahan pada sistem.'}</span>
+            </div>
+          </div>
+        `;
+        this.deleteTxError.style.display = 'flex';
+      }
       this.showAlert(`Gagal menghapus transaksi: ${err.message}`, 'error');
     } finally {
       this.btnConfirmDeleteTx.disabled = false;
