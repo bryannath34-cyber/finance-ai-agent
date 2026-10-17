@@ -2483,7 +2483,7 @@ body {
 }
 
 .connected-acc-icon.bca { background: #EDF3F8; color: #1D5E8C; }
-.connected-acc-icon.gopay { background: #F1F2EF; color: #0081A0; }
+.connected-acc-icon.ewallet, .connected-acc-icon.gopay { background: #F1F2EF; color: #0081A0; }
 .connected-acc-icon.cash { background: #ECEFEB; color: #2D7653; }
 
 .connected-acc-type {

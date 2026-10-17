@@ -104,7 +104,7 @@ def run_tests():
     print_test("5. Categories Retrieval (/categories)", passed, detail_cat)
 
     # 6. Test AI Extraction (Cohere Command A)
-    ai_prompt = "Makan siang di kantin 25rb pake gopay, tf 50rb dari bca ke gopay admin 1000"
+    ai_prompt = "Makan siang di kantin 25rb pake e-wallet, tf 50rb dari bca ke e-wallet admin 1000"
     s_ai, r_ai = client.request("POST", "/ai/parse", {"text": ai_prompt})
     if s_ai != 200:
         print_test("6. OCI GenAI Parsing (/ai/parse)", False, f"HTTP {s_ai}: {r_ai}")

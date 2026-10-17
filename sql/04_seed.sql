@@ -8,8 +8,11 @@ USE personal_finance;
 INSERT INTO accounts (id, user_id, name, type, opening_balance, opening_balance_date, is_active) VALUES
 (1, 1, 'Kas Tunai', 'CASH', 0.00, CURDATE(), TRUE),
 (2, 1, 'BCA', 'BANK', 0.00, CURDATE(), TRUE),
-(3, 1, 'GoPay', 'EWALLET', 0.00, CURDATE(), TRUE)
+(3, 1, 'E-Wallet', 'EWALLET', 0.00, CURDATE(), TRUE)
 ON DUPLICATE KEY UPDATE name=name;
+
+-- Migrasi akun GoPay eksisting menjadi E-Wallet bila ada
+UPDATE accounts SET name = 'E-Wallet' WHERE name = 'GoPay';
 
 -- ============================================================================
 -- 2. KATEGORI STANDAR PENGELUARAN & PEMASUKAN

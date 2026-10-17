@@ -93,13 +93,13 @@ Setiap elemen objek dalam array wajib memiliki properti:
 - "transaction_date": format YYYY-MM-DD (jika ada kata "kemarin", "tadi pagi", sesuaikan dari tanggal hari ini).
 
 CONTOH KALIMAT:
-"Beli bensin 50rb pake bca, makan siang 30rb gopay, tf 100rb dari bca ke gopay admin 1000"
+"Beli bensin 50rb pake bca, makan siang 30rb e-wallet, tf 100rb dari bca ke e-wallet admin 1000"
 
 CONTOH OUTPUT JSON:
 [
   {{"type": "EXPENSE", "amount": 50000, "admin_fee": 0, "source_account_name": "BCA", "destination_account_name": null, "category_name": "Transportasi", "description": "Beli bensin", "transaction_date": "{today_str}"}},
-  {{"type": "EXPENSE", "amount": 30000, "admin_fee": 0, "source_account_name": "GoPay", "destination_account_name": null, "category_name": "Makanan & Minuman", "description": "Makan siang", "transaction_date": "{today_str}"}},
-  {{"type": "TRANSFER", "amount": 100000, "admin_fee": 1000, "source_account_name": "BCA", "destination_account_name": "GoPay", "category_name": null, "description": "Transfer BCA ke GoPay", "transaction_date": "{today_str}"}}
+  {{"type": "EXPENSE", "amount": 30000, "admin_fee": 0, "source_account_name": "E-Wallet", "destination_account_name": null, "category_name": "Makanan & Minuman", "description": "Makan siang", "transaction_date": "{today_str}"}},
+  {{"type": "TRANSFER", "amount": 100000, "admin_fee": 1000, "source_account_name": "BCA", "destination_account_name": "E-Wallet", "category_name": null, "description": "Transfer BCA ke E-Wallet", "transaction_date": "{today_str}"}}
 ]
 
 KALIMAT PENGGUNA YANG HARUS DIPROSES:
@@ -177,6 +177,15 @@ KALIMAT PENGGUNA YANG HARUS DIPROSES:
                     src_acc_id = aid
                 if name in dest_name or dest_name in name:
                     dest_acc_id = aid
+
+            # Alias / Sinonim e-wallet (jika user menyebut e-wallet, ewallet, gopay, ovo, dana)
+            ewallet_acc = next((a for a in accounts if a.get("type") == "EWALLET" or "wallet" in a.get("name", "").lower()), None)
+            if ewallet_acc:
+                ew_keywords = ("ewallet", "e-wallet", "wallet", "gopay", "ovo", "dana", "shopeepay")
+                if not src_acc_id and any(kw in src_name for kw in ew_keywords):
+                    src_acc_id = ewallet_acc["id"]
+                if not dest_acc_id and any(kw in dest_name for kw in ew_keywords):
+                    dest_acc_id = ewallet_acc["id"]
 
             # Default fallback akun jika tidak terdeteksi
             default_acc_id = accounts[0]["id"] if accounts else None

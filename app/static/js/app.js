@@ -890,9 +890,9 @@ class App {
       if (nameLower.includes('bca') || acc.type === 'BANK') {
         monogramClass = 'monogram-bank';
         monogramText = 'BCA';
-      } else if (nameLower.includes('gopay') || acc.type === 'EWALLET') {
+      } else if (nameLower.includes('ewallet') || nameLower.includes('e-wallet') || nameLower.includes('gopay') || acc.type === 'EWALLET') {
         monogramClass = 'monogram-ewallet';
-        monogramText = 'GP';
+        monogramText = 'EW';
       } else if (nameLower.includes('kas') || acc.type === 'CASH') {
         monogramClass = 'monogram-cash';
         monogramText = 'KT';
@@ -1875,7 +1875,7 @@ class App {
 
     const goalsToRender = (this.savingsGoals && this.savingsGoals.length > 0) ? this.savingsGoals : [
       { id: 1, name: 'Emergency Fund', account_name: 'Bank BCA', current_balance: 3000000, target_amount: 4000000, progress_percent: 75, target_date: '31 Des 2026', icon: 'shield' },
-      { id: 2, name: 'Japan Trip', account_name: 'GoPay', current_balance: 7500000, target_amount: 10000000, progress_percent: 75, target_date: '30 Jun 2027', icon: 'plane' },
+      { id: 2, name: 'Japan Trip', account_name: 'E-Wallet', current_balance: 7500000, target_amount: 10000000, progress_percent: 75, target_date: '30 Jun 2027', icon: 'plane' },
     ];
 
     goalsToRender.forEach((g) => {
@@ -2670,9 +2670,9 @@ class App {
         let iconSvg = Icons.bank;
         let iconClass = 'bca';
         const nameLower = (acc.name || '').toLowerCase();
-        if (nameLower.includes('gopay') || nameLower.includes('ovo') || nameLower.includes('dana')) {
+        if (nameLower.includes('ewallet') || nameLower.includes('e-wallet') || nameLower.includes('gopay') || nameLower.includes('ovo') || nameLower.includes('dana') || acc.type === 'EWALLET') {
           iconSvg = Icons.phone;
-          iconClass = 'gopay';
+          iconClass = 'ewallet';
         } else if (nameLower.includes('kas') || nameLower.includes('tunai') || nameLower.includes('cash')) {
           iconSvg = Icons.cash;
           iconClass = 'cash';
