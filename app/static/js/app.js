@@ -645,6 +645,14 @@ class App {
     if (this.formEditTx) {
       this.formEditTx.addEventListener('submit', (e) => this.handleUpdateTransaction(e));
     }
+    const formEditDraft = document.getElementById('form-edit-draft');
+    if (formEditDraft) {
+      formEditDraft.addEventListener('submit', (e) => this.handleSaveEditDraft(e));
+    }
+    const editDraftType = document.getElementById('edit-draft-type');
+    if (editDraftType) {
+      editDraftType.addEventListener('change', () => this.updateEditDraftFields());
+    }
     if (this.btnConfirmDeleteTx) {
       this.btnConfirmDeleteTx.addEventListener('click', () => this.handleConfirmDeleteTransaction());
     }
@@ -2497,65 +2505,24 @@ class App {
 
       if (d.type === 'EXPENSE') totalExpense += parseFloat(d.amount) || 0;
 
-      const isEditing = this.editingDraftId === d.id;
+      tr.innerHTML = `
+        <td style="color: var(--text-secondary); font-size: 10px;">${idx + 1}</td>
+        <td><strong>${d.description || d.type}</strong></td>
+        <td><span class="badge-cat-pill ${pillCatClass}">${d.category_name || '-'}</span></td>
+        <td><strong>${this.formatIDR(d.amount)}</strong></td>
+        <td style="color: var(--text-secondary); font-size: 10px;">${accText}</td>
+        <td><span class="badge-cat-pill ${typeClass}">${d.type}</span></td>
+        <td><span style="display: inline-flex; align-items: center; gap: 5px;"><span class="ready-status-dot"></span><span style="font-size: 10.5px; color: var(--accent-green); font-weight: 500;">Siap</span></span></td>
+        <td style="text-align: right;">
+          <div style="display: flex; gap: 6px; justify-content: flex-end;">
+            <button type="button" class="btn-draft-edit btn-edit-draft" data-id="${d.id}" style="height: 26px; padding: 0 10px; font-size: 10.5px; font-weight: 600; border-radius: 7px; border: 1px solid var(--border-main); background: #FFFFFF; color: var(--text-primary); cursor: pointer;">Edit</button>
+            <button type="button" class="btn-draft-remove btn-cancel-draft" data-id="${d.id}" style="height: 26px; padding: 0 10px; font-size: 10.5px; font-weight: 500; border-radius: 7px; border: 1px solid var(--border-main); background: #FFFFFF; color: var(--accent-rose); cursor: pointer;">Batal</button>
+          </div>
+        </td>
+      `;
 
-      if (isEditing) {
-        tr.innerHTML = `
-          <td style="color: var(--text-secondary); font-size: 9px;">${idx + 1}</td>
-          <td><input type="text" class="input-inline-desc auth-input" value="${(d.description || '').replace(/"/g, '&quot;')}" style="height: 28px; font-size: 11px; padding: 2px 6px; width: 100%;"></td>
-          <td><span class="badge-cat-pill ${pillCatClass}">${d.category_name || '-'}</span></td>
-          <td><input type="number" class="input-inline-amount auth-input" value="${d.amount || 0}" min="1000" step="1000" style="height: 28px; font-size: 11px; padding: 2px 6px; width: 110px;"></td>
-          <td style="color: var(--text-secondary); font-size: 9px;">${accText}</td>
-          <td><span class="badge-cat-pill ${typeClass}">${d.type}</span></td>
-          <td><span class="ready-status-dot" style="background: var(--accent-amber);">Edit</span></td>
-          <td style="text-align: right;">
-            <div style="display: flex; gap: 4px; justify-content: flex-end;">
-              <button type="button" class="btn-draft-edit btn-save-draft" style="background: var(--primary); color: #fff; border: none; padding: 3px 8px; border-radius: 6px; cursor: pointer; font-size: 10.5px;">Simpan</button>
-              <button type="button" class="btn-draft-remove btn-cancel-edit" style="font-size: 10.5px; padding: 3px 8px; border-radius: 6px; cursor: pointer;">Batal</button>
-            </div>
-          </td>
-        `;
-
-        const btnSave = tr.querySelector('.btn-save-draft');
-        if (btnSave) {
-          btnSave.addEventListener('click', () => {
-            const inputDesc = tr.querySelector('.input-inline-desc');
-            const inputAmt = tr.querySelector('.input-inline-amount');
-            if (inputDesc && inputDesc.value.trim()) d.description = inputDesc.value.trim();
-            if (inputAmt && parseFloat(inputAmt.value) > 0) d.amount = parseFloat(inputAmt.value);
-            this.editingDraftId = null;
-            this.renderDrafts();
-            this.showAlert('Perubahan draft berhasil disimpan.', 'success');
-          });
-        }
-
-        const btnCancelEdit = tr.querySelector('.btn-cancel-edit');
-        if (btnCancelEdit) {
-          btnCancelEdit.addEventListener('click', () => {
-            this.editingDraftId = null;
-            this.renderDrafts();
-          });
-        }
-      } else {
-        tr.innerHTML = `
-          <td style="color: var(--text-secondary); font-size: 9px;">${idx + 1}</td>
-          <td><strong>${d.description || d.type}</strong></td>
-          <td><span class="badge-cat-pill ${pillCatClass}">${d.category_name || '-'}</span></td>
-          <td><strong>${this.formatIDR(d.amount)}</strong></td>
-          <td style="color: var(--text-secondary); font-size: 9px;">${accText}</td>
-          <td><span class="badge-cat-pill ${typeClass}">${d.type}</span></td>
-          <td><span class="ready-status-dot">Siap</span></td>
-          <td style="text-align: right;">
-            <div style="display: flex; gap: 4px; justify-content: flex-end;">
-              <button type="button" class="btn-draft-edit btn-edit-draft" data-id="${d.id}">Edit</button>
-              <button type="button" class="btn-draft-remove btn-cancel-draft" data-id="${d.id}">Hapus</button>
-            </div>
-          </td>
-        `;
-
-        tr.querySelector('.btn-cancel-draft').addEventListener('click', () => this.handleCancelDraft(d.id));
-        tr.querySelector('.btn-edit-draft').addEventListener('click', () => this.handleEditDraft(d));
-      }
+      tr.querySelector('.btn-cancel-draft').addEventListener('click', () => this.handleCancelDraft(d.id));
+      tr.querySelector('.btn-edit-draft').addEventListener('click', () => this.openEditDraftModal(d));
       this.draftTableBody.appendChild(tr);
     });
 
@@ -2567,9 +2534,193 @@ class App {
     }
   }
 
-  handleEditDraft(draft) {
-    this.editingDraftId = draft.id;
-    this.renderDrafts();
+  openEditDraftModal(draft) {
+    this.activeEditingDraft = draft;
+    const modal = document.getElementById('modal-edit-draft');
+    if (!modal) return;
+
+    document.getElementById('edit-draft-id').value = draft.id;
+    document.getElementById('edit-draft-amount').value = parseFloat(draft.amount) || 0;
+    document.getElementById('edit-draft-description').value = draft.description || '';
+    document.getElementById('edit-draft-date').value = draft.transaction_date ? draft.transaction_date.slice(0, 10) : new Date().toISOString().slice(0, 10);
+
+    const typeSelect = document.getElementById('edit-draft-type');
+    if (typeSelect) typeSelect.value = draft.type || 'EXPENSE';
+
+    const errBox = document.getElementById('edit-draft-error');
+    if (errBox) errBox.style.display = 'none';
+
+    this.updateEditDraftFields(draft);
+    modal.style.display = 'flex';
+  }
+
+  updateEditDraftFields(draft = null) {
+    const currentDraft = draft || this.activeEditingDraft;
+    const typeSelect = document.getElementById('edit-draft-type');
+    const type = typeSelect ? typeSelect.value : 'EXPENSE';
+
+    const srcGroup = document.getElementById('edit-draft-src-group');
+    const destGroup = document.getElementById('edit-draft-dest-group');
+    const catGroup = document.getElementById('edit-draft-category-group');
+    const srcSelect = document.getElementById('edit-draft-source-account');
+    const destSelect = document.getElementById('edit-draft-dest-account');
+    const catSelect = document.getElementById('edit-draft-category');
+    const srcLabel = document.getElementById('edit-draft-src-label');
+    const destLabel = document.getElementById('edit-draft-dest-label');
+
+    // Populate Accounts
+    if (srcSelect && destSelect) {
+      const activeAccounts = (this.accounts || []).filter(a => a.is_active);
+      const accOptions = activeAccounts.map(a => `<option value="${a.id}">${a.name} (${this.formatIDR(a.balance || 0)})</option>`).join('');
+      srcSelect.innerHTML = accOptions;
+      destSelect.innerHTML = accOptions;
+
+      if (currentDraft) {
+        if (currentDraft.source_account_id) srcSelect.value = currentDraft.source_account_id;
+        if (currentDraft.destination_account_id) destSelect.value = currentDraft.destination_account_id;
+      }
+    }
+
+    // Populate Categories filtered by type
+    if (catSelect) {
+      const activeCats = (this.categories || []).filter(c => c.is_active && c.type === type);
+      catSelect.innerHTML = activeCats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+      if (currentDraft && currentDraft.category_id && currentDraft.type === type) {
+        catSelect.value = currentDraft.category_id;
+      }
+    }
+
+    // Dynamic UI visibility based on type
+    if (type === 'EXPENSE') {
+      if (srcGroup) srcGroup.style.display = 'block';
+      if (destGroup) destGroup.style.display = 'none';
+      if (catGroup) catGroup.style.display = 'block';
+      if (srcLabel) srcLabel.textContent = 'Rekening Sumber (Keluar Dari) *';
+    } else if (type === 'INCOME') {
+      if (srcGroup) srcGroup.style.display = 'none';
+      if (destGroup) destGroup.style.display = 'block';
+      if (catGroup) catGroup.style.display = 'block';
+      if (destLabel) destLabel.textContent = 'Rekening Tujuan (Masuk Ke) *';
+    } else if (type === 'TRANSFER') {
+      if (srcGroup) srcGroup.style.display = 'block';
+      if (destGroup) destGroup.style.display = 'block';
+      if (catGroup) catGroup.style.display = 'none';
+      if (srcLabel) srcLabel.textContent = 'Dari Rekening Sumber *';
+      if (destLabel) destLabel.textContent = 'Ke Rekening Tujuan *';
+    }
+  }
+
+  async handleSaveEditDraft(e) {
+    e.preventDefault();
+    const draftId = parseInt(document.getElementById('edit-draft-id').value, 10);
+    const type = document.getElementById('edit-draft-type').value;
+    const amount = parseFloat(document.getElementById('edit-draft-amount').value);
+    const txDate = document.getElementById('edit-draft-date').value;
+    const srcAccId = parseInt(document.getElementById('edit-draft-source-account').value, 10) || null;
+    const destAccId = parseInt(document.getElementById('edit-draft-dest-account').value, 10) || null;
+    const catId = parseInt(document.getElementById('edit-draft-category').value, 10) || null;
+    const description = document.getElementById('edit-draft-description').value.trim();
+    const errBox = document.getElementById('edit-draft-error');
+
+    if (isNaN(amount) || amount <= 0) {
+      if (errBox) {
+        errBox.textContent = 'Nominal transaksi harus lebih dari 0.';
+        errBox.style.display = 'block';
+      }
+      return;
+    }
+
+    if (type === 'TRANSFER' && srcAccId === destAccId) {
+      if (errBox) {
+        errBox.textContent = 'Rekening sumber dan rekening tujuan transfer tidak boleh sama.';
+        errBox.style.display = 'block';
+      }
+      return;
+    }
+
+    const payload = {
+      type,
+      amount,
+      transaction_date: txDate,
+      description: description || null
+    };
+
+    if (type === 'EXPENSE') {
+      payload.source_account_id = srcAccId;
+      payload.destination_account_id = null;
+      payload.category_id = catId;
+    } else if (type === 'INCOME') {
+      payload.source_account_id = null;
+      payload.destination_account_id = destAccId;
+      payload.category_id = catId;
+    } else if (type === 'TRANSFER') {
+      payload.source_account_id = srcAccId;
+      payload.destination_account_id = destAccId;
+      payload.category_id = null;
+    }
+
+    const btnSubmit = document.getElementById('btn-submit-edit-draft');
+    if (btnSubmit) {
+      btnSubmit.disabled = true;
+      btnSubmit.textContent = 'Menyimpan...';
+    }
+
+    try {
+      await api.transactions.updateDraft(draftId, payload);
+
+      if (this.currentBatch && this.currentBatch.drafts) {
+        const targetDraft = this.currentBatch.drafts.find(d => d.id === draftId);
+        if (targetDraft) {
+          targetDraft.type = type;
+          targetDraft.amount = amount;
+          targetDraft.transaction_date = txDate;
+          targetDraft.description = description;
+
+          if (type === 'EXPENSE') {
+            targetDraft.source_account_id = srcAccId;
+            targetDraft.destination_account_id = null;
+            targetDraft.category_id = catId;
+            const sAcc = this.accounts.find(a => a.id === srcAccId);
+            targetDraft.source_account_name = sAcc ? sAcc.name : 'Rekening';
+            targetDraft.destination_account_name = null;
+            const cat = this.categories.find(c => c.id === catId);
+            targetDraft.category_name = cat ? cat.name : '-';
+          } else if (type === 'INCOME') {
+            targetDraft.source_account_id = null;
+            targetDraft.destination_account_id = destAccId;
+            targetDraft.category_id = catId;
+            const dAcc = this.accounts.find(a => a.id === destAccId);
+            targetDraft.destination_account_name = dAcc ? dAcc.name : 'Rekening';
+            targetDraft.source_account_name = null;
+            const cat = this.categories.find(c => c.id === catId);
+            targetDraft.category_name = cat ? cat.name : '-';
+          } else if (type === 'TRANSFER') {
+            targetDraft.source_account_id = srcAccId;
+            targetDraft.destination_account_id = destAccId;
+            targetDraft.category_id = null;
+            targetDraft.category_name = null;
+            const sAcc = this.accounts.find(a => a.id === srcAccId);
+            const dAcc = this.accounts.find(a => a.id === destAccId);
+            targetDraft.source_account_name = sAcc ? sAcc.name : 'Sumber';
+            targetDraft.destination_account_name = dAcc ? dAcc.name : 'Tujuan';
+          }
+        }
+      }
+
+      this.closeModals();
+      this.renderDrafts();
+      this.showAlert('Draft mutasi berhasil diperbarui.', 'success');
+    } catch (err) {
+      if (errBox) {
+        errBox.textContent = `Gagal memperbarui draft: ${err.message}`;
+        errBox.style.display = 'block';
+      }
+    } finally {
+      if (btnSubmit) {
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = 'Simpan Perubahan';
+      }
+    }
   }
 
   async handleCancelDraft(draftId) {

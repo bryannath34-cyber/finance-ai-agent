@@ -21,6 +21,7 @@ class DraftItemResponse(BaseModel):
     expires_at: datetime
 
 class UpdateDraftRequest(BaseModel):
+    type: Optional[str] = None
     amount: Optional[Decimal] = Field(None, gt=0)
     admin_fee: Optional[Decimal] = Field(None, ge=0)
     source_account_id: Optional[int] = None

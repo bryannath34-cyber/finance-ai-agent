@@ -71,7 +71,7 @@ class AIService:
 
         today_str = date.today().strftime("%Y-%m-%d")
 
-        prompt = f"""Kamu adalah asisten pencatatan keuangan pribadi berbahasa Indonesia yang sangat teliti.
+        prompt = f"""Kamu adalah asisten pencatatan keuangan pribadi berbahasa Indonesia yang sangat teliti dan cerdas.
 Tugasmu adalah menganalisis kalimat mutasi keuangan dari pengguna dan mengubahnya menjadi format JSON murni.
 
 INFORMASI PENTING PENGGUNA:
@@ -84,7 +84,7 @@ ATURAN STRUKTUR JSON:
 Kembalikan HANYA array JSON [] tanpa teks pengantar, tanpa markdown ```json.
 Setiap elemen objek dalam array wajib memiliki properti:
 - "type": "INCOME" (pemasukan), "EXPENSE" (pengeluaran), atau "TRANSFER" (pindah dana antar-rekening).
-- "amount": angka nominal positif (misal 50000 untuk 50rb/50k, 1500000 untuk 1,5jt).
+- "amount": angka nominal positif (misal 50000 untuk 50rb/50k, 1500000 untuk 1,5jt, 8600000 untuk 8.600.000).
 - "admin_fee": angka biaya admin (default 0, hanya relevan jika transfer berbiaya admin).
 - "source_account_name": nama rekening sumber (wajib ada untuk EXPENSE dan TRANSFER, gunakan yang paling cocok dari daftar rekening sah).
 - "destination_account_name": nama rekening tujuan (wajib ada untuk INCOME dan TRANSFER, gunakan yang paling cocok dari daftar rekening sah).
@@ -92,8 +92,21 @@ Setiap elemen objek dalam array wajib memiliki properti:
 - "description": catatan ringkas mutasi.
 - "transaction_date": format YYYY-MM-DD (jika ada kata "kemarin", "tadi pagi", sesuaikan dari tanggal hari ini).
 
+ATURAN PENTING DETEKSI INTENT BAHASA INDONESIA:
+1. PENCATATAN SALDO / SALDO AWAL / SIMPANAN:
+   Jika pengguna menyatakan kepemilikan uang, saldo rekening, atau setoran awal (contoh: "rekening di bca gua saat ini ada 8.600.000", "saldo bank ada 5 juta", "di dompet ada 200rb"):
+   - "type": "INCOME" (karena menambah saldo akun buku besar).
+   - "destination_account_name": cocokkan nama bank/akun yang disebut (misal: "Bank" untuk BCA/Mandiri/BRI, "Kas Tunai" untuk tunai/dompet, "E-Wallet" untuk GoPay/OVO/Dana).
+   - "source_account_name": null.
+   - "category_name": pilih kategori pemasukan sah (misal "Gaji & Pendapatan").
+   - JANGAN PERNAH mengategorikan pernyataan saldo sebagai EXPENSE atau "Makanan & Minuman"!
+2. BAHASA SEHARI-HARI & GAUL:
+   Pahami kata slang/santai: "gua", "gw", "gue", "saat ini ada", "sekarang ada", "tf", "cair", "ngopi", "beli", "jajan".
+
 CONTOH KALIMAT:
 "Beli bensin 50rb pake bank, makan siang 30rb e-wallet, tf 100rb dari bank ke e-wallet admin 1000"
+CONTOH KALIMAT SALDO:
+"rekening di bca gua saat ini ada 8.600.000"
 
 CONTOH OUTPUT JSON:
 [
@@ -239,48 +252,107 @@ KALIMAT PENGGUNA YANG HARUS DIPROSES:
 
     @staticmethod
     def _fallback_regex_parser(text: str, accounts: list, categories: list) -> List[Dict[str, Any]]:
-        """Parser fallback jika koneksi LLM gagal."""
+        """Parser fallback deterministik cerdas jika koneksi LLM gagal/offline."""
         results = []
         today_str = date.today().strftime("%Y-%m-%d")
-        default_acc = accounts[0]["name"] if accounts else "Kas Tunai"
-        default_cat = "Makanan & Minuman"
+        text_lower = text.lower()
 
-        # Cek nominal
+        # 1. Deteksi Rekening Cerdas dari Teks
+        matched_acc_name = None
+        for a in accounts:
+            if a.get("is_active") and a.get("name", "").lower() in text_lower:
+                matched_acc_name = a["name"]
+                break
+
+        # Cek alias Bank (BCA, Mandiri, BRI, BNI, Jago, CIMB, dll)
+        if not matched_acc_name:
+            bank_acc = next((a for a in accounts if a.get("type") == "BANK" or "bank" in a.get("name", "").lower()), None)
+            if bank_acc and any(kw in text_lower for kw in ("bca", "mandiri", "bri", "bni", "cimb", "jago", "bank")):
+                matched_acc_name = bank_acc["name"]
+
+        # Cek alias E-Wallet (GoPay, OVO, DANA, ShopeePay, dll)
+        if not matched_acc_name:
+            ewallet_acc = next((a for a in accounts if a.get("type") == "EWALLET" or "wallet" in a.get("name", "").lower()), None)
+            if ewallet_acc and any(kw in text_lower for kw in ("gopay", "ovo", "dana", "shopee", "ewallet", "e-wallet", "wallet")):
+                matched_acc_name = ewallet_acc["name"]
+
+        # Cek alias Kas/Tunai
+        if not matched_acc_name:
+            cash_acc = next((a for a in accounts if a.get("type") == "CASH" or "kas" in a.get("name", "").lower() or "tunai" in a.get("name", "").lower()), None)
+            if cash_acc and any(kw in text_lower for kw in ("kas", "tunai", "cash", "dompet")):
+                matched_acc_name = cash_acc["name"]
+
+        if not matched_acc_name:
+            matched_acc_name = accounts[0]["name"] if accounts else "Kas Tunai"
+
+        # 2. Cek Nominal
         amt = parse_indonesian_amount(text) or Decimal("10000")
-        is_transfer = "transfer" in text.lower() or "tf" in text.lower()
-        is_income = any(w in text.lower() for w in ["gaji", "terima", "dapat", "masuk", "bonus"])
+
+        # 3. Klasifikasi Intent / Tipe Mutasi
+        is_transfer = any(w in text_lower for w in ["transfer", "tf ", " tf", "pindah dana", "kirim uang"])
+        is_income = any(w in text_lower for w in [
+            "gaji", "terima", "dapat", "masuk", "bonus", "saldo", "saat ini ada",
+            "sekarang ada", "ada uang", "punya uang", "rekening di", "uang di",
+            "simpan", "setor", "isi saldo", "top up", "nabung", "cair", "pendapatan",
+            "piutang", "penjualan", "dividen"
+        ])
+        is_expense = any(w in text_lower for w in [
+            "beli", "bayar", "keluar", "habis", "belanja", "makan", "minum",
+            "ongkir", "bensin", "parkir", "tagihan", "sewa", "pulsa", "listrik",
+            "jajan", "ngopi"
+        ])
 
         if is_transfer:
+            dest_acc = accounts[1]["name"] if len(accounts) > 1 and accounts[1]["name"] != matched_acc_name else (accounts[0]["name"] if accounts[0]["name"] != matched_acc_name else "E-Wallet")
             results.append({
                 "type": "TRANSFER",
                 "amount": amt,
                 "admin_fee": Decimal("0.00"),
-                "source_account_name": default_acc,
-                "destination_account_name": accounts[1]["name"] if len(accounts) > 1 else default_acc,
+                "source_account_name": matched_acc_name,
+                "destination_account_name": dest_acc,
                 "category_name": None,
-                "description": text[:80],
+                "description": text[:100],
                 "transaction_date": today_str
             })
-        elif is_income:
+        elif is_income or not is_expense:
+            cat_name = "Gaji & Pendapatan"
+            inc_cats = [c["name"] for c in categories if c.get("type") == "INCOME" and c.get("is_active")]
+            if inc_cats:
+                cat_name = inc_cats[0]
+
             results.append({
                 "type": "INCOME",
                 "amount": amt,
                 "admin_fee": Decimal("0.00"),
                 "source_account_name": None,
-                "destination_account_name": default_acc,
-                "category_name": "Gaji & Pendapatan",
-                "description": text[:80],
+                "destination_account_name": matched_acc_name,
+                "category_name": cat_name,
+                "description": text[:100],
                 "transaction_date": today_str
             })
         else:
+            cat_name = "Makanan & Minuman"
+            if any(w in text_lower for w in ["bensin", "bbm", "pertamax", "pertalite", "tol", "parkir", "ojol", "grab", "gojek", "kereta"]):
+                cat_name = "Transportasi"
+            elif any(w in text_lower for w in ["listrik", "pln", "air", "pdam", "wifi", "internet", "pulsa", "sewa", "kontrakan"]):
+                cat_name = "Tagihan & Utilitas"
+            elif any(w in text_lower for w in ["beli", "belanja", "shopee", "tokped", "baju", "sepatu"]):
+                cat_name = "Belanja Kebutuhan"
+            elif any(w in text_lower for w in ["obat", "dokter", "apotek", "rs", "klinik"]):
+                cat_name = "Kesehatan"
+
+            exp_cats = [c["name"] for c in categories if c.get("type") == "EXPENSE" and c.get("is_active")]
+            if cat_name not in exp_cats and exp_cats:
+                cat_name = exp_cats[0]
+
             results.append({
                 "type": "EXPENSE",
                 "amount": amt,
                 "admin_fee": Decimal("0.00"),
-                "source_account_name": default_acc,
+                "source_account_name": matched_acc_name,
                 "destination_account_name": None,
-                "category_name": default_cat,
-                "description": text[:80],
+                "category_name": cat_name,
+                "description": text[:100],
                 "transaction_date": today_str
             })
         return results

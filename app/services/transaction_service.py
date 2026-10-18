@@ -76,27 +76,72 @@ class TransactionService:
 
     @staticmethod
     def update_draft(user_id: int, draft_id: int, update_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Memperbarui kolom draft transaksi yang masih berstatus PENDING."""
+        """Memperbarui kolom draft transaksi yang masih berstatus PENDING dengan konsistensi constraint."""
         with get_db_cursor(commit=True) as cur:
             # Ambil data draft saat ini
-            cur.execute("SELECT id, status FROM transaction_drafts WHERE id = %s AND user_id = %s", (draft_id, user_id))
+            cur.execute("""
+                SELECT id, type, amount, admin_fee, source_account_id, destination_account_id,
+                       category_id, description, transaction_date, status
+                FROM transaction_drafts
+                WHERE id = %s AND user_id = %s
+            """, (draft_id, user_id))
             draft = cur.fetchone()
             if not draft:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Draft transaksi tidak ditemukan.")
             if draft["status"] != "PENDING":
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Draft yang sudah final tidak dapat diubah.")
 
-            set_clauses = []
-            params = []
-            for col in ["amount", "admin_fee", "source_account_id", "destination_account_id", "category_id", "description", "transaction_date"]:
-                if col in update_data and update_data[col] is not None:
-                    set_clauses.append(f"{col} = %s")
-                    params.append(update_data[col])
+            target_type = (update_data.get("type") or draft["type"]).upper()
+            if target_type not in ("EXPENSE", "INCOME", "TRANSFER"):
+                target_type = draft["type"]
 
-            if set_clauses:
-                query = f"UPDATE transaction_drafts SET {', '.join(set_clauses)} WHERE id = %s AND user_id = %s"
-                params.extend([draft_id, user_id])
-                cur.execute(query, tuple(params))
+            final_amount = update_data.get("amount") if update_data.get("amount") is not None else draft["amount"]
+            final_desc = update_data.get("description") if "description" in update_data else draft["description"]
+            final_date = update_data.get("transaction_date") if "transaction_date" in update_data else draft["transaction_date"]
+
+            if target_type == "EXPENSE":
+                final_admin_fee = Decimal("0.00")
+                final_dest_acc = None
+                final_src_acc = update_data.get("source_account_id") or draft["source_account_id"] or draft["destination_account_id"]
+                final_cat_id = update_data.get("category_id") or draft["category_id"]
+                if not final_src_acc:
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Rekening sumber wajib dipilih untuk pengeluaran.")
+                if not final_cat_id:
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Kategori wajib dipilih untuk pengeluaran.")
+            elif target_type == "INCOME":
+                final_admin_fee = Decimal("0.00")
+                final_src_acc = None
+                final_dest_acc = update_data.get("destination_account_id") or draft["destination_account_id"] or draft["source_account_id"]
+                final_cat_id = update_data.get("category_id") or draft["category_id"]
+                if not final_dest_acc:
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Rekening tujuan/masuk wajib dipilih untuk pemasukan.")
+                if not final_cat_id:
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Kategori wajib dipilih untuk pemasukan.")
+            else:  # TRANSFER
+                final_cat_id = None
+                final_admin_fee = update_data.get("admin_fee") if update_data.get("admin_fee") is not None else (draft["admin_fee"] or Decimal("0.00"))
+                final_src_acc = update_data.get("source_account_id") or draft["source_account_id"]
+                final_dest_acc = update_data.get("destination_account_id") or draft["destination_account_id"]
+                if not final_src_acc or not final_dest_acc or final_src_acc == final_dest_acc:
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Rekening sumber dan tujuan transfer harus berbeda.")
+
+            cur.execute("""
+                UPDATE transaction_drafts
+                SET type = %s,
+                    amount = %s,
+                    admin_fee = %s,
+                    source_account_id = %s,
+                    destination_account_id = %s,
+                    category_id = %s,
+                    description = %s,
+                    transaction_date = %s
+                WHERE id = %s AND user_id = %s AND status = 'PENDING'
+            """, (
+                target_type, final_amount, final_admin_fee,
+                final_src_acc, final_dest_acc, final_cat_id,
+                final_desc, final_date,
+                draft_id, user_id
+            ))
 
         return {"success": True, "message": "Draft transaksi berhasil diperbarui."}
 
