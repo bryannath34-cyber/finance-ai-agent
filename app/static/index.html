@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=2.6.2">
+  <link rel="stylesheet" href="css/style.css?v=2.6.3">
   <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
   <link rel="shortcut icon" type="image/svg+xml" href="favicon.svg?v=3">
   <link rel="apple-touch-icon" href="favicon.svg?v=3">
@@ -219,10 +219,11 @@
     <main class="main-area">
 
       <!-- Top Application Header -->
-      <header class="top-header">
-        <div class="page-titles" style="display: none;">
-          <h1 class="page-title" id="page-title"></h1>
-          <p class="page-intro" id="page-intro"></p>
+      <header class="top-header" style="align-items: center;">
+        <div class="top-header-greeting" id="top-header-greeting" style="display: flex; align-items: center; gap: 6px;">
+          <span style="font-size: 15px; font-weight: 500; color: var(--text-secondary);">Halo,</span>
+          <span class="user-greeting-name" id="desktop-greeting-name" style="font-size: 16px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.01em;">Pengguna</span>
+          <span style="font-size: 15px;">👋</span>
         </div>
 
         <div class="header-actions">
@@ -3742,7 +3743,7 @@
       </div>
     </div>
 
-    <script type="module" src="js/app.js?v=2.6.2"></script>
+    <script type="module" src="js/app.js?v=2.6.3"></script>
 </body>
 
 </html>

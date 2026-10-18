@@ -75,6 +75,7 @@ class App {
     this.linkOverlayRegister = document.getElementById('link-overlay-register');
 
     this.usernameDisplay = document.getElementById('username-display');
+    this.desktopGreetingName = document.getElementById('desktop-greeting-name');
     this.userAvatarInitial = document.getElementById('user-avatar-initial');
     this.btnLogout = document.getElementById('btn-logout');
     this.btnSidebarLogout = document.getElementById('btn-sidebar-logout');
@@ -911,6 +912,7 @@ class App {
           localStorage.setItem('user_fullname', newName);
           if (this.settingsProfileName) this.settingsProfileName.textContent = newName;
           if (this.usernameDisplay) this.usernameDisplay.textContent = newName.split(' ')[0];
+          if (this.desktopGreetingName) this.desktopGreetingName.textContent = newName.split(' ')[0];
           if (this.settingsAvatarInitial) this.settingsAvatarInitial.textContent = newName[0].toUpperCase();
           if (this.userAvatarInitial) this.userAvatarInitial.textContent = newName[0].toUpperCase();
         }
@@ -1367,6 +1369,7 @@ class App {
       || localStorage.getItem('user_fullname')
       || 'Pengguna';
     if (this.usernameDisplay) this.usernameDisplay.textContent = displayName.split(' ')[0];
+    if (this.desktopGreetingName) this.desktopGreetingName.textContent = displayName.split(' ')[0];
     if (this.mobileGreetingName) this.mobileGreetingName.textContent = displayName.split(' ')[0];
     if (this.userAvatarInitial) this.userAvatarInitial.textContent = displayName.charAt(0).toUpperCase();
     this.loadInitialData();
@@ -1404,6 +1407,7 @@ class App {
     // 3. Bersihkan seluruh state pengguna, rekening, dan data di memori klien
     this.currentUser = null;
     if (this.usernameDisplay) this.usernameDisplay.textContent = '-';
+    if (this.desktopGreetingName) this.desktopGreetingName.textContent = 'Pengguna';
     if (this.userAvatarInitial) this.userAvatarInitial.textContent = '?';
     if (this.settingsAvatarInitial) this.settingsAvatarInitial.textContent = '?';
     if (this.settingsProfileName) this.settingsProfileName.textContent = '-';
@@ -4478,6 +4482,7 @@ class App {
     if (this.settingsProfileName) this.settingsProfileName.textContent = displayName;
     if (this.settingsAvatarInitial) this.settingsAvatarInitial.textContent = displayName[0].toUpperCase();
     if (this.usernameDisplay) this.usernameDisplay.textContent = displayName.split(' ')[0];
+    if (this.desktopGreetingName) this.desktopGreetingName.textContent = displayName.split(' ')[0];
     if (this.userAvatarInitial) this.userAvatarInitial.textContent = displayName[0].toUpperCase();
     if (this.inputProfileFullname) this.inputProfileFullname.value = displayName;
 
