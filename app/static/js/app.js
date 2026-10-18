@@ -902,7 +902,9 @@ class App {
 
     // Tab 7 Events (Screen 07: Buat Akun & Reset Kata Sandi & Login Desktop)
     if (this.btnToggleLoginPassword && this.loginPassword) {
-      this.btnToggleLoginPassword.addEventListener('click', () => {
+      this.btnToggleLoginPassword.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         const isPassword = this.loginPassword.type === 'password';
         this.loginPassword.type = isPassword ? 'text' : 'password';
         this.btnToggleLoginPassword.innerHTML = isPassword ? Icons.eyeOff : Icons.eye;
@@ -4106,7 +4108,6 @@ class App {
           iconClass = 'cash';
         }
 
-        const nameLower = (acc.name || '').toLowerCase();
         let subText = `${acc.type || 'Rekening aktif'} · ${this.formatIDR(acc.balance || 0)}`;
         if (window.innerWidth <= 768) {
           if (nameLower.includes('bca') || acc.type === 'CHECKING') subText = 'Rekening utama';

@@ -31,17 +31,22 @@ def login(login_data: LoginRequest, request: Request, response: Response):
     now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
     now_utc_str = now_utc.strftime("%Y-%m-%d %H:%M:%S")
 
+    login_val = login_data.username.strip()
+    user_prefix = login_val.split("@")[0] if "@" in login_val else login_val
+
     with get_db_cursor(commit=True) as cur:
         cur.execute("""
             SELECT id, username, password_hash, full_name, timezone,
                    failed_login_attempts, locked_until, is_active
             FROM app_users
-            WHERE username = %s
-        """, (login_data.username,))
+            WHERE username = %s OR username = %s
+            ORDER BY (username = %s) DESC
+            LIMIT 1
+        """, (login_val, user_prefix, login_val))
         user = cur.fetchone()
 
         if not user:
-            logger.warning("Upaya login gagal: username '%s' tidak ditemukan", login_data.username)
+            logger.warning("Upaya login gagal: username '%s' tidak ditemukan", login_val)
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Username atau password salah."

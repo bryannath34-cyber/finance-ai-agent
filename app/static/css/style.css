@@ -3559,7 +3559,11 @@ body.user-logged-out #auth-overlay.desktop-login-overlay {
 
 .login-eye-btn {
   position: absolute;
-  right: 14px;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
   background: none;
   border: none;
   color: #939A93;
@@ -3569,11 +3573,20 @@ body.user-logged-out #auth-overlay.desktop-login-overlay {
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 10;
   transition: color 0.15s ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.login-eye-btn:hover {
+.login-eye-btn:hover,
+.login-eye-btn:focus,
+.login-eye-btn:active {
   color: #202420;
+}
+
+.login-eye-btn svg {
+  pointer-events: none;
 }
 
 .login-row-meta {
