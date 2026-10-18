@@ -145,25 +145,24 @@ def login(login_data: LoginRequest, request: Request, response: Response):
 @router.post("/logout", response_model=BaseResponse)
 def logout(request: Request, response: Response):
     """Mencabut sesi server-side dan membersihkan cookie browser."""
-    # 1. Hapus cookie browser dengan konfigurasi lengkap (root path dan prefix)
-    response.delete_cookie(
-        key=settings.SESSION_COOKIE_NAME,
-        path="/",
-        httponly=True,
-        samesite="lax"
-    )
-    response.delete_cookie(
-        key=settings.CSRF_COOKIE_NAME,
-        path="/",
-        httponly=False,
-        samesite="lax"
-    )
-
-    if settings.APP_PREFIX:
-        response.delete_cookie(key=settings.SESSION_COOKIE_NAME, path=f"{settings.APP_PREFIX}")
-        response.delete_cookie(key=settings.SESSION_COOKIE_NAME, path=f"{settings.APP_PREFIX}/")
-        response.delete_cookie(key=settings.CSRF_COOKIE_NAME, path=f"{settings.APP_PREFIX}")
-        response.delete_cookie(key=settings.CSRF_COOKIE_NAME, path=f"{settings.APP_PREFIX}/")
+    # 1. Hapus cookie browser dengan konfigurasi lengkap (semua path dan flag secure)
+    cookie_paths = ["/", settings.APP_PREFIX, f"{settings.APP_PREFIX}/", "/api", f"{settings.APP_PREFIX}/api"]
+    for path in set(filter(None, cookie_paths)):
+        for sec in [True, False]:
+            response.delete_cookie(
+                key=settings.SESSION_COOKIE_NAME,
+                path=path,
+                httponly=True,
+                samesite="lax",
+                secure=sec
+            )
+            response.delete_cookie(
+                key=settings.CSRF_COOKIE_NAME,
+                path=path,
+                httponly=False,
+                samesite="lax",
+                secure=sec
+            )
 
     # 2. Hapus sesi server-side dari database secara aman
     session_token = request.cookies.get(settings.SESSION_COOKIE_NAME)

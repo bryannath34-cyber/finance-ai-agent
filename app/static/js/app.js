@@ -412,6 +412,16 @@ class App {
       this.btnSettingsSecurityLogout.addEventListener('click', handleLogoutAction);
     }
 
+    // Delegated click handler fallback agar tombol logout dijamin selalu berfungsi
+    document.addEventListener('click', (e) => {
+      const logoutBtn = e.target.closest('#btn-logout, #btn-sidebar-logout, #btn-settings-logout, #btn-settings-security-logout');
+      if (logoutBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.handleLogout();
+      }
+    });
+
     // Tab Navigation (Pills & Sidebar)
     const handleTabClick = (targetTab) => {
       this.switchTab(targetTab);
@@ -1032,9 +1042,14 @@ class App {
   }
 
   async checkSession() {
+    // Jika ada penanda logout aktif di storage, jangan auto-login
+    if (sessionStorage.getItem('pf_logged_out') === '1' || localStorage.getItem('pf_logged_out') === '1') {
+      this.showLogin();
+      return;
+    }
     try {
       const res = await api.auth.getMe();
-      if (res.data && res.data.id) {
+      if (res && res.data && res.data.id) {
         this.currentUser = res.data;
         this.showDashboard();
       } else {
@@ -1048,6 +1063,8 @@ class App {
   showLogin() {
     if (this.authOverlay) {
       this.authOverlay.style.display = 'flex';
+      this.authOverlay.style.visibility = 'visible';
+      this.authOverlay.style.opacity = '1';
     }
     if (this.loginUsername) {
       this.loginUsername.value = '';
@@ -1065,6 +1082,10 @@ class App {
   }
 
   showDashboard() {
+    // Bersihkan penanda logout saat dashboard berhasil ditampilkan
+    sessionStorage.removeItem('pf_logged_out');
+    localStorage.removeItem('pf_logged_out');
+
     if (this.authOverlay) {
       this.authOverlay.style.display = 'none';
     }
@@ -1086,6 +1107,8 @@ class App {
 
     try {
       const res = await api.auth.login(user, pass);
+      sessionStorage.removeItem('pf_logged_out');
+      localStorage.removeItem('pf_logged_out');
       this.currentUser = res.user || (res.data ? (res.data.user || res.data) : res);
       this.loginPassword.value = '';
       this.showDashboard();
@@ -1096,10 +1119,14 @@ class App {
   }
 
   async handleLogout() {
-    // 1. Langsung tampilkan layar login Figma 1:1 secara instan (0ms delay)
+    // 1. Simpan penanda logout agar refresh atau auto-check tidak mengembalikan ke dashboard
+    sessionStorage.setItem('pf_logged_out', '1');
+    localStorage.setItem('pf_logged_out', '1');
+
+    // 2. Langsung tampilkan layar login Figma 1:1 secara instan (0ms delay)
     this.showLogin();
 
-    // 2. Bersihkan seluruh state pengguna, rekening, dan transaksi di memori klien
+    // 3. Bersihkan seluruh state pengguna, rekening, dan data di memori klien
     this.currentUser = null;
     if (this.usernameDisplay) this.usernameDisplay.textContent = '-';
     if (this.userAvatarInitial) this.userAvatarInitial.textContent = '?';
@@ -1107,9 +1134,9 @@ class App {
     if (this.settingsProfileName) this.settingsProfileName.textContent = '-';
     if (this.settingsProfileEmail) this.settingsProfileEmail.textContent = '-';
 
-    // Bersihkan seluruh token sesi dan storage klien
+    // Bersihkan seluruh token sesi dan storage profil klien
     if (typeof sessionStorage !== 'undefined') {
-      sessionStorage.clear();
+      sessionStorage.removeItem('pf_csrf');
     }
     if (typeof localStorage !== 'undefined') {
       localStorage.removeItem('user_fullname');
@@ -1120,19 +1147,29 @@ class App {
     this.accounts = [];
     this.transactions = [];
     this.filteredTransactions = null;
+    this.budgetData = null;
+    this.savingsGoals = [];
+    this.scenarios = [];
+    if (this.accountsContainer) this.accountsContainer.innerHTML = '';
+    if (this.txTableBody) this.txTableBody.innerHTML = '';
     this.closeModals();
 
-    // 3. Batalkan sesi di backend OCI secara asinkron
+    // Bersihkan cookie non-HttpOnly di browser jika ada
+    try {
+      document.cookie = 'pf_csrf=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      document.cookie = 'csrf_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      document.cookie = 'pf_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      document.cookie = 'pf_csrf=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/finance;';
+      document.cookie = 'csrf_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/finance;';
+      document.cookie = 'pf_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/finance;';
+    } catch (_) {}
+
+    // 4. Batalkan sesi di backend OCI secara asinkron
     try {
       await api.auth.logout();
     } catch (e) {
       console.warn('Logout notice:', e);
     }
-
-    // 4. Reload bersih halaman agar browser kembali 100% segar ke tampilan login
-    setTimeout(() => {
-      window.location.reload();
-    }, 100);
   }
 
   async loadInitialData() {
