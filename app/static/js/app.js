@@ -1127,7 +1127,9 @@ class App {
     }
     if (this.loginUsername) {
       this.loginUsername.value = '';
-      this.loginUsername.focus();
+      setTimeout(() => {
+        try { this.loginUsername.focus(); } catch (_) {}
+      }, 50);
     }
     if (this.loginPassword) {
       this.loginPassword.value = '';
@@ -1136,10 +1138,15 @@ class App {
       this.loginError.style.display = 'none';
       this.loginError.textContent = '';
     }
+    try {
+      this.switchTab('tab-mutasi');
+    } catch (_) {}
   }
 
   showDashboard() {
-    this.authOverlay.style.display = 'none';
+    if (this.authOverlay) {
+      this.authOverlay.style.display = 'none';
+    }
     const savedName = localStorage.getItem('user_fullname');
     const username = savedName || (this.currentUser ? this.currentUser.username : 'Bryan');
     if (this.usernameDisplay) this.usernameDisplay.textContent = username.split(' ')[0];
@@ -1167,12 +1174,10 @@ class App {
   }
 
   async handleLogout() {
-    try {
-      await api.auth.logout();
-    } catch (e) {
-      console.warn('Logout notice:', e);
-    }
+    // 1. Langsung tampilkan layar login Figma 1:1 secara instan (0ms delay)
+    this.showLogin();
 
+    // 2. Bersihkan seluruh state pengguna, rekening, dan transaksi di memori klien
     this.currentUser = null;
     if (this.usernameDisplay) this.usernameDisplay.textContent = '-';
     if (this.userAvatarInitial) this.userAvatarInitial.textContent = '?';
@@ -1180,7 +1185,7 @@ class App {
     if (this.settingsProfileName) this.settingsProfileName.textContent = '-';
     if (this.settingsProfileEmail) this.settingsProfileEmail.textContent = '-';
 
-    // Clear all client-side cached auth / session tokens
+    // Bersihkan seluruh token sesi dan storage klien
     if (typeof sessionStorage !== 'undefined') {
       sessionStorage.clear();
     }
@@ -1196,8 +1201,13 @@ class App {
     this.renderAccounts();
     this.renderHistory();
     this.closeModals();
-    this.showLogin();
-    this.showAlert('Anda telah berhasil keluar dari akun.', 'info');
+
+    // 3. Batalkan sesi di backend OCI secara asinkron
+    try {
+      await api.auth.logout();
+    } catch (e) {
+      console.warn('Logout notice:', e);
+    }
   }
 
   async loadInitialData() {

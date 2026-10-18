@@ -112,7 +112,10 @@ def serve_index():
     """Menyajikan halaman antarmuka web SPA tunggal."""
     index_path = os.path.join(STATIC_DIR, "index.html")
     if os.path.exists(index_path):
-        return FileResponse(index_path)
+        return FileResponse(
+            index_path,
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"}
+        )
     return HTMLResponse(
         content="<h2>Personal Finance AI Agent</h2><p>Antarmuka web sedang disiapkan...</p>",
         status_code=200
