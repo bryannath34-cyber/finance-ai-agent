@@ -55,6 +55,7 @@ class App {
 
   initElements() {
     // Auth & User Profile
+    this.appShell = document.querySelector('.app-shell');
     this.authOverlay = document.getElementById('auth-overlay');
     this.loginForm = document.getElementById('login-form');
     this.loginUsername = document.getElementById('login-username');
@@ -1062,10 +1063,14 @@ class App {
 
   showLogin() {
     document.body.classList.add('user-logged-out');
+    if (this.appShell) {
+      this.appShell.style.setProperty('display', 'none', 'important');
+    }
     if (this.authOverlay) {
-      this.authOverlay.style.display = 'flex';
-      this.authOverlay.style.visibility = 'visible';
+      this.authOverlay.style.setProperty('display', 'flex', 'important');
+      this.authOverlay.style.setProperty('visibility', 'visible', 'important');
       this.authOverlay.style.opacity = '1';
+      this.authOverlay.style.setProperty('z-index', '999999', 'important');
     }
     if (this.loginUsername) {
       this.loginUsername.value = '';
@@ -1088,8 +1093,11 @@ class App {
     sessionStorage.removeItem('pf_logged_out');
     localStorage.removeItem('pf_logged_out');
 
+    if (this.appShell) {
+      this.appShell.style.removeProperty('display');
+    }
     if (this.authOverlay) {
-      this.authOverlay.style.display = 'none';
+      this.authOverlay.style.setProperty('display', 'none', 'important');
     }
     const displayName = (this.currentUser && (this.currentUser.full_name || this.currentUser.username))
       || localStorage.getItem('user_fullname')

@@ -3386,6 +3386,10 @@ a:hover {
   justify-content: center;
 }
 
+body.user-logged-out .app-shell {
+  display: none !important;
+}
+
 body.user-logged-out #auth-overlay.desktop-login-overlay {
   display: flex !important;
   visibility: visible !important;
