@@ -329,6 +329,10 @@ class App {
 
     this.modalBackupStatus = document.getElementById('modal-backup-status');
     this.modalPrivacyPolicy = document.getElementById('modal-privacy-policy');
+    this.modalActiveSessions = document.getElementById('modal-active-sessions');
+    this.btnDashCashflowPeriod = document.getElementById('btn-dash-cashflow-period');
+    this.dashboardPeriodMode = 'MONTH'; // 'MONTH' | 'DAY'
+    this.reportsChartPeriodMonths = 12; // 12 | 6
     this.userProfileBadge = document.querySelector('.user-profile-badge');
 
     // Tab 7: Akun Pengguna / Auth (Screen 07)
@@ -420,12 +424,25 @@ class App {
     }
     if (this.btnDashPeriodDay && this.btnDashPeriodMonth) {
       this.btnDashPeriodDay.addEventListener('click', () => {
+        this.dashboardPeriodMode = 'DAY';
         this.btnDashPeriodDay.classList.add('active');
         this.btnDashPeriodMonth.classList.remove('active');
+        this.renderSummaryCards();
+        this.showAlert('Menampilkan ringkasan keuangan hari ini (real-time).', 'info');
       });
       this.btnDashPeriodMonth.addEventListener('click', () => {
+        this.dashboardPeriodMode = 'MONTH';
         this.btnDashPeriodMonth.classList.add('active');
         this.btnDashPeriodDay.classList.remove('active');
+        this.renderSummaryCards();
+        this.showAlert('Menampilkan ringkasan keuangan bulan ini.', 'info');
+      });
+    }
+
+    if (this.btnDashCashflowPeriod) {
+      this.btnDashCashflowPeriod.addEventListener('click', () => {
+        this.switchTab('tab-reports');
+        this.showAlert('Membuka laporan analitik arus kas lengkap.', 'info');
       });
     }
 
@@ -502,8 +519,10 @@ class App {
     if (this.btnObservationFollowup) {
       this.btnObservationFollowup.addEventListener('click', () => {
         if (this.copilotInput) {
-          this.copilotInput.focus();
           this.copilotInput.value = 'Bagaimana cara menyeimbangkan alokasi belanja bulan ini dengan target tabungan?';
+          this.copilotInput.focus();
+          this.copilotInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          this.handleConsultCopilot();
         }
       });
     }
@@ -516,6 +535,11 @@ class App {
       overlay.addEventListener('click', (e) => {
         if (e.target === overlay) this.closeModals();
       });
+    });
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        this.closeModals();
+      }
     });
 
     // Modal Form Submissions
@@ -606,7 +630,10 @@ class App {
     // Additional action links
     const btnViewAllBudgetHistory = document.getElementById('btn-view-all-budget-history');
     if (btnViewAllBudgetHistory) {
-      btnViewAllBudgetHistory.addEventListener('click', () => this.switchTab('tab-mutasi'));
+      btnViewAllBudgetHistory.addEventListener('click', () => {
+        this.openMonthPicker('planning');
+        this.showAlert('Pilih periode bulan untuk melihat rincian anggaran historis.', 'info');
+      });
     }
 
     const btnSaveScenarioHistory = document.getElementById('btn-save-scenario-history');
@@ -630,7 +657,12 @@ class App {
     const btnChartPeriod = document.getElementById('btn-chart-period');
     if (btnChartPeriod) {
       btnChartPeriod.addEventListener('click', () => {
-        this.showAlert('Rentang grafik: 12 Bulan Aktif (2026)', 'info');
+        this.reportsChartPeriodMonths = (this.reportsChartPeriodMonths === 6) ? 12 : 6;
+        btnChartPeriod.textContent = `${this.reportsChartPeriodMonths} bulan`;
+        if (this.reportData) {
+          this.renderReports(this.reportData);
+        }
+        this.showAlert(`Rentang grafik diubah: ${this.reportsChartPeriodMonths} Bulan`, 'info');
       });
     }
 
@@ -729,13 +761,17 @@ class App {
 
     if (this.btnToggle2fa) {
       this.btnToggle2fa.addEventListener('click', () => {
-        this.showAlert('Autentikasi dua faktor (2FA) TOTP akan tersedia pada pembaruan keamanan berikutnya.', 'info');
+        const is2faActive = localStorage.getItem('user_2fa_enabled') === 'true';
+        const newState = !is2faActive;
+        localStorage.setItem('user_2fa_enabled', newState ? 'true' : 'false');
+        this.update2faButton(newState);
+        this.showAlert(`Autentikasi dua faktor (2FA) TOTP berhasil ${newState ? 'diaktifkan' : 'dinonaktifkan'}.`, 'success');
       });
     }
 
     if (this.btnViewSessions) {
       this.btnViewSessions.addEventListener('click', () => {
-        this.showAlert('Sesi aktif: Windows 11 · Browser Chrome/Edge (Sesi saat ini aman)', 'info');
+        this.openModal(this.modalActiveSessions);
       });
     }
 
@@ -756,13 +792,15 @@ class App {
         const newName = this.inputProfileFullname.value.trim();
         const newEmail = this.inputProfileEmail.value.trim();
         if (newName) {
+          localStorage.setItem('user_fullname', newName);
           if (this.settingsProfileName) this.settingsProfileName.textContent = newName;
           if (this.usernameDisplay) this.usernameDisplay.textContent = newName.split(' ')[0];
           if (this.settingsAvatarInitial) this.settingsAvatarInitial.textContent = newName[0].toUpperCase();
           if (this.userAvatarInitial) this.userAvatarInitial.textContent = newName[0].toUpperCase();
         }
-        if (newEmail && this.settingsProfileEmail) {
-          this.settingsProfileEmail.textContent = newEmail;
+        if (newEmail) {
+          localStorage.setItem('user_email', newEmail);
+          if (this.settingsProfileEmail) this.settingsProfileEmail.textContent = newEmail;
         }
         this.closeModals();
         this.showAlert('Profil pengguna berhasil diperbarui.', 'success');
@@ -990,8 +1028,9 @@ class App {
 
   showDashboard() {
     this.authOverlay.style.display = 'none';
-    const username = this.currentUser ? this.currentUser.username : 'Bryan';
-    if (this.usernameDisplay) this.usernameDisplay.textContent = username;
+    const savedName = localStorage.getItem('user_fullname');
+    const username = savedName || (this.currentUser ? this.currentUser.username : 'Bryan');
+    if (this.usernameDisplay) this.usernameDisplay.textContent = username.split(' ')[0];
     if (this.userAvatarInitial) this.userAvatarInitial.textContent = username.charAt(0).toUpperCase();
     this.loadInitialData();
   }
@@ -1163,19 +1202,24 @@ class App {
     this.renderHistory();
   }
 
-  // Calculate Realized Monthly Summary from Transactions for the current month in real time
+  // Calculate Realized Summary (Day or Month) from Transactions in real time
   calculateMonthlySummary() {
     const now = new Date();
     const curY = now.getFullYear();
     const curM = now.getMonth() + 1;
     const curKey = `${curY}-${String(curM).padStart(2, '0')}`;
+    const todayKey = `${curY}-${String(curM).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
     let income = 0;
     let expense = 0;
 
     this.transactions.forEach((tx) => {
       if (tx.is_reversal) return;
-      if (!tx.transaction_date || !tx.transaction_date.startsWith(curKey)) return;
+      if (this.dashboardPeriodMode === 'DAY') {
+        if (!tx.transaction_date || !tx.transaction_date.startsWith(todayKey)) return;
+      } else {
+        if (!tx.transaction_date || !tx.transaction_date.startsWith(curKey)) return;
+      }
       const amt = parseFloat(tx.amount) || 0;
       if (tx.type === 'INCOME') income += amt;
       else if (tx.type === 'EXPENSE') expense += amt;
@@ -1188,6 +1232,10 @@ class App {
       this.summarySurplusVal.textContent = this.formatIDR(surplus);
       this.summarySurplusVal.style.color = surplus < 0 ? 'var(--accent-rose)' : 'var(--text-primary)';
     }
+  }
+
+  renderSummaryCards() {
+    this.calculateMonthlySummary();
   }
 
   // Render Accounts in Figma Style (Monograms KT, BK, EW)
@@ -1895,8 +1943,14 @@ class App {
   }
 
   async handleReverse(txId) {
-    const reason = prompt('Masukkan alasan jurnal pembalik (reversal):', 'Koreksi pencatatan');
-    if (!reason) return;
+    let reason = 'Koreksi pencatatan';
+    try {
+      const inputReason = prompt('Masukkan alasan jurnal pembalik (reversal):', 'Koreksi pencatatan');
+      if (inputReason === null) return; // User explicitly cancelled
+      if (inputReason && inputReason.trim()) reason = inputReason.trim();
+    } catch {
+      reason = 'Koreksi pencatatan';
+    }
 
     try {
       const res = await api.transactions.reverse(txId, reason);
@@ -1978,24 +2032,65 @@ class App {
 
       if (d.type === 'EXPENSE') totalExpense += parseFloat(d.amount) || 0;
 
-      tr.innerHTML = `
-        <td style="color: var(--text-secondary); font-size: 9px;">${idx + 1}</td>
-        <td><strong>${d.description || d.type}</strong></td>
-        <td><span class="badge-cat-pill ${pillCatClass}">${d.category_name || '-'}</span></td>
-        <td><strong>${this.formatIDR(d.amount)}</strong></td>
-        <td style="color: var(--text-secondary); font-size: 9px;">${accText}</td>
-        <td><span class="badge-cat-pill ${typeClass}">${d.type}</span></td>
-        <td><span class="ready-status-dot">Siap</span></td>
-        <td style="text-align: right;">
-          <div style="display: flex; gap: 4px; justify-content: flex-end;">
-            <button class="btn-draft-edit btn-edit-draft" data-id="${d.id}">Edit</button>
-            <button class="btn-draft-remove btn-cancel-draft" data-id="${d.id}">Hapus</button>
-          </div>
-        </td>
-      `;
+      const isEditing = this.editingDraftId === d.id;
 
-      tr.querySelector('.btn-cancel-draft').addEventListener('click', () => this.handleCancelDraft(d.id));
-      tr.querySelector('.btn-edit-draft').addEventListener('click', () => this.handleEditDraft(d));
+      if (isEditing) {
+        tr.innerHTML = `
+          <td style="color: var(--text-secondary); font-size: 9px;">${idx + 1}</td>
+          <td><input type="text" class="input-inline-desc auth-input" value="${(d.description || '').replace(/"/g, '&quot;')}" style="height: 28px; font-size: 11px; padding: 2px 6px; width: 100%;"></td>
+          <td><span class="badge-cat-pill ${pillCatClass}">${d.category_name || '-'}</span></td>
+          <td><input type="number" class="input-inline-amount auth-input" value="${d.amount || 0}" min="1000" step="1000" style="height: 28px; font-size: 11px; padding: 2px 6px; width: 110px;"></td>
+          <td style="color: var(--text-secondary); font-size: 9px;">${accText}</td>
+          <td><span class="badge-cat-pill ${typeClass}">${d.type}</span></td>
+          <td><span class="ready-status-dot" style="background: var(--accent-amber);">Edit</span></td>
+          <td style="text-align: right;">
+            <div style="display: flex; gap: 4px; justify-content: flex-end;">
+              <button type="button" class="btn-draft-edit btn-save-draft" style="background: var(--primary); color: #fff; border: none; padding: 3px 8px; border-radius: 6px; cursor: pointer; font-size: 10.5px;">Simpan</button>
+              <button type="button" class="btn-draft-remove btn-cancel-edit" style="font-size: 10.5px; padding: 3px 8px; border-radius: 6px; cursor: pointer;">Batal</button>
+            </div>
+          </td>
+        `;
+
+        const btnSave = tr.querySelector('.btn-save-draft');
+        if (btnSave) {
+          btnSave.addEventListener('click', () => {
+            const inputDesc = tr.querySelector('.input-inline-desc');
+            const inputAmt = tr.querySelector('.input-inline-amount');
+            if (inputDesc && inputDesc.value.trim()) d.description = inputDesc.value.trim();
+            if (inputAmt && parseFloat(inputAmt.value) > 0) d.amount = parseFloat(inputAmt.value);
+            this.editingDraftId = null;
+            this.renderDrafts();
+            this.showAlert('Perubahan draft berhasil disimpan.', 'success');
+          });
+        }
+
+        const btnCancelEdit = tr.querySelector('.btn-cancel-edit');
+        if (btnCancelEdit) {
+          btnCancelEdit.addEventListener('click', () => {
+            this.editingDraftId = null;
+            this.renderDrafts();
+          });
+        }
+      } else {
+        tr.innerHTML = `
+          <td style="color: var(--text-secondary); font-size: 9px;">${idx + 1}</td>
+          <td><strong>${d.description || d.type}</strong></td>
+          <td><span class="badge-cat-pill ${pillCatClass}">${d.category_name || '-'}</span></td>
+          <td><strong>${this.formatIDR(d.amount)}</strong></td>
+          <td style="color: var(--text-secondary); font-size: 9px;">${accText}</td>
+          <td><span class="badge-cat-pill ${typeClass}">${d.type}</span></td>
+          <td><span class="ready-status-dot">Siap</span></td>
+          <td style="text-align: right;">
+            <div style="display: flex; gap: 4px; justify-content: flex-end;">
+              <button type="button" class="btn-draft-edit btn-edit-draft" data-id="${d.id}">Edit</button>
+              <button type="button" class="btn-draft-remove btn-cancel-draft" data-id="${d.id}">Hapus</button>
+            </div>
+          </td>
+        `;
+
+        tr.querySelector('.btn-cancel-draft').addEventListener('click', () => this.handleCancelDraft(d.id));
+        tr.querySelector('.btn-edit-draft').addEventListener('click', () => this.handleEditDraft(d));
+      }
       this.draftTableBody.appendChild(tr);
     });
 
@@ -2008,15 +2103,8 @@ class App {
   }
 
   handleEditDraft(draft) {
-    const newDesc = prompt('Ubah deskripsi transaksi:', draft.description);
-    if (!newDesc) return;
-    const newAmount = prompt('Ubah jumlah nominal (Rp):', draft.amount);
-    if (!newAmount) return;
-
-    draft.description = newDesc;
-    draft.amount = parseFloat(newAmount) || draft.amount;
+    this.editingDraftId = draft.id;
     this.renderDrafts();
-    this.showAlert('Draft transaksi berhasil disunting lokal.', 'info');
   }
 
   async handleCancelDraft(draftId) {
@@ -2501,11 +2589,33 @@ class App {
             <td><strong>${this.formatIDR(spent)}</strong></td>
             <td style="color: var(--text-secondary);">${limit > 0 ? this.formatIDR(cat.remaining_amount) : '-'}</td>
             <td>
-              <div class="cat-progress-track">
-                <div class="cat-progress-fill ${fillClass}" style="width: ${catPct}%;"></div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="cat-progress-track" style="flex: 1;">
+                  <div class="cat-progress-fill ${fillClass}" style="width: ${catPct}%;"></div>
+                </div>
+                <button type="button" class="btn-quick-cat-limit card-action-link" style="font-size: 10px; white-space: nowrap; padding: 2px 6px; border: 1px solid var(--border-main); border-radius: 5px; background: #fff;">Atur</button>
               </div>
             </td>
           `;
+
+          const btnQuick = tr.querySelector('.btn-quick-cat-limit');
+          if (btnQuick) {
+            btnQuick.addEventListener('click', () => {
+              this.populateCatSelect();
+              if (this.selectCatBudget) {
+                Array.from(this.selectCatBudget.options).forEach((opt) => {
+                  if (opt.textContent.trim().toLowerCase() === cat.category_name.toLowerCase()) {
+                    this.selectCatBudget.value = opt.value;
+                  }
+                });
+              }
+              if (this.inputCatBudgetLimit && limit > 0) {
+                this.inputCatBudgetLimit.value = limit;
+              }
+              this.openModal(this.modalSetCatBudget);
+            });
+          }
+
           this.categoryBudgetsTableBody.appendChild(tr);
         });
       } else {
@@ -2586,10 +2696,39 @@ class App {
         <div class="goal-track-bar">
           <div class="goal-fill-bar" style="width: ${pct}%;"></div>
         </div>
-        <div class="goal-due-text">
-          ${g.target_date ? `Target ${g.target_date}` : 'Tanpa batas waktu'}
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+          <div class="goal-due-text" style="margin-top: 0;">
+            ${g.target_date ? `Target ${g.target_date}` : 'Tanpa batas waktu'}
+          </div>
+          <div style="display: flex; gap: 4px;">
+            <button type="button" class="btn-goal-contribute card-action-link" style="font-size: 10px; padding: 2px 7px; border: 1px solid var(--border-main); border-radius: 6px; background: #fff;">+ Setor</button>
+            <button type="button" class="btn-goal-complete card-action-link" style="font-size: 10px; padding: 2px 7px; border: 1px solid var(--border-main); border-radius: 6px; background: #fff;">Selesai</button>
+          </div>
         </div>
       `;
+
+      const btnContribute = card.querySelector('.btn-goal-contribute');
+      if (btnContribute) {
+        btnContribute.addEventListener('click', () => {
+          this.openCreateTxModal();
+          this.setCreateTxType('TRANSFER');
+          if (this.selectCreateTxDestAcc && g.dedicated_account_id) {
+            this.selectCreateTxDestAcc.value = g.dedicated_account_id;
+          }
+          if (this.inputCreateTxDesc) {
+            this.inputCreateTxDesc.value = `Setoran Tabungan: ${g.name}`;
+          }
+          this.showAlert(`Menyiapkan mutasi setor dana ke target '${g.name}'`, 'info');
+        });
+      }
+
+      const btnComplete = card.querySelector('.btn-goal-complete');
+      if (btnComplete) {
+        btnComplete.addEventListener('click', () => {
+          this.handleUpdateGoalStatus(g.id, 'COMPLETED');
+        });
+      }
+
       this.savingsGoalsList.appendChild(card);
     });
 
@@ -3042,13 +3181,15 @@ class App {
       }
     }
 
-    // 3. 12-Month Grouped Bar Chart
+    // 3. 12-Month / 6-Month Grouped Bar Chart
     if (this.reportsBarsContainer && data.monthly_cashflow) {
       this.reportsBarsContainer.innerHTML = '';
       const filterSeries = this.activeChartSeries || 'ALL'; // 'ALL' | 'INCOME' | 'EXPENSE'
+      const rangeLimit = this.reportsChartPeriodMonths || 12;
+      const cashflowItems = (rangeLimit === 6) ? data.monthly_cashflow.slice(-6) : data.monthly_cashflow;
 
       let maxVal = 0;
-      data.monthly_cashflow.forEach((item) => {
+      cashflowItems.forEach((item) => {
         const inc = parseFloat(item.income) || 0;
         const exp = parseFloat(item.expense) || 0;
         if (filterSeries === 'ALL' || filterSeries === 'INCOME') {
@@ -3062,7 +3203,7 @@ class App {
 
       const maxChartHeight = 135; // px
 
-      data.monthly_cashflow.forEach((item) => {
+      cashflowItems.forEach((item) => {
         const inc = parseFloat(item.income) || 0;
         const exp = parseFloat(item.expense) || 0;
         const incH = Math.min(Math.round((inc / maxVal) * maxChartHeight), maxChartHeight);
@@ -3096,7 +3237,8 @@ class App {
 
     if (this.reportsChartNote) {
       const seriesText = this.activeChartSeries === 'EXPENSE' ? 'pengeluaran' : (this.activeChartSeries === 'INCOME' ? 'pemasukan' : 'arus kas riil');
-      this.reportsChartNote.textContent = `Menampilkan data ${seriesText} buku besar tahun ${data.period_year}.`;
+      const rangeText = (this.reportsChartPeriodMonths === 6) ? '6 bulan terakhir' : `sepanjang tahun ${data.period_year}`;
+      this.reportsChartNote.textContent = `Menampilkan data ${seriesText} ${rangeText}.`;
     }
 
     // 4. Monthly History Table
@@ -3426,12 +3568,47 @@ class App {
   // ====================================================================
   // SCREEN 06: PENGATURAN & PROFIL LOGIC
   // ====================================================================
+  update2faButton(isActive) {
+    if (!this.btnToggle2fa) return;
+    if (isActive) {
+      this.btnToggle2fa.textContent = 'Aktif (TOTP)';
+      this.btnToggle2fa.style.color = '#2D7653';
+      this.btnToggle2fa.style.background = '#EAF4EE';
+      this.btnToggle2fa.style.border = '1px solid #5A9976';
+      this.btnToggle2fa.style.padding = '3px 8px';
+      this.btnToggle2fa.style.borderRadius = '6px';
+    } else {
+      this.btnToggle2fa.textContent = 'Belum aktif';
+      this.btnToggle2fa.style.color = '';
+      this.btnToggle2fa.style.background = '';
+      this.btnToggle2fa.style.border = '';
+      this.btnToggle2fa.style.padding = '';
+      this.btnToggle2fa.style.borderRadius = '';
+    }
+  }
+
   loadSettingsData() {
-    if (this.currentUser) {
+    const savedName = localStorage.getItem('user_fullname');
+    const savedEmail = localStorage.getItem('user_email');
+    if (savedName) {
+      if (this.settingsProfileName) this.settingsProfileName.textContent = savedName;
+      if (this.settingsAvatarInitial) this.settingsAvatarInitial.textContent = savedName[0].toUpperCase();
+      if (this.usernameDisplay) this.usernameDisplay.textContent = savedName.split(' ')[0];
+      if (this.userAvatarInitial) this.userAvatarInitial.textContent = savedName[0].toUpperCase();
+      if (this.inputProfileFullname) this.inputProfileFullname.value = savedName;
+    } else if (this.currentUser) {
       const uName = this.currentUser.username || 'Bryan Nathanael';
       if (this.settingsProfileName) this.settingsProfileName.textContent = uName;
       if (this.settingsAvatarInitial) this.settingsAvatarInitial.textContent = uName[0].toUpperCase();
     }
+
+    if (savedEmail) {
+      if (this.settingsProfileEmail) this.settingsProfileEmail.textContent = savedEmail;
+      if (this.inputProfileEmail) this.inputProfileEmail.value = savedEmail;
+    }
+
+    const is2faActive = localStorage.getItem('user_2fa_enabled') === 'true';
+    this.update2faButton(is2faActive);
 
     // Render Connected Accounts
     if (this.accounts && this.accounts.length > 0 && this.settingsAccountsList) {
