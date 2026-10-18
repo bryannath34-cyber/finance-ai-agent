@@ -1577,6 +1577,21 @@ a:hover {
 }
 
 /* Immutable Ledger Toolbar & Action */
+.ledger-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.ledger-card-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
 .ledger-toolbar {
   display: flex;
   align-items: center;
@@ -1605,6 +1620,12 @@ a:hover {
   width: 140px;
 }
 
+.ledger-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .ledger-filter-select {
   height: 30px;
   background: #FFFFFF;
@@ -1616,6 +1637,27 @@ a:hover {
   color: var(--text-secondary);
   outline: none;
   cursor: pointer;
+}
+
+.btn-ledger-create {
+  height: 32px;
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 13px;
+  border-radius: 9px;
+  white-space: nowrap;
+  background: var(--brand-dark);
+  color: #FFFFFF;
+  border: 1px solid var(--brand-dark);
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+.btn-ledger-create:hover {
+  background: var(--brand-dark-hover);
 }
 
 .ledger-footer-note {
@@ -4786,7 +4828,205 @@ body.user-logged-out #auth-overlay.desktop-login-overlay {
 
   #tab-mutasi .figma-card {
     border-radius: 18px !important;
-    padding: 18px !important;
+    padding: 16px !important;
+  }
+
+  /* Card 1: Command Center Mobile Polish */
+  #tab-mutasi .ai-action-buttons-row {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+
+  #tab-mutasi .ai-action-buttons-row > div {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  #tab-mutasi .btn-voice {
+    width: 100% !important;
+    height: 38px !important;
+    justify-content: center !important;
+    border-radius: 12px !important;
+    font-size: 12px !important;
+  }
+
+  #tab-mutasi .btn-process {
+    width: 100% !important;
+    height: 40px !important;
+    justify-content: center !important;
+    border-radius: 12px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+  }
+
+  #tab-mutasi .voice-helper-text {
+    text-align: center !important;
+    display: block !important;
+    width: 100% !important;
+    font-size: 11px !important;
+    line-height: 1.4 !important;
+  }
+
+  /* Card 2: Draft Staging Mobile Polish */
+  #tab-mutasi .draft-footer-row {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    text-align: center !important;
+  }
+
+  #tab-mutasi .btn-confirm-all-pill {
+    width: 100% !important;
+    height: 40px !important;
+    border-radius: 12px !important;
+    font-size: 13px !important;
+    justify-content: center !important;
+  }
+
+  /* Card 3: Ledger Header & Responsive Toolbar */
+  .ledger-card-header {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .ledger-card-title-block {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+    width: 100% !important;
+  }
+
+  .ledger-card-title-block .card-title-group {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .ledger-card-title-block .card-section-title {
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    color: #202420 !important;
+    white-space: normal !important;
+    line-height: 1.3 !important;
+  }
+
+  .ledger-card-title-block .card-subtitle-text {
+    font-size: 11.5px !important;
+    color: #6F7770 !important;
+    margin: 0 !important;
+    line-height: 1.4 !important;
+  }
+
+  .ledger-toolbar {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    width: 100% !important;
+    margin-top: 2px !important;
+  }
+
+  .ledger-search-box {
+    width: 100% !important;
+    height: 40px !important;
+    border-radius: 10px !important;
+    background: #F8F9F7 !important;
+    border: 1px solid #E2E5DF !important;
+    padding: 0 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    box-sizing: border-box !important;
+  }
+
+  .ledger-search-input {
+    width: 100% !important;
+    font-size: 13px !important;
+    color: #202420 !important;
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+  }
+
+  .ledger-filter-row {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .ledger-filter-select {
+    width: 100% !important;
+    height: 40px !important;
+    border-radius: 10px !important;
+    background: #FFFFFF !important;
+    border: 1px solid #E2E5DF !important;
+    padding: 0 10px !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    color: #202420 !important;
+    outline: none !important;
+    box-sizing: border-box !important;
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236F7770%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 28px !important;
+  }
+
+  .btn-ledger-create {
+    width: 100% !important;
+    height: 42px !important;
+    border-radius: 10px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 7px !important;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08) !important;
+  }
+
+  /* Table & Empty State Mobile Polish */
+  .figma-table-wrapper {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    width: 100% !important;
+    margin-top: 10px !important;
+  }
+
+  .figma-table td[colspan] {
+    position: sticky !important;
+    left: 0 !important;
+    max-width: calc(100vw - 64px) !important;
+    box-sizing: border-box !important;
+    text-align: center !important;
+    padding: 24px 12px !important;
+  }
+
+  .figma-table td[colspan] > div {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    word-wrap: break-word !important;
+  }
+
+  .ledger-footer-note {
+    font-size: 10px !important;
+    line-height: 14px !important;
+    color: #8C948D !important;
+    padding-top: 12px !important;
+    margin-top: 14px !important;
   }
 
   /* 5. Screen 4: Mobile Anggaran & Tabungan */
