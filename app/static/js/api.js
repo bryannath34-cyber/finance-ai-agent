@@ -54,7 +54,10 @@ async function request(endpoint, options = {}) {
 
     if (!res.ok) {
       const errorMsg = data.detail || data.message || `HTTP Error ${res.status}`;
-      throw new Error(errorMsg);
+      const err = new Error(errorMsg);
+      err.status = res.status;
+      err.data = data;
+      throw err;
     }
     return data;
   } catch (err) {
@@ -144,28 +147,32 @@ export const api = {
   transactions: {
     getDrafts: (batchId) => request(`/transactions/drafts/${batchId}`),
     updateDraft: async (draftId, payload) => {
+      // Prioritaskan metode standar RESTful: PUT /transactions/drafts/{draftId}
       try {
-        return await request(`/transactions/drafts/${draftId}/update`, {
-          method: 'POST',
+        return await request(`/transactions/drafts/${draftId}`, {
+          method: 'PUT',
           body: JSON.stringify(payload),
           timeout: 30000,
         });
       } catch (err) {
-        const isMethodOrNotFound = err.message && (
-          err.message.includes('Method Not Allowed') ||
-          err.message.includes('405') ||
-          err.message.includes('404')
+        const isRetryable = err.status === 404 || err.status === 405 || (
+          err.message && (
+            err.message.includes('404') ||
+            err.message.includes('405') ||
+            err.message.includes('Not Found') ||
+            err.message.includes('Method Not Allowed')
+          )
         );
-        if (isMethodOrNotFound) {
-          console.warn('[updateDraft] Primary POST /update failed, retrying with PUT on /drafts/' + draftId);
+        if (isRetryable) {
+          console.warn('[updateDraft] PUT failed, retrying with POST on /update...');
           try {
-            return await request(`/transactions/drafts/${draftId}`, {
-              method: 'PUT',
+            return await request(`/transactions/drafts/${draftId}/update`, {
+              method: 'POST',
               body: JSON.stringify(payload),
               timeout: 30000,
             });
-          } catch (putErr) {
-            console.warn('[updateDraft] PUT failed, retrying with POST on /drafts/' + draftId);
+          } catch (postUpdateErr) {
+            console.warn('[updateDraft] POST /update failed, retrying with POST on /drafts/' + draftId);
             return await request(`/transactions/drafts/${draftId}`, {
               method: 'POST',
               body: JSON.stringify(payload),

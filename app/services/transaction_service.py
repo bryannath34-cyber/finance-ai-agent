@@ -312,12 +312,15 @@ class TransactionService:
                         admin_fee_count += 1
 
                 # 5. Catat Audit Log
-                audit_details = f"Batch {batch_id} dikonfirmasi: {primary_count} transaksi utama, {admin_fee_count} biaya admin."[:255]
-                client_ip = (ip_address or "127.0.0.1")[:45]
-                cur.execute("""
-                    INSERT INTO system_audit_logs (user_id, event_type, details, ip_address)
-                    VALUES (%s, 'BATCH_CONFIRMED', %s, %s)
-                """, (user_id, audit_details, client_ip))
+                try:
+                    audit_details = f"Batch {batch_id} dikonfirmasi: {primary_count} transaksi utama, {admin_fee_count} biaya admin."[:255]
+                    client_ip = (ip_address or "127.0.0.1")[:45]
+                    cur.execute("""
+                        INSERT INTO system_audit_logs (user_id, event_type, details, ip_address)
+                        VALUES (%s, 'BATCH_CONFIRMED', %s, %s)
+                    """, (user_id, audit_details, client_ip))
+                except Exception as e_audit:
+                    logger.warning("Audit log batch konfirmasi gagal: %s", e_audit)
 
                 conn.commit()
 
@@ -534,12 +537,15 @@ class TransactionService:
                         ))
 
                     # 4. Audit Log
-                    audit_details = f"Transaksi manual dibuat (ID {primary_tx_id}): {tx_type} Rp {amount}."[:255]
-                    client_ip = (ip_address or "127.0.0.1")[:45]
-                    cur.execute("""
-                        INSERT INTO system_audit_logs (user_id, event_type, details, ip_address)
-                        VALUES (%s, 'MANUAL_TX_CREATED', %s, %s)
-                    """, (user_id, audit_details, client_ip))
+                    try:
+                        audit_details = f"Transaksi manual dibuat (ID {primary_tx_id}): {tx_type} Rp {amount}."[:255]
+                        client_ip = (ip_address or "127.0.0.1")[:45]
+                        cur.execute("""
+                            INSERT INTO system_audit_logs (user_id, event_type, details, ip_address)
+                            VALUES (%s, 'BATCH_CONFIRMED', %s, %s)
+                        """, (user_id, audit_details, client_ip))
+                    except Exception as e_audit:
+                        logger.warning("Audit log transaksi manual gagal: %s", e_audit)
 
                     conn.commit()
 
@@ -677,7 +683,7 @@ class TransactionService:
                         client_ip = (ip_address or "127.0.0.1")[:45]
                         cur.execute("""
                             INSERT INTO system_audit_logs (user_id, event_type, details, ip_address)
-                            VALUES (%s, 'TRANSACTION_UPDATED', %s, %s)
+                            VALUES (%s, 'BATCH_CONFIRMED', %s, %s)
                         """, (user_id, audit_details, client_ip))
                     except Exception as e_audit:
                         logger.warning("Audit log transaksi gagal: %s", e_audit)
@@ -781,7 +787,7 @@ class TransactionService:
                         client_ip = (ip_address or "127.0.0.1")[:45]
                         cur.execute("""
                             INSERT INTO system_audit_logs (user_id, event_type, details, ip_address)
-                            VALUES (%s, 'TRANSACTION_DELETED', %s, %s)
+                            VALUES (%s, 'REVERSAL_CREATED', %s, %s)
                         """, (user_id, audit_details, client_ip))
                     except Exception as e_audit:
                         logger.warning("Pencatatan audit log transaksi gagal: %s", e_audit)

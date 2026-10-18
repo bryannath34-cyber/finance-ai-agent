@@ -571,6 +571,18 @@ KALIMAT PENGGUNA YANG HARUS DIPROSES:
                             cat_id = cid
                             break
 
+            # Proteksi mutlak jika merupakan pernyataan kepemilikan uang / saldo
+            if is_balance_statement:
+                tx_type = "INCOME"
+                src_acc_id = None
+                if not dest_acc_id or (bank_acc and any(kw in user_input_lower for kw in ("rekening", "bank", "bca", "duit", "saldo"))):
+                    dest_acc_id = bank_acc["id"] if bank_acc else default_acc_id
+                
+                # Pastikan kategori adalah kategori INCOME sah (Gaji & Pendapatan)
+                inc_cat = next((c for c in categories if c.get("type") == "INCOME" and c.get("is_active")), None)
+                if inc_cat:
+                    cat_id = inc_cat["id"]
+
             final_desc = item.get("description")
             if not final_desc or final_desc == user_input or is_balance_statement:
                 if is_balance_statement:
