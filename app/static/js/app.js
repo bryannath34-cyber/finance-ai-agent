@@ -5,7 +5,7 @@
  * Financial Planning, and AI Advisory Copilot.
  */
 
-import { api } from './api.js?v=2.5.9';
+import { api } from './api.js?v=2.6.0';
 import { AudioRecorder } from './audio_recorder.js';
 
 const Icons = {

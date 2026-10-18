@@ -143,12 +143,39 @@ export const api = {
   // Transactions & Drafts
   transactions: {
     getDrafts: (batchId) => request(`/transactions/drafts/${batchId}`),
-    updateDraft: (draftId, payload) =>
-      request(`/transactions/drafts/${draftId}`, {
-        method: 'POST',
-        body: JSON.stringify(payload),
-        timeout: 30000,
-      }),
+    updateDraft: async (draftId, payload) => {
+      try {
+        return await request(`/transactions/drafts/${draftId}/update`, {
+          method: 'POST',
+          body: JSON.stringify(payload),
+          timeout: 30000,
+        });
+      } catch (err) {
+        const isMethodOrNotFound = err.message && (
+          err.message.includes('Method Not Allowed') ||
+          err.message.includes('405') ||
+          err.message.includes('404')
+        );
+        if (isMethodOrNotFound) {
+          console.warn('[updateDraft] Primary POST /update failed, retrying with PUT on /drafts/' + draftId);
+          try {
+            return await request(`/transactions/drafts/${draftId}`, {
+              method: 'PUT',
+              body: JSON.stringify(payload),
+              timeout: 30000,
+            });
+          } catch (putErr) {
+            console.warn('[updateDraft] PUT failed, retrying with POST on /drafts/' + draftId);
+            return await request(`/transactions/drafts/${draftId}`, {
+              method: 'POST',
+              body: JSON.stringify(payload),
+              timeout: 30000,
+            });
+          }
+        }
+        throw err;
+      }
+    },
     cancelDraft: (draftId) =>
       request(`/transactions/drafts/${draftId}/cancel`, {
         method: 'POST',

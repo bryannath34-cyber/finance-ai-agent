@@ -39,10 +39,8 @@ def get_batch_drafts(batch_id: str, user: dict = Depends(get_current_user)):
         data=drafts
     )
 
-@router.post("/drafts/{draft_id}", response_model=BaseResponse)
-@router.post("/drafts/{draft_id}/update", response_model=BaseResponse)
-@router.patch("/drafts/{draft_id}", response_model=BaseResponse)
-@router.put("/drafts/{draft_id}", response_model=BaseResponse)
+@router.api_route("/drafts/{draft_id}", methods=["POST", "PUT", "PATCH"], response_model=BaseResponse)
+@router.api_route("/drafts/{draft_id}/update", methods=["POST", "PUT", "PATCH"], response_model=BaseResponse)
 def update_draft(draft_id: int, payload: UpdateDraftRequest, user: dict = Depends(get_current_user)):
     """Menyunting kolom nominal, akun, kategori, atau catatan pada draft berstatus PENDING."""
     logger.info("UPDATE /drafts/%s oleh user %s: %s", draft_id, user.get("id"), payload)
