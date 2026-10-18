@@ -382,37 +382,6 @@ class App {
     this.modalPeriodActiveYear = null;
     this.modalPeriodActiveMonth = null;
 
-    // MySQL Database Studio Elements
-    this.btnOpenDatabaseNav = document.getElementById('btn-open-database-nav');
-    this.dbTablesList = document.getElementById('db-tables-list');
-    this.dbTableFilterInput = document.getElementById('db-table-filter-input');
-    this.dbTotalTablesCount = document.getElementById('db-total-tables-count');
-    this.dbActiveTableTitle = document.getElementById('db-active-table-title');
-    this.dbActiveTableMeta = document.getElementById('db-active-table-meta');
-    this.dbDataTableHead = document.getElementById('db-data-table-head');
-    this.dbDataTableBody = document.getElementById('db-data-table-body');
-    this.dbStructureTableBody = document.getElementById('db-structure-table-body');
-    this.dbPaginationInfo = document.getElementById('db-pagination-info');
-    this.dbPageCounter = document.getElementById('db-page-counter');
-    this.btnDbPrevPage = document.getElementById('btn-db-prev-page');
-    this.btnDbNextPage = document.getElementById('btn-db-next-page');
-    this.btnDbViewData = document.getElementById('btn-db-view-data');
-    this.btnDbViewStructure = document.getElementById('btn-db-view-structure');
-    this.dbViewDataContainer = document.getElementById('db-view-data-container');
-    this.dbViewStructureContainer = document.getElementById('db-view-structure-container');
-    this.btnToggleSqlConsole = document.getElementById('btn-toggle-sql-console');
-    this.dbSqlConsoleWrapper = document.getElementById('db-sql-console-wrapper');
-    this.btnDbRunSql = document.getElementById('btn-db-run-sql');
-    this.dbSqlInput = document.getElementById('db-sql-input');
-    this.dbSqlError = document.getElementById('db-sql-error');
-    this.btnDbRefreshAll = document.getElementById('btn-db-refresh-all');
-
-    this.dbActiveTable = 'transactions';
-    this.dbCurrentPage = 1;
-    this.dbTotalPages = 1;
-    this.dbTablesData = [];
-    this.dbViewMode = 'data';
-
     this.applyBalanceVisibility();
   }
 
@@ -952,49 +921,7 @@ class App {
       });
     }
 
-    // Database Studio Events
-    if (this.dbTableFilterInput) {
-      this.dbTableFilterInput.addEventListener('input', (e) => this.renderDbTablesList(e.target.value));
-    }
-    if (this.btnDbViewData) {
-      this.btnDbViewData.addEventListener('click', () => this.switchDbViewMode('data'));
-    }
-    if (this.btnDbViewStructure) {
-      this.btnDbViewStructure.addEventListener('click', () => this.switchDbViewMode('structure'));
-    }
-    if (this.btnDbPrevPage) {
-      this.btnDbPrevPage.addEventListener('click', () => {
-        if (this.dbCurrentPage > 1) this.loadTableData(this.dbActiveTable, this.dbCurrentPage - 1);
-      });
-    }
-    if (this.btnDbNextPage) {
-      this.btnDbNextPage.addEventListener('click', () => {
-        if (this.dbCurrentPage < this.dbTotalPages) this.loadTableData(this.dbActiveTable, this.dbCurrentPage + 1);
-      });
-    }
-    if (this.btnToggleSqlConsole) {
-      this.btnToggleSqlConsole.addEventListener('click', () => {
-        if (this.dbSqlConsoleWrapper) {
-          const isHidden = this.dbSqlConsoleWrapper.style.display === 'none';
-          this.dbSqlConsoleWrapper.style.display = isHidden ? 'block' : 'none';
-        }
-      });
-    }
-    if (this.btnDbRunSql) {
-      this.btnDbRunSql.addEventListener('click', () => this.executeCustomSqlQuery());
-    }
-    if (this.btnDbRefreshAll) {
-      this.btnDbRefreshAll.addEventListener('click', () => this.loadDatabaseTables());
-    }
-    document.querySelectorAll('.db-preset-btn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        if (this.dbSqlInput) this.dbSqlInput.value = btn.getAttribute('data-query');
-        this.executeCustomSqlQuery();
-      });
-    });
-  }
-
-  switchTab(tabId) {
+    switchTab(tabId) {
     // Fallback defensively jika ID tab tidak ditemukan di DOM agar layar tidak blank putih
     if (!document.getElementById(tabId)) {
       console.warn(`[switchTab] Tab '${tabId}' tidak ditemukan di DOM, dialihkan ke 'tab-dashboard'.`);
@@ -1011,7 +938,6 @@ class App {
       'tab-copilot': { title: 'Penasihat Finansial AI', intro: 'Tanyakan rencana pembelian, evaluasi kelayakan anggaran, dan pantau pola pengeluaran berbasis AI.' },
       'tab-reports': { title: 'Laporan Keuangan', intro: 'Tinjau arus kas, komposisi pengeluaran, dan perubahan dari bulan ke bulan.' },
       'tab-settings': { title: 'Pengaturan & Profil', intro: 'Kelola profil, rekening, keamanan, dan preferensi aplikasi.' },
-      'tab-database': { title: 'MySQL Database Studio', intro: 'Eksplorasi tabel, struktur skema, dan isi data mentah personal_finance secara langsung.' },
       'tab-auth': { title: 'Akun pengguna', intro: 'Rancangan layar daftar akun dan reset kata sandi.' }
     };
 
@@ -1057,10 +983,7 @@ class App {
     } else if (tabId === 'tab-reports') {
       this.loadReportsData();
     } else if (tabId === 'tab-settings') {
-      this.loadSettingsData();
-    } else if (tabId === 'tab-database') {
-      this.loadDatabaseTables();
-    }
+      this.loadSettingsData();}
   }
 
   openModal(modal) {
@@ -3790,268 +3713,7 @@ class App {
     }
   }
 
-  // =========================================================================
-  // MYSQL DATABASE STUDIO METHODS
-  // =========================================================================
-  async loadDatabaseTables() {
-    if (!this.dbTablesList) return;
-    try {
-      this.dbTablesList.innerHTML = '<div style="font-size: 11px; color: var(--text-muted); padding: 8px 0;">Menghubungi MySQL...</div>';
-      const res = await api.database.getTables();
-      this.dbTablesData = res.tables || [];
-      if (this.dbTotalTablesCount) {
-        this.dbTotalTablesCount.textContent = `${this.dbTablesData.length} tabel`;
-      }
-      this.renderDbTablesList();
-
-      // Pilih tabel aktif
-      const defaultTable = this.dbTablesData.find(t => t.table_name === this.dbActiveTable) || this.dbTablesData[0];
-      if (defaultTable) {
-        this.selectDbTable(defaultTable.table_name);
-      }
-    } catch (err) {
-      this.dbTablesList.innerHTML = `<div style="font-size: 11px; color: #E11D48; padding: 8px 0;">Gagal memuat tabel: ${err.message}</div>`;
-    }
   }
-
-  renderDbTablesList(filterText = '') {
-    if (!this.dbTablesList) return;
-    const filter = (filterText || '').toLowerCase().trim();
-    const filtered = this.dbTablesData.filter(t => t.table_name.toLowerCase().includes(filter));
-
-    if (filtered.length === 0) {
-      this.dbTablesList.innerHTML = '<div style="font-size: 11px; color: var(--text-muted); padding: 8px 0;">Tidak ada tabel yang cocok.</div>';
-      return;
-    }
-
-    this.dbTablesList.innerHTML = '';
-    filtered.forEach((t) => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = `db-table-item ${t.table_name === this.dbActiveTable ? 'active' : ''}`;
-      btn.innerHTML = `
-        <span class="db-table-item-name">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
-          ${t.table_name}
-        </span>
-        <span class="db-table-item-count">${t.row_count} baris</span>
-      `;
-      btn.addEventListener('click', () => {
-        this.selectDbTable(t.table_name);
-      });
-      this.dbTablesList.appendChild(btn);
-    });
-  }
-
-  selectDbTable(tableName) {
-    this.dbActiveTable = tableName;
-    this.dbCurrentPage = 1;
-
-    // Update active highlight
-    const allBtns = this.dbTablesList.querySelectorAll('.db-table-item');
-    allBtns.forEach((b) => {
-      const nameEl = b.querySelector('.db-table-item-name');
-      if (nameEl && nameEl.textContent.trim() === tableName) {
-        b.classList.add('active');
-      } else {
-        b.classList.remove('active');
-      }
-    });
-
-    if (this.dbActiveTableTitle) this.dbActiveTableTitle.textContent = tableName;
-
-    const tableInfo = this.dbTablesData.find(t => t.table_name === tableName);
-    if (this.dbActiveTableMeta && tableInfo) {
-      this.dbActiveTableMeta.textContent = `${tableInfo.engine} • ${tableInfo.row_count} baris • ${tableInfo.data_size_kb} KB`;
-    }
-
-    this.loadTableData(tableName, 1);
-  }
-
-  async loadTableData(tableName, page = 1) {
-    if (!this.dbDataTableBody) return;
-    this.dbDataTableBody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 20px; color: var(--text-muted);">Memuat data baris...</td></tr>';
-
-    try {
-      const res = await api.database.getTableData(tableName, page, 50);
-      const cols = res.columns || [];
-      const rows = res.rows || [];
-      this.dbTotalPages = res.total_pages || 1;
-      this.dbCurrentPage = res.page || 1;
-
-      // Render Headers
-      if (this.dbDataTableHead) {
-        let thHtml = '<tr><th style="width: 40px; text-align: center; color: var(--text-muted);">#</th>';
-        cols.forEach((c) => {
-          const isPri = c.column_key === 'PRI';
-          thHtml += `
-            <th>
-              <div style="display: flex; align-items: center; gap: 4px;">
-                <span style="font-weight: 600; color: var(--text-primary);">${c.column_name}</span>
-                ${isPri ? '<span class="db-pri-key">PK</span>' : ''}
-              </div>
-              <div style="font-size: 9px; color: var(--text-muted); font-weight: 400; text-transform: uppercase;">${c.data_type}</div>
-            </th>
-          `;
-        });
-        thHtml += '</tr>';
-        this.dbDataTableHead.innerHTML = thHtml;
-      }
-
-      // Render Rows
-      if (rows.length === 0) {
-        this.dbDataTableBody.innerHTML = `<tr><td colspan="${cols.length + 1}" style="text-align: center; padding: 24px; color: var(--text-muted);">Tabel ini masih kosong (0 baris).</td></tr>`;
-      } else {
-        let tbHtml = '';
-        const offset = (this.dbCurrentPage - 1) * 50;
-        rows.forEach((r, idx) => {
-          tbHtml += `<tr><td style="text-align: center; color: var(--text-muted); font-size: 10px;">${offset + idx + 1}</td>`;
-          cols.forEach((c) => {
-            const val = r[c.column_name];
-            if (val === null || val === undefined) {
-              tbHtml += '<td><span class="db-null-tag">NULL</span></td>';
-            } else {
-              tbHtml += `<td><div class="db-cell-val" title="${String(val)}">${String(val)}</div></td>`;
-            }
-          });
-          tbHtml += '</tr>';
-        });
-        this.dbDataTableBody.innerHTML = tbHtml;
-      }
-
-      // Update Pagination Bar
-      if (this.dbPaginationInfo) {
-        const start = rows.length > 0 ? (this.dbCurrentPage - 1) * 50 + 1 : 0;
-        const end = (this.dbCurrentPage - 1) * 50 + rows.length;
-        this.dbPaginationInfo.textContent = `Menampilkan baris ${start}-${end} dari ${res.total_rows} baris`;
-      }
-      if (this.dbPageCounter) {
-        this.dbPageCounter.textContent = `Hal ${this.dbCurrentPage} / ${this.dbTotalPages}`;
-      }
-      if (this.btnDbPrevPage) this.btnDbPrevPage.disabled = this.dbCurrentPage <= 1;
-      if (this.btnDbNextPage) this.btnDbNextPage.disabled = this.dbCurrentPage >= this.dbTotalPages;
-
-      // Render Structure View as well
-      this.renderTableStructure(cols);
-
-    } catch (err) {
-      this.dbDataTableBody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 20px; color: #E11D48;">Gagal memuat data: ${err.message}</td></tr>`;
-    }
-  }
-
-  renderTableStructure(columns) {
-    if (!this.dbStructureTableBody) return;
-    let html = '';
-    columns.forEach((c) => {
-      const isPri = c.column_key === 'PRI';
-      const isUni = c.column_key === 'UNI';
-      let keyBadge = '-';
-      if (isPri) keyBadge = '<span class="db-pri-key">PRIMARY KEY</span>';
-      else if (isUni) keyBadge = '<span style="font-size: 9px; color: #0284C7; font-weight: 600;">UNIQUE</span>';
-      else if (c.column_key) keyBadge = `<span style="font-size: 9px; color: var(--text-muted);">${c.column_key}</span>`;
-
-      html += `
-        <tr style="border-bottom: 1px solid var(--border-main);">
-          <td style="padding: 8px 12px; font-family: monospace; font-weight: 600; color: var(--text-primary);">${c.column_name}</td>
-          <td style="padding: 8px 12px; font-family: monospace; color: #0284C7;">${c.data_type}</td>
-          <td style="padding: 8px 12px; color: ${c.is_nullable === 'YES' ? 'var(--text-muted)' : '#059669'}; font-weight: ${c.is_nullable === 'NO' ? '600' : '400'};">${c.is_nullable}</td>
-          <td style="padding: 8px 12px;">${keyBadge}</td>
-          <td style="padding: 8px 12px; font-family: monospace; color: var(--text-secondary);">${c.column_default !== null ? c.column_default : '<span class="db-null-tag">NULL</span>'}</td>
-          <td style="padding: 8px 12px; font-size: 10px; color: var(--text-muted);">${c.extra || '-'}</td>
-        </tr>
-      `;
-    });
-    this.dbStructureTableBody.innerHTML = html;
-  }
-
-  async executeCustomSqlQuery() {
-    if (!this.dbSqlInput) return;
-    const q = this.dbSqlInput.value.trim();
-    if (!q) return;
-
-    if (this.dbSqlError) this.dbSqlError.style.display = 'none';
-
-    try {
-      const res = await api.database.executeQuery(q);
-      const cols = res.columns || [];
-      const rows = res.rows || [];
-
-      // Switch to data view mode
-      this.switchDbViewMode('data');
-      if (this.dbActiveTableTitle) this.dbActiveTableTitle.textContent = `Hasil Kueri: ${q.substring(0, 30)}...`;
-      if (this.dbActiveTableMeta) this.dbActiveTableMeta.textContent = `${res.row_count} baris dikembalikan`;
-
-      // Render Headers
-      if (this.dbDataTableHead) {
-        let thHtml = '<tr><th style="width: 40px; text-align: center; color: var(--text-muted);">#</th>';
-        cols.forEach((colName) => {
-          thHtml += `<th style="padding: 8px 10px; font-weight: 600; color: var(--text-primary);">${colName}</th>`;
-        });
-        thHtml += '</tr>';
-        this.dbDataTableHead.innerHTML = thHtml;
-      }
-
-      // Render Rows
-      if (rows.length === 0) {
-        this.dbDataTableBody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 24px; color: var(--text-muted);">Kueri berhasil dijalankan (0 baris dikembalikan).</td></tr>';
-      } else {
-        let tbHtml = '';
-        rows.forEach((r, idx) => {
-          tbHtml += `<tr><td style="text-align: center; color: var(--text-muted); font-size: 10px;">${idx + 1}</td>`;
-          cols.forEach((c) => {
-            const val = r[c];
-            if (val === null || val === undefined) {
-              tbHtml += '<td><span class="db-null-tag">NULL</span></td>';
-            } else {
-              tbHtml += `<td><div class="db-cell-val" title="${String(val)}">${String(val)}</div></td>`;
-            }
-          });
-          tbHtml += '</tr>';
-        });
-        this.dbDataTableBody.innerHTML = tbHtml;
-      }
-
-      if (this.dbPaginationInfo) {
-        this.dbPaginationInfo.textContent = `Menampilkan ${res.row_count} baris dari kueri SQL kustom`;
-      }
-      if (this.btnDbPrevPage) this.btnDbPrevPage.disabled = true;
-      if (this.btnDbNextPage) this.btnDbNextPage.disabled = true;
-
-    } catch (err) {
-      if (this.dbSqlError) {
-        this.dbSqlError.textContent = err.message || 'Gagal menjalankan kueri SQL.';
-        this.dbSqlError.style.display = 'block';
-      }
-    }
-  }
-
-  switchDbViewMode(mode) {
-    this.dbViewMode = mode;
-    if (mode === 'data') {
-      if (this.btnDbViewData) {
-        this.btnDbViewData.style.background = '#FFFFFF';
-        this.btnDbViewData.style.color = 'var(--text-primary)';
-      }
-      if (this.btnDbViewStructure) {
-        this.btnDbViewStructure.style.background = 'transparent';
-        this.btnDbViewStructure.style.color = 'var(--text-secondary)';
-      }
-      if (this.dbViewDataContainer) this.dbViewDataContainer.style.display = 'flex';
-      if (this.dbViewStructureContainer) this.dbViewStructureContainer.style.display = 'none';
-    } else {
-      if (this.btnDbViewStructure) {
-        this.btnDbViewStructure.style.background = '#FFFFFF';
-        this.btnDbViewStructure.style.color = 'var(--text-primary)';
-      }
-      if (this.btnDbViewData) {
-        this.btnDbViewData.style.background = 'transparent';
-        this.btnDbViewData.style.color = 'var(--text-secondary)';
-      }
-      if (this.dbViewDataContainer) this.dbViewDataContainer.style.display = 'none';
-      if (this.dbViewStructureContainer) this.dbViewStructureContainer.style.display = 'block';
-    }
-  }
-}
 
 // Bootstrapping
 document.addEventListener('DOMContentLoaded', () => {

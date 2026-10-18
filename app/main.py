@@ -15,7 +15,6 @@ from app.api.transactions import router as transactions_router
 from app.api.ai import router as ai_router
 from app.api.speech import router as speech_router
 from app.api.planning import router as planning_router
-from app.api.database import router as database_router
 
 logging.basicConfig(
     level=logging.INFO if not settings.DEBUG else logging.DEBUG,
@@ -83,7 +82,6 @@ app.include_router(transactions_router, prefix=f"{settings.APP_PREFIX}/api")
 app.include_router(ai_router, prefix=f"{settings.APP_PREFIX}/api")
 app.include_router(speech_router, prefix=f"{settings.APP_PREFIX}/api")
 app.include_router(planning_router, prefix=f"{settings.APP_PREFIX}/api")
-app.include_router(database_router, prefix=f"{settings.APP_PREFIX}/api")
 
 # Probe fallback untuk OCI Load Balancer probe default (/health)
 @app.api_route("/health", methods=["GET", "HEAD"], include_in_schema=False)

@@ -211,17 +211,4 @@ export const api = {
     getReports: (year = null, month = null) =>
       request(`/planning/reports${year && month ? `?year=${year}&month=${month}` : ''}`),
   },
-
-  // MySQL Database Studio
-  database: {
-    getTables: () => request('/database/tables'),
-    getTableData: (table, page = 1, limit = 50) => request(`/database/table/${table}?page=${page}&limit=${limit}`),
-    executeQuery: (query) =>
-      request('/database/query', {
-        method: 'POST',
-        body: JSON.stringify({ query }),
-      }),
-  },
 };
-
-
