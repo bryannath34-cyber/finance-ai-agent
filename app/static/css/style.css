@@ -1115,6 +1115,162 @@ a:hover {
   color: var(--accent-rose);
 }
 
+/* ==========================================================================
+   MUTASI & SUARA AI: UANG DI BANK & SALDO REKENING (CONSISTENT WITH DASHBOARD)
+   ========================================================================== */
+.ai-bank-card {
+  padding: 18px 20px;
+}
+
+.ai-bank-header-row {
+  margin-bottom: 14px;
+}
+
+.ai-bank-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.ai-bank-hero-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #F7F8F5;
+  border: 1px solid var(--border-main);
+  border-radius: 14px;
+  padding: 12px 18px;
+  margin-bottom: 14px;
+}
+
+.ai-bank-hero-left {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ai-bank-hero-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ai-bank-hero-amount {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.ai-bank-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #EAF4EE;
+  color: #2D7653;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.ai-bank-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #2D7653;
+  display: inline-block;
+  box-shadow: 0 0 0 2px rgba(45, 118, 83, 0.2);
+}
+
+/* Account Cards Grid in Mutasi Tab - Matching Dashboard KPI & Card Deck */
+.ai-accounts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 12px;
+}
+
+.ai-account-card {
+  background: #FFFFFF;
+  border: 1px solid var(--border-main);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.ai-account-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border-color: #D6DAD3;
+}
+
+.ai-acc-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ai-acc-brand-group {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.ai-acc-name {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.01em;
+}
+
+.ai-acc-type-pill {
+  font-size: 9px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+.ai-acc-card-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ai-acc-balance-sub {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.ai-acc-balance-val {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.ai-acc-balance-val.negative {
+  color: var(--accent-rose);
+}
+
 /* Savings Goals Card */
 .goal-item-row {
   padding: 10px 0;
@@ -4943,6 +5099,58 @@ body.user-logged-out #auth-overlay.desktop-login-overlay {
   #tab-mutasi .figma-card {
     border-radius: 18px !important;
     padding: 16px !important;
+  }
+
+  /* Card 0: Uang di Bank Mobile Polish (Horizontal scroll matching dashboard chips) */
+  #tab-mutasi .ai-bank-card {
+    padding: 14px 16px !important;
+  }
+
+  #tab-mutasi .ai-bank-hero-bar {
+    padding: 10px 14px !important;
+    margin-bottom: 12px !important;
+  }
+
+  #tab-mutasi .ai-bank-hero-amount {
+    font-size: 20px !important;
+  }
+
+  #tab-mutasi .ai-bank-hero-badge {
+    font-size: 10px !important;
+    padding: 3px 8px !important;
+  }
+
+  #tab-mutasi .ai-accounts-grid {
+    display: flex !important;
+    gap: 10px !important;
+    overflow-x: auto !important;
+    padding-bottom: 6px !important;
+    scroll-snap-type: x mandatory !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  #tab-mutasi .ai-account-card {
+    flex: 0 0 145px !important;
+    min-width: 145px !important;
+    scroll-snap-align: start !important;
+    padding: 12px !important;
+  }
+
+  #tab-mutasi .ai-acc-name {
+    font-size: 12px !important;
+  }
+
+  #tab-mutasi .ai-acc-balance-val {
+    font-size: 14px !important;
+  }
+
+  #tab-mutasi .ai-bank-actions {
+    gap: 6px !important;
+  }
+
+  #tab-mutasi .ai-bank-actions .card-action-link {
+    padding: 4px 8px !important;
+    font-size: 10.5px !important;
   }
 
   /* Card 1: Command Center Mobile Polish */

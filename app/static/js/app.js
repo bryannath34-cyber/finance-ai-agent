@@ -1714,31 +1714,18 @@ class App {
           const isNegative = bal < 0;
           const aiCard = document.createElement('div');
           aiCard.className = 'ai-account-card';
-          aiCard.style.cssText = `
-            background: #FFFFFF;
-            border: 1px solid var(--border-main);
-            border-radius: 12px;
-            padding: 12px 14px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            gap: 8px;
-            transition: transform 0.15s ease, box-shadow 0.15s ease;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.03);
-          `;
           aiCard.innerHTML = `
-            <div style="display: flex; align-items: center; justify-content: space-between;">
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <div class="account-monogram ${monogramClass}" style="width: 28px; height: 28px; font-size: 8.5px; border-radius: 8px;">${monogramText}</div>
-                <span style="font-weight: 600; font-size: 12px; color: var(--text-primary);">${acc.name}</span>
+            <div class="ai-acc-card-top">
+              <div class="ai-acc-brand-group">
+                <div class="account-monogram ${monogramClass}">${monogramText}</div>
+                <span class="ai-acc-name">${acc.name}</span>
               </div>
-              <span style="font-size: 9.5px; font-weight: 600; padding: 2px 7px; border-radius: 6px; background: var(--bg-hover); color: var(--text-secondary); text-transform: uppercase;">${acc.type}</span>
+              <span class="ai-acc-type-pill">${acc.type}</span>
             </div>
-            <div style="margin-top: 4px;">
-              <div style="font-size: 9.5px; color: var(--text-muted); margin-bottom: 2px;">Saldo Tersedia</div>
-              <div class="acc-balance-num ${isNegative ? 'negative' : ''} ${this.isBalanceHidden ? 'is-hidden-mask' : ''}" 
-                   data-real-balance="${this.formatIDR(bal)}"
-                   style="font-size: 14.5px; font-weight: 700; color: ${isNegative ? 'var(--accent-red)' : 'var(--text-primary)'};">
+            <div class="ai-acc-card-bottom">
+              <span class="ai-acc-balance-sub">Saldo Tersedia</span>
+              <div class="acc-balance-num ai-acc-balance-val ${isNegative ? 'negative' : ''} ${this.isBalanceHidden ? 'is-hidden-mask' : ''}" 
+                   data-real-balance="${this.formatIDR(bal)}">
                 ${this.isBalanceHidden ? 'Rp ••••••••' : this.formatIDR(bal)}
               </div>
             </div>
