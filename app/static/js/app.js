@@ -67,6 +67,9 @@ class App {
     this.usernameDisplay = document.getElementById('username-display');
     this.userAvatarInitial = document.getElementById('user-avatar-initial');
     this.btnLogout = document.getElementById('btn-logout');
+    this.btnSidebarLogout = document.getElementById('btn-sidebar-logout');
+    this.btnSettingsLogout = document.getElementById('btn-settings-logout');
+    this.btnSettingsSecurityLogout = document.getElementById('btn-settings-security-logout');
 
     this.pageTitle = document.getElementById('page-title');
     this.pageIntro = document.getElementById('page-intro');
@@ -384,8 +387,30 @@ class App {
 
   attachEventListeners() {
     // Authentication
-    this.loginForm.addEventListener('submit', (e) => this.handleLogin(e));
-    this.btnLogout.addEventListener('click', () => this.handleLogout());
+    if (this.loginForm) {
+      this.loginForm.addEventListener('submit', (e) => this.handleLogin(e));
+    }
+    
+    const handleLogoutAction = (e) => {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      this.handleLogout();
+    };
+
+    if (this.btnLogout) {
+      this.btnLogout.addEventListener('click', handleLogoutAction);
+    }
+    if (this.btnSidebarLogout) {
+      this.btnSidebarLogout.addEventListener('click', handleLogoutAction);
+    }
+    if (this.btnSettingsLogout) {
+      this.btnSettingsLogout.addEventListener('click', handleLogoutAction);
+    }
+    if (this.btnSettingsSecurityLogout) {
+      this.btnSettingsSecurityLogout.addEventListener('click', handleLogoutAction);
+    }
 
     // Tab Navigation (Pills & Sidebar)
     const handleTabClick = (targetTab) => {
@@ -1022,8 +1047,20 @@ class App {
   }
 
   showLogin() {
-    this.authOverlay.style.display = 'flex';
-    this.loginUsername.focus();
+    if (this.authOverlay) {
+      this.authOverlay.style.display = 'flex';
+    }
+    if (this.loginUsername) {
+      this.loginUsername.value = '';
+      this.loginUsername.focus();
+    }
+    if (this.loginPassword) {
+      this.loginPassword.value = '';
+    }
+    if (this.loginError) {
+      this.loginError.style.display = 'none';
+      this.loginError.textContent = '';
+    }
   }
 
   showDashboard() {
@@ -1058,15 +1095,34 @@ class App {
     try {
       await api.auth.logout();
     } catch (e) {
-      console.warn('Logout error:', e);
+      console.warn('Logout notice:', e);
     }
+
     this.currentUser = null;
-    this.usernameDisplay.textContent = '-';
+    if (this.usernameDisplay) this.usernameDisplay.textContent = '-';
+    if (this.userAvatarInitial) this.userAvatarInitial.textContent = '?';
+    if (this.settingsAvatarInitial) this.settingsAvatarInitial.textContent = '?';
+    if (this.settingsProfileName) this.settingsProfileName.textContent = '-';
+    if (this.settingsProfileEmail) this.settingsProfileEmail.textContent = '-';
+
+    // Clear all client-side cached auth / session tokens
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.clear();
+    }
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('user_fullname');
+      localStorage.removeItem('user_email');
+      localStorage.removeItem('user_2fa_enabled');
+    }
+
     this.accounts = [];
     this.transactions = [];
+    this.filteredTransactions = null;
     this.renderAccounts();
     this.renderHistory();
+    this.closeModals();
     this.showLogin();
+    this.showAlert('Anda telah berhasil keluar dari akun.', 'info');
   }
 
   async loadInitialData() {

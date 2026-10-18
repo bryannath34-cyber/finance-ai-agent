@@ -145,14 +145,36 @@ def login(login_data: LoginRequest, request: Request, response: Response):
 @router.post("/logout", response_model=BaseResponse)
 def logout(request: Request, response: Response):
     """Mencabut sesi server-side dan membersihkan cookie browser."""
+    # 1. Hapus cookie browser dengan konfigurasi lengkap (root path dan prefix)
+    response.delete_cookie(
+        key=settings.SESSION_COOKIE_NAME,
+        path="/",
+        httponly=True,
+        samesite="lax"
+    )
+    response.delete_cookie(
+        key=settings.CSRF_COOKIE_NAME,
+        path="/",
+        httponly=False,
+        samesite="lax"
+    )
+
+    if settings.APP_PREFIX:
+        response.delete_cookie(key=settings.SESSION_COOKIE_NAME, path=f"{settings.APP_PREFIX}")
+        response.delete_cookie(key=settings.SESSION_COOKIE_NAME, path=f"{settings.APP_PREFIX}/")
+        response.delete_cookie(key=settings.CSRF_COOKIE_NAME, path=f"{settings.APP_PREFIX}")
+        response.delete_cookie(key=settings.CSRF_COOKIE_NAME, path=f"{settings.APP_PREFIX}/")
+
+    # 2. Hapus sesi server-side dari database secara aman
     session_token = request.cookies.get(settings.SESSION_COOKIE_NAME)
     if session_token:
-        invalidate_user_session(session_token)
-
-    response.delete_cookie(key=settings.SESSION_COOKIE_NAME, path="/")
-    response.delete_cookie(key=settings.CSRF_COOKIE_NAME, path="/")
+        try:
+            invalidate_user_session(session_token)
+        except Exception as e:
+            logger.warning("Gagal menghapus web_sessions dari database saat logout: %s", e)
 
     return BaseResponse(success=True, message="Logout berhasil. Sesi telah dicabut.")
+
 
 
 @router.get("/me", response_model=DataResponse[UserProfile])

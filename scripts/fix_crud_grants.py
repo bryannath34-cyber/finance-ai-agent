@@ -39,8 +39,10 @@ def main():
     queries = [
         "GRANT SELECT, INSERT, UPDATE, DELETE ON personal_finance.transactions TO 'fin_bot_app'@'10.10.2.%';",
         "GRANT SELECT, INSERT, UPDATE, DELETE ON personal_finance.transaction_drafts TO 'fin_bot_app'@'10.10.2.%';",
+        "GRANT SELECT, INSERT, UPDATE, DELETE ON personal_finance.web_sessions TO 'fin_bot_app'@'10.10.2.%';",
         "GRANT SELECT, INSERT, UPDATE, DELETE ON personal_finance.transactions TO 'fin_bot_app'@'%';",
         "GRANT SELECT, INSERT, UPDATE, DELETE ON personal_finance.transaction_drafts TO 'fin_bot_app'@'%';",
+        "GRANT SELECT, INSERT, UPDATE, DELETE ON personal_finance.web_sessions TO 'fin_bot_app'@'%';",
         "FLUSH PRIVILEGES;"
     ]
 

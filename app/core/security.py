@@ -62,10 +62,17 @@ def create_user_session(user_id: int, ip_address: str, user_agent: Optional[str]
 
 def invalidate_user_session(plain_token: str) -> bool:
     """Mencabut (logout) sesi dari server-side database."""
+    if not plain_token:
+        return False
     token_hash = hash_token(plain_token)
-    with get_db_cursor(commit=True) as cur:
-        cur.execute("DELETE FROM web_sessions WHERE session_token_hash = %s", (token_hash,))
-        return cur.rowcount > 0
+    try:
+        with get_db_cursor(commit=True) as cur:
+            cur.execute("DELETE FROM web_sessions WHERE session_token_hash = %s", (token_hash,))
+            return cur.rowcount > 0
+    except Exception as e:
+        logger.warning("Gagal menghapus token sesi dari web_sessions: %s", e)
+        return False
+
 
 def get_current_user_from_token(plain_token: str) -> Optional[Dict[str, Any]]:
     """
@@ -133,10 +140,15 @@ def verify_csrf(request: Request):
     if request.method in ("GET", "HEAD", "OPTIONS"):
         return
 
-    # Sesi login dan logout dikecualikan dari header CSRF (karena pembentukan sesi baru)
-    if request.url.path in (
-        f"{settings.APP_PREFIX}/api/auth/login",
-        f"{settings.APP_PREFIX}/api/auth/logout"
+    # Sesi login dan logout dikecualikan dari header CSRF (karena pembentukan/pembubaran sesi)
+    clean_path = request.url.path.rstrip("/")
+    if (
+        clean_path.endswith("/api/auth/login") or 
+        clean_path.endswith("/api/auth/logout") or
+        request.url.path in (
+            f"{settings.APP_PREFIX}/api/auth/login",
+            f"{settings.APP_PREFIX}/api/auth/logout"
+        )
     ):
         return
 

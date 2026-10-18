@@ -120,6 +120,14 @@
               <span>Tentang Aplikasi</span>
             </button>
           </li>
+          <li>
+            <button type="button" class="sidebar-nav-btn" id="btn-sidebar-logout" style="color: var(--accent-rose);">
+              <span class="nav-icon" style="color: var(--accent-rose);">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              </span>
+              <span>Keluar (Logout)</span>
+            </button>
+          </li>
         </ul>
       </div>
 
@@ -1366,7 +1374,10 @@
                 </span>
                 <span class="card-section-title">Profil pengguna</span>
               </div>
-              <button type="button" class="card-action-link" id="btn-edit-profile">Edit profil</button>
+              <div style="display: flex; gap: 8px;">
+                <button type="button" class="card-action-link" id="btn-edit-profile">Edit profil</button>
+                <button type="button" class="card-action-link" id="btn-settings-logout" style="color: var(--accent-rose);">Keluar</button>
+              </div>
             </div>
 
             <div class="profile-card-content">
@@ -1487,13 +1498,16 @@
 
               <div class="settings-inner-divider" style="margin: 4px 0;"></div>
 
-              <!-- Item 3: Riwayat sesi -->
+              <!-- Item 3: Riwayat sesi & Logout -->
               <div class="security-row">
                 <div class="security-row-info">
-                  <span class="security-row-title">Riwayat sesi</span>
-                  <span class="security-row-desc">Periksa perangkat yang memiliki akses.</span>
+                  <span class="security-row-title">Riwayat sesi & Keluar</span>
+                  <span class="security-row-desc">Periksa perangkat yang memiliki akses atau keluar dari akun.</span>
                 </div>
-                <button type="button" class="security-action-link" id="btn-view-sessions">Lihat sesi</button>
+                <div style="display: flex; gap: 8px;">
+                  <button type="button" class="security-action-link" id="btn-view-sessions">Lihat sesi</button>
+                  <button type="button" class="security-action-link" id="btn-settings-security-logout" style="color: var(--accent-rose);">Keluar</button>
+                </div>
               </div>
             </div>
 

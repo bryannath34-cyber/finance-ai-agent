@@ -71,10 +71,15 @@ export const api = {
       }
       return res;
     },
-    logout: () => {
-      memoryCsrfToken = null;
-      sessionStorage.removeItem('pf_csrf');
-      return request('/auth/logout', { method: 'POST' });
+    logout: async () => {
+      try {
+        return await request('/auth/logout', { method: 'POST' });
+      } finally {
+        memoryCsrfToken = null;
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.removeItem('pf_csrf');
+        }
+      }
     },
     getMe: () => request('/auth/me'),
   },

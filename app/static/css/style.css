@@ -438,6 +438,8 @@ a:hover {
   line-height: 11px;
   color: var(--text-secondary);
   cursor: pointer;
+  position: relative;
+  z-index: 5;
   transition: all 0.15s ease;
 }
 
