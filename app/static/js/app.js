@@ -1061,6 +1061,7 @@ class App {
   }
 
   showLogin() {
+    document.body.classList.add('user-logged-out');
     if (this.authOverlay) {
       this.authOverlay.style.display = 'flex';
       this.authOverlay.style.visibility = 'visible';
@@ -1083,6 +1084,7 @@ class App {
 
   showDashboard() {
     // Bersihkan penanda logout saat dashboard berhasil ditampilkan
+    document.body.classList.remove('user-logged-out');
     sessionStorage.removeItem('pf_logged_out');
     localStorage.removeItem('pf_logged_out');
 

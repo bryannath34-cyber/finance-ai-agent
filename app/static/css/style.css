@@ -3386,6 +3386,13 @@ a:hover {
   justify-content: center;
 }
 
+body.user-logged-out #auth-overlay.desktop-login-overlay {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  z-index: 999999 !important;
+}
+
 .desktop-login-container {
   width: 1440px;
   min-height: 900px;
