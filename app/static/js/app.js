@@ -383,6 +383,31 @@ class App {
     this.modalPeriodActiveYear = null;
     this.modalPeriodActiveMonth = null;
 
+    // Mobile Viewport Elements (<= 768px - Matching Figma 1:1)
+    this.mobileNavBtns = document.querySelectorAll('.mobile-nav-btn');
+    this.btnMobileNotif = document.getElementById('btn-mobile-notif');
+    this.modalMobileNotif = document.getElementById('modal-mobile-notif');
+    this.mobileGreetingName = document.getElementById('mobile-greeting-name');
+    this.mobileTotalNetWorth = document.getElementById('mobile-total-net-worth');
+    this.mobileBtnToggleNetWorth = document.getElementById('mobile-btn-toggle-net-worth');
+    this.mobileEyeOpen = document.getElementById('mobile-eye-open');
+    this.mobileEyeClosed = document.getElementById('mobile-eye-closed');
+    this.mobileAccountsList = document.getElementById('mobile-accounts-list');
+    this.mobileBtnSeeAccounts = document.getElementById('mobile-btn-see-accounts');
+    this.mobileBtnDashJumpMutasi = document.getElementById('mobile-btn-dash-jump-mutasi');
+    this.mobileDashAiInput = document.getElementById('mobile-dash-ai-input');
+    this.mobileDashBtnRecord = document.getElementById('mobile-dash-btn-record');
+    this.mobileDashBtnParse = document.getElementById('mobile-dash-btn-parse');
+    this.mobileKpiIncome = document.getElementById('mobile-kpi-income');
+    this.mobileKpiExpense = document.getElementById('mobile-kpi-expense');
+    this.mobileKpiSurplus = document.getElementById('mobile-kpi-surplus');
+    this.mobileSummaryCardMonth = document.getElementById('mobile-summary-card-month');
+    this.mobileDashTxContainer = document.getElementById('mobile-dash-tx-container');
+    this.mobileBtnDashJumpLedger = document.getElementById('mobile-btn-dash-jump-ledger');
+    this.mobileBtnGotoReports = document.getElementById('mobile-btn-goto-reports');
+    this.mobileBtnSettingsGotoReports = document.getElementById('mobile-btn-settings-goto-reports');
+    this.btnNotifOpenSettings = document.getElementById('btn-notif-open-settings');
+
     this.applyBalanceVisibility();
   }
 
@@ -875,8 +900,22 @@ class App {
     }
 
     if (this.btnGoogleLogin) {
-      this.btnGoogleLogin.addEventListener('click', () => {
-        this.showAlert('Autentikasi Google OAuth OCI sedang dipersiapkan untuk rilis mendatang.', 'info');
+      this.btnGoogleLogin.addEventListener('click', async () => {
+        try {
+          if (window.supabase && window.supabase.auth && typeof window.supabase.auth.signInWithOAuth === 'function') {
+            const { error } = await window.supabase.auth.signInWithOAuth({
+              provider: 'google',
+              options: {
+                redirectTo: window.location.origin + window.location.pathname
+              }
+            });
+            if (error) throw error;
+          } else {
+            this.showAlert('Menghubungkan ke Supabase Google OAuth... Pastikan Google Provider sudah diaktifkan di konsol Supabase Auth.', 'info');
+          }
+        } catch (err) {
+          this.showAlert(`Google OAuth: ${err.message || err}`, 'error');
+        }
       });
     }
 
@@ -931,6 +970,98 @@ class App {
         this.formTabReset.reset();
       });
     }
+
+    // ==========================================
+    // MOBILE INTERACTIONS (<= 768px Figma 1:1)
+    // ==========================================
+    if (this.mobileNavBtns) {
+      this.mobileNavBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const targetTab = btn.getAttribute('data-tab');
+          if (targetTab) {
+            this.switchTab(targetTab);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        });
+      });
+    }
+
+    if (this.btnMobileNotif) {
+      this.btnMobileNotif.addEventListener('click', () => {
+        if (this.modalMobileNotif) {
+          this.modalMobileNotif.style.display = 'flex';
+        }
+      });
+    }
+
+    if (this.btnNotifOpenSettings) {
+      this.btnNotifOpenSettings.addEventListener('click', () => {
+        if (this.modalMobileNotif) {
+          this.modalMobileNotif.style.display = 'none';
+        }
+        this.switchTab('tab-settings');
+      });
+    }
+
+    if (this.mobileBtnToggleNetWorth) {
+      this.mobileBtnToggleNetWorth.addEventListener('click', () => {
+        this.toggleBalanceVisibility();
+      });
+    }
+
+    if (this.mobileBtnSeeAccounts) {
+      this.mobileBtnSeeAccounts.addEventListener('click', () => {
+        this.switchTab('tab-settings');
+      });
+    }
+
+    if (this.mobileBtnDashJumpMutasi) {
+      this.mobileBtnDashJumpMutasi.addEventListener('click', () => {
+        this.switchTab('tab-mutasi');
+      });
+    }
+
+    if (this.mobileBtnDashJumpLedger) {
+      this.mobileBtnDashJumpLedger.addEventListener('click', () => {
+        this.switchTab('tab-mutasi');
+      });
+    }
+
+    if (this.mobileDashBtnParse) {
+      this.mobileDashBtnParse.addEventListener('click', () => {
+        const text = (this.mobileDashAiInput?.value || '').trim();
+        if (!text) {
+          this.showAlert('Masukkan kalimat transaksi terlebih dahulu.', 'warning');
+          return;
+        }
+        if (this.aiInput) this.aiInput.value = text;
+        this.switchTab('tab-mutasi');
+        this.handleParseNaturalLanguage();
+      });
+    }
+
+    if (this.mobileDashBtnRecord) {
+      this.mobileDashBtnRecord.addEventListener('click', () => {
+        this.switchTab('tab-mutasi');
+        if (!this.recorder.isRecording) {
+          this.startVoiceRecording();
+        }
+      });
+    }
+
+    if (this.mobileBtnGotoReports) {
+      this.mobileBtnGotoReports.addEventListener('click', () => {
+        this.switchTab('tab-reports');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+
+    if (this.mobileBtnSettingsGotoReports) {
+      this.mobileBtnSettingsGotoReports.addEventListener('click', () => {
+        this.switchTab('tab-reports');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
   }
 
   switchTab(tabId) {
@@ -976,6 +1107,14 @@ class App {
       if (b.getAttribute('data-tab') === tabId) b.classList.add('active');
       else b.classList.remove('active');
     });
+
+    // Synchronize Mobile Bottom Nav
+    if (this.mobileNavBtns) {
+      this.mobileNavBtns.forEach((b) => {
+        if (b.getAttribute('data-tab') === tabId) b.classList.add('active');
+        else b.classList.remove('active');
+      });
+    }
 
     // Show Selected Tab Content
     this.tabContents.forEach((c) => {
@@ -1025,6 +1164,27 @@ class App {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(val);
+  }
+
+  formatCompactIDR(num, includeRp = true) {
+    const val = parseFloat(num) || 0;
+    const isNegative = val < 0;
+    const abs = Math.abs(val);
+    let str = '';
+    if (abs >= 1000000000) {
+      const v = (abs / 1000000000).toLocaleString('id-ID', { maximumFractionDigits: 2 });
+      str = `${v} M`;
+    } else if (abs >= 1000000) {
+      const v = (abs / 1000000).toLocaleString('id-ID', { maximumFractionDigits: 2 });
+      str = `${v} jt`;
+    } else if (abs >= 1000) {
+      const v = (abs / 1000).toLocaleString('id-ID', { maximumFractionDigits: 0 });
+      str = `${v} rb`;
+    } else {
+      str = abs.toLocaleString('id-ID');
+    }
+    const prefix = includeRp ? 'Rp ' : '';
+    return isNegative ? `-${prefix}${str}` : `${prefix}${str}`;
   }
 
   formatDateID(dateStr) {
@@ -1103,6 +1263,7 @@ class App {
       || localStorage.getItem('user_fullname')
       || 'Pengguna';
     if (this.usernameDisplay) this.usernameDisplay.textContent = displayName.split(' ')[0];
+    if (this.mobileGreetingName) this.mobileGreetingName.textContent = displayName.split(' ')[0];
     if (this.userAvatarInitial) this.userAvatarInitial.textContent = displayName.charAt(0).toUpperCase();
     this.loadInitialData();
   }
@@ -1345,6 +1506,18 @@ class App {
       this.summarySurplusVal.textContent = this.formatIDR(surplus);
       this.summarySurplusVal.style.color = surplus < 0 ? 'var(--accent-rose)' : 'var(--text-primary)';
     }
+
+    // Synchronize Mobile Dashboard 3-KPI Grid (Figma Screen 02)
+    if (this.mobileKpiIncome) this.mobileKpiIncome.textContent = this.formatCompactIDR(income);
+    if (this.mobileKpiExpense) this.mobileKpiExpense.textContent = this.formatCompactIDR(expense);
+    if (this.mobileKpiSurplus) {
+      this.mobileKpiSurplus.textContent = this.formatCompactIDR(surplus);
+      this.mobileKpiSurplus.style.color = surplus < 0 ? 'var(--accent-rose)' : 'var(--text-primary)';
+    }
+    if (this.mobileSummaryCardMonth) {
+      const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+      this.mobileSummaryCardMonth.textContent = `${monthNames[now.getMonth()]} ${curY}`;
+    }
   }
 
   renderSummaryCards() {
@@ -1404,7 +1577,45 @@ class App {
     });
 
     this.currentNetWorthValue = totalBal;
+    this.renderMobileAccounts();
     this.applyBalanceVisibility();
+  }
+
+  renderMobileAccounts() {
+    if (!this.mobileAccountsList) return;
+    if (!this.accounts || this.accounts.length === 0) {
+      this.mobileAccountsList.innerHTML = `
+        <div style="font-size: 11px; color: var(--text-secondary); padding: 8px 4px;">Belum ada rekening aktif.</div>
+      `;
+      return;
+    }
+
+    this.mobileAccountsList.innerHTML = this.accounts.map((acc) => {
+      const bal = parseFloat(acc.current_balance) || 0;
+      const name = acc.name || 'Akun';
+      const nameLower = name.toLowerCase();
+      let monogram = 'Rp';
+      if (nameLower.includes('bca') || nameLower.includes('bank') || acc.type === 'BANK') {
+        monogram = 'B';
+      } else if (nameLower.includes('gopay') || nameLower.includes('ewallet') || acc.type === 'EWALLET') {
+        monogram = 'G';
+      } else if (nameLower.includes('tunai') || nameLower.includes('kas') || acc.type === 'CASH') {
+        monogram = 'Rp';
+      } else {
+        monogram = name.charAt(0).toUpperCase();
+      }
+
+      const formattedBal = this.formatCompactIDR(bal);
+      return `
+        <div class="mobile-account-chip">
+          <div class="mobile-account-avatar">${monogram}</div>
+          <div class="mobile-account-info">
+            <div class="mobile-account-balance" data-real-compact="${formattedBal}">${this.isBalanceHidden ? '••••••••' : formattedBal}</div>
+            <div class="mobile-account-name">${name}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
   }
 
   toggleBalanceVisibility() {
@@ -1434,6 +1645,15 @@ class App {
       }
     }
 
+    if (this.mobileEyeOpen && this.mobileEyeClosed) {
+      this.mobileEyeOpen.style.display = this.isBalanceHidden ? 'none' : 'block';
+      this.mobileEyeClosed.style.display = this.isBalanceHidden ? 'block' : 'none';
+      if (this.mobileBtnToggleNetWorth) {
+        this.mobileBtnToggleNetWorth.setAttribute('title', this.isBalanceHidden ? 'Tampilkan Saldo' : 'Sembunyikan Saldo');
+        this.mobileBtnToggleNetWorth.setAttribute('aria-label', this.isBalanceHidden ? 'Tampilkan Saldo' : 'Sembunyikan Saldo');
+      }
+    }
+
     if (this.totalNetWorth) {
       if (this.isBalanceHidden) {
         this.totalNetWorth.textContent = 'Rp ••••••••';
@@ -1443,6 +1663,16 @@ class App {
         this.totalNetWorth.textContent = this.formatIDR(this.currentNetWorthValue);
         this.totalNetWorth.style.color = this.currentNetWorthValue < 0 ? 'var(--accent-rose)' : 'var(--text-primary)';
         this.totalNetWorth.classList.remove('is-hidden-mask');
+      }
+    }
+
+    if (this.mobileTotalNetWorth) {
+      if (this.isBalanceHidden) {
+        this.mobileTotalNetWorth.textContent = 'Rp ••••••••';
+        this.mobileTotalNetWorth.style.color = 'var(--text-secondary)';
+      } else {
+        this.mobileTotalNetWorth.textContent = this.formatIDR(this.currentNetWorthValue);
+        this.mobileTotalNetWorth.style.color = this.currentNetWorthValue < 0 ? 'var(--accent-rose)' : 'var(--text-primary)';
       }
     }
 
@@ -1460,6 +1690,16 @@ class App {
           el.textContent = real;
         }
         el.classList.remove('is-hidden-mask');
+      }
+    });
+
+    const mobileBalEls = document.querySelectorAll('.mobile-account-balance');
+    mobileBalEls.forEach((el) => {
+      const real = el.getAttribute('data-real-compact');
+      if (this.isBalanceHidden) {
+        el.textContent = '••••••••';
+      } else if (real) {
+        el.textContent = real;
       }
     });
   }
@@ -1628,6 +1868,60 @@ class App {
         this.dashboardHistoryBody.appendChild(tr);
       });
     }
+
+    this.renderMobileDashboardTransactions();
+  }
+
+  renderMobileDashboardTransactions() {
+    if (!this.mobileDashTxContainer) return;
+    const recent = (this.transactions || []).slice(0, 4);
+    if (recent.length === 0) {
+      this.mobileDashTxContainer.innerHTML = `
+        <div style="font-size: 11px; color: var(--text-secondary); padding: 12px 4px; text-align: center;">
+          Belum ada transaksi di bulan ini.
+        </div>
+      `;
+      return;
+    }
+
+    this.mobileDashTxContainer.innerHTML = recent.map((tx) => {
+      const isIncome = tx.type === 'INCOME';
+      const isTransfer = tx.type === 'TRANSFER';
+      const isRev = tx.is_reversal;
+      const iconClass = isIncome ? 'income' : (isTransfer ? 'transfer' : 'expense');
+      const amountClass = isIncome ? 'income' : 'expense';
+      const sign = isIncome ? '+' : '-';
+      const compactAmt = this.formatCompactIDR(tx.amount, false);
+
+      let iconSvg = '';
+      if (isIncome) {
+        iconSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>`;
+      } else if (isTransfer) {
+        iconSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10h14l-4-4"/><path d="M17 14H3l4 4"/></svg>`;
+      } else {
+        iconSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
+      }
+
+      const descText = this.formatTxDescription(tx.description, isRev);
+      const catText = tx.category_name || (isTransfer ? 'Transfer Rekening' : 'Pengeluaran');
+
+      return `
+        <div class="mobile-tx-item">
+          <div class="mobile-tx-left">
+            <div class="mobile-tx-icon-circle ${iconClass}">
+              ${iconSvg}
+            </div>
+            <div>
+              <div class="mobile-tx-title">${descText}</div>
+              <div class="mobile-tx-category">${catText}</div>
+            </div>
+          </div>
+          <div class="mobile-tx-amount ${amountClass}">
+            ${sign}${compactAmt}
+          </div>
+        </div>
+      `;
+    }).join('');
   }
 
   // ==========================================
