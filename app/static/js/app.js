@@ -920,8 +920,9 @@ class App {
         this.formTabReset.reset();
       });
     }
+  }
 
-    switchTab(tabId) {
+  switchTab(tabId) {
     // Fallback defensively jika ID tab tidak ditemukan di DOM agar layar tidak blank putih
     if (!document.getElementById(tabId)) {
       console.warn(`[switchTab] Tab '${tabId}' tidak ditemukan di DOM, dialihkan ke 'tab-dashboard'.`);
@@ -3712,8 +3713,7 @@ class App {
       });
     }
   }
-
-  }
+}
 
 // Bootstrapping
 document.addEventListener('DOMContentLoaded', () => {
