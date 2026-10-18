@@ -38,8 +38,11 @@ def init_db_pool() -> PooledDB:
             connect_timeout=10,
             read_timeout=30,
             write_timeout=30,
-            # Wajib sinkronisasi zona waktu UTC pada setiap sesi baru
-            setsession=["SET time_zone = '+00:00'"]
+            # Wajib sinkronisasi zona waktu UTC dan batas waktu tunggu lock pendek (5s)
+            setsession=[
+                "SET time_zone = '+00:00'",
+                "SET innodb_lock_wait_timeout = 5"
+            ]
         )
     return _pool
 

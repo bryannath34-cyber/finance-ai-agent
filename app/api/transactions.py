@@ -39,11 +39,13 @@ def get_batch_drafts(batch_id: str, user: dict = Depends(get_current_user)):
         data=drafts
     )
 
+@router.post("/drafts/{draft_id}", response_model=BaseResponse)
+@router.post("/drafts/{draft_id}/update", response_model=BaseResponse)
 @router.patch("/drafts/{draft_id}", response_model=BaseResponse)
 @router.put("/drafts/{draft_id}", response_model=BaseResponse)
 def update_draft(draft_id: int, payload: UpdateDraftRequest, user: dict = Depends(get_current_user)):
     """Menyunting kolom nominal, akun, kategori, atau catatan pada draft berstatus PENDING."""
-    logger.info("PATCH/PUT /drafts/%s oleh user %s: %s", draft_id, user.get("id"), payload)
+    logger.info("UPDATE /drafts/%s oleh user %s: %s", draft_id, user.get("id"), payload)
     update_data = payload.model_dump(exclude_unset=True)
     res = TransactionService.update_draft(user["id"], draft_id, update_data)
     return BaseResponse(success=True, message=res["message"])

@@ -37,7 +37,7 @@ async function request(endpoint, options = {}) {
   }
 
   const controller = new AbortController();
-  const timeoutMs = options.timeout || 15000;
+  const timeoutMs = options.timeout || 30000;
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   const config = {
@@ -60,7 +60,7 @@ async function request(endpoint, options = {}) {
   } catch (err) {
     clearTimeout(timeoutId);
     if (err.name === 'AbortError') {
-      const timeoutErr = new Error('Koneksi ke server timeout (15 detik). Silakan coba lagi.');
+      const timeoutErr = new Error(`Koneksi ke server timeout (${Math.round(timeoutMs / 1000)} detik). Silakan coba lagi.`);
       console.error(`[API Timeout] ${method} ${url}:`, timeoutErr);
       throw timeoutErr;
     }
@@ -145,8 +145,9 @@ export const api = {
     getDrafts: (batchId) => request(`/transactions/drafts/${batchId}`),
     updateDraft: (draftId, payload) =>
       request(`/transactions/drafts/${draftId}`, {
-        method: 'PATCH',
+        method: 'POST',
         body: JSON.stringify(payload),
+        timeout: 30000,
       }),
     cancelDraft: (draftId) =>
       request(`/transactions/drafts/${draftId}/cancel`, {
