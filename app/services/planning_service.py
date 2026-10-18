@@ -679,16 +679,7 @@ Berikan ringkasan cerdas dalam 2 paragraf: jelaskan kategori mana yang paling me
             """, (user_id,))
             daily_rows = {str(r["tx_day"]): Decimal(str(r["spent"])) for r in cur.fetchall()}
 
-            # 5. Saldo Akun / Kekayaan Bersih Saat Ini
-            cur.execute("""
-                SELECT COALESCE(SUM(current_balance), 0) as total_bal 
-                FROM accounts 
-                WHERE user_id = %s AND is_active = TRUE
-            """, (user_id,))
-            tot_bal_row = cur.fetchone()
-            current_net_worth = Decimal(str(tot_bal_row["total_bal"])) if tot_bal_row else Decimal("0.00")
-
-            # 6. Agregasi Riwayat Semua Bulan yang Ada Transaksi
+            # 5. Agregasi Riwayat Semua Bulan yang Ada Transaksi
             cur.execute("""
                 SELECT 
                     YEAR(transaction_date) as yr,
@@ -701,6 +692,10 @@ Berikan ringkasan cerdas dalam 2 paragraf: jelaskan kategori mana yang paling me
                 ORDER BY yr DESC, mo DESC
             """, (user_id,))
             history_rows = cur.fetchall()
+
+        # 6. Saldo Akun / Kekayaan Bersih Saat Ini
+        user_accounts = FinanceService.get_accounts_with_balance(user_id)
+        current_net_worth = sum([a["current_balance"] for a in user_accounts if a.get("is_active", True)], Decimal("0.00"))
 
         # Proses data 12 bulan
         monthly_map = {m: {"income": Decimal("0.00"), "expense": Decimal("0.00"), "income_cnt": 0, "expense_cnt": 0} for m in range(1, 13)}

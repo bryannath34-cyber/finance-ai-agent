@@ -1068,10 +1068,11 @@ class App {
     if (this.authOverlay) {
       this.authOverlay.style.display = 'none';
     }
-    const savedName = localStorage.getItem('user_fullname');
-    const username = savedName || (this.currentUser ? this.currentUser.username : 'Bryan');
-    if (this.usernameDisplay) this.usernameDisplay.textContent = username.split(' ')[0];
-    if (this.userAvatarInitial) this.userAvatarInitial.textContent = username.charAt(0).toUpperCase();
+    const displayName = (this.currentUser && (this.currentUser.full_name || this.currentUser.username))
+      || localStorage.getItem('user_fullname')
+      || 'Pengguna';
+    if (this.usernameDisplay) this.usernameDisplay.textContent = displayName.split(' ')[0];
+    if (this.userAvatarInitial) this.userAvatarInitial.textContent = displayName.charAt(0).toUpperCase();
     this.loadInitialData();
   }
 
@@ -3653,24 +3654,21 @@ class App {
   }
 
   loadSettingsData() {
-    const savedName = localStorage.getItem('user_fullname');
-    const savedEmail = localStorage.getItem('user_email');
-    if (savedName) {
-      if (this.settingsProfileName) this.settingsProfileName.textContent = savedName;
-      if (this.settingsAvatarInitial) this.settingsAvatarInitial.textContent = savedName[0].toUpperCase();
-      if (this.usernameDisplay) this.usernameDisplay.textContent = savedName.split(' ')[0];
-      if (this.userAvatarInitial) this.userAvatarInitial.textContent = savedName[0].toUpperCase();
-      if (this.inputProfileFullname) this.inputProfileFullname.value = savedName;
-    } else if (this.currentUser) {
-      const uName = this.currentUser.username || 'Bryan Nathanael';
-      if (this.settingsProfileName) this.settingsProfileName.textContent = uName;
-      if (this.settingsAvatarInitial) this.settingsAvatarInitial.textContent = uName[0].toUpperCase();
-    }
+    const displayName = (this.currentUser && (this.currentUser.full_name || this.currentUser.username))
+      || localStorage.getItem('user_fullname')
+      || 'Pengguna';
+    const displayEmail = (this.currentUser && this.currentUser.email)
+      || localStorage.getItem('user_email')
+      || (this.currentUser ? `${this.currentUser.username}@finance.app` : 'user@finance.app');
 
-    if (savedEmail) {
-      if (this.settingsProfileEmail) this.settingsProfileEmail.textContent = savedEmail;
-      if (this.inputProfileEmail) this.inputProfileEmail.value = savedEmail;
-    }
+    if (this.settingsProfileName) this.settingsProfileName.textContent = displayName;
+    if (this.settingsAvatarInitial) this.settingsAvatarInitial.textContent = displayName[0].toUpperCase();
+    if (this.usernameDisplay) this.usernameDisplay.textContent = displayName.split(' ')[0];
+    if (this.userAvatarInitial) this.userAvatarInitial.textContent = displayName[0].toUpperCase();
+    if (this.inputProfileFullname) this.inputProfileFullname.value = displayName;
+
+    if (this.settingsProfileEmail) this.settingsProfileEmail.textContent = displayEmail;
+    if (this.inputProfileEmail) this.inputProfileEmail.value = displayEmail;
 
     const is2faActive = localStorage.getItem('user_2fa_enabled') === 'true';
     this.update2faButton(is2faActive);
