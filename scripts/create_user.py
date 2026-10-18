@@ -103,11 +103,12 @@ def main():
             """, accounts_data)
             print("  ✅ 3 Rekening awal ('Kas Tunai', 'Bank', 'E-Wallet') diinisialisasi.")
 
-            # C. Insert 8 Kategori Umum + 1 Kategori Sistem "Biaya Admin"
+            # C. Insert 9 Kategori Umum + 1 Kategori Sistem "Biaya Admin"
             categories_data = [
                 (user_id, 'Gaji & Pendapatan', 'INCOME', False),
                 (user_id, 'Bonus & Freelance', 'INCOME', False),
                 (user_id, 'Investasi & Bunga', 'INCOME', False),
+                (user_id, 'Saldo Awal', 'INCOME', False),
                 (user_id, 'Makanan & Minuman', 'EXPENSE', False),
                 (user_id, 'Transportasi', 'EXPENSE', False),
                 (user_id, 'Tagihan & Utilitas', 'EXPENSE', False),
@@ -119,7 +120,7 @@ def main():
                 INSERT INTO categories (user_id, name, type, is_system, is_active)
                 VALUES (%s, %s, %s, %s, TRUE)
             """, categories_data)
-            print("  ✅ 8 Kategori umum & 1 Kategori sistem ('Biaya Admin') diinisialisasi.")
+            print("  ✅ 9 Kategori umum & 1 Kategori sistem ('Biaya Admin') diinisialisasi.")
 
             # Commit transaksi
             conn.commit()

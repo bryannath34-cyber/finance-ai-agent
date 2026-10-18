@@ -391,7 +391,7 @@ ATURAN DETEKSI INTENT BAHASA INDONESIA:
    - "type": "INCOME" (karena menambah saldo rekening buku besar).
    - "source_account_name": null.
    - "destination_account_name": nama rekening yang disebut (misal: "Bank" untuk BCA/Mandiri/BRI, "Kas Tunai" untuk dompet/tunai, "E-Wallet" untuk GoPay/OVO/Dana).
-   - "category_name": pilih kategori pemasukan sah (misal "Gaji & Pendapatan").
+   - "category_name": pilih kategori "Saldo Awal" (JANGAN PERNAH gunakan "Gaji & Pendapatan" agar tidak merusak laporan gaji!).
    - JANGAN PERNAH mengategorikan pernyataan saldo/ada uang sebagai EXPENSE atau "Makanan & Minuman"!
 2. BAHASA SEHARI-HARI & GAUL:
    Pahami kata gaul Indonesia: "gua", "gw", "gue", "duit", "uang", "saat ini ada", "sekarang ada", "ada jumlah", "jumlah nya", "tf", "cair", "ngopi", "beli", "jajan".
@@ -400,13 +400,13 @@ CONTOH LENGKAP:
 Input: "di rekening bca gua ada jumlah nya 8,637,518.23"
 Output:
 [
-  {{"type": "INCOME", "amount": 8637518.23, "admin_fee": 0, "source_account_name": null, "destination_account_name": "Bank", "category_name": "Gaji & Pendapatan", "description": "Saldo rekening BCA", "transaction_date": "{today_str}"}}
+  {{"type": "INCOME", "amount": 8637518.23, "admin_fee": 0, "source_account_name": null, "destination_account_name": "Bank", "category_name": "Saldo Awal", "description": "Saldo rekening BCA", "transaction_date": "{today_str}"}}
 ]
 
 Input: "duit gua di rekening bca ada 8.600.000"
 Output:
 [
-  {{"type": "INCOME", "amount": 8600000, "admin_fee": 0, "source_account_name": null, "destination_account_name": "Bank", "category_name": "Gaji & Pendapatan", "description": "Saldo rekening BCA", "transaction_date": "{today_str}"}}
+  {{"type": "INCOME", "amount": 8600000, "admin_fee": 0, "source_account_name": null, "destination_account_name": "Bank", "category_name": "Saldo Awal", "description": "Saldo rekening BCA", "transaction_date": "{today_str}"}}
 ]
 
 Input: "Beli bensin 50rb pake bank, makan siang 30rb e-wallet, tf 100rb dari bank ke e-wallet admin 1000"
@@ -578,10 +578,26 @@ KALIMAT PENGGUNA YANG HARUS DIPROSES:
                 if not dest_acc_id or (bank_acc and any(kw in user_input_lower for kw in ("rekening", "bank", "bca", "duit", "saldo"))):
                     dest_acc_id = bank_acc["id"] if bank_acc else default_acc_id
                 
-                # Pastikan kategori adalah kategori INCOME sah (Gaji & Pendapatan)
-                inc_cat = next((c for c in categories if c.get("type") == "INCOME" and c.get("is_active")), None)
-                if inc_cat:
-                    cat_id = inc_cat["id"]
+                # Gunakan kategori khusus 'Saldo Awal' agar tidak tercampur dengan 'Gaji & Pendapatan'
+                saldo_cat = next((c for c in categories if c.get("type") == "INCOME" and "saldo" in c.get("name", "").lower()), None)
+                if saldo_cat:
+                    cat_id = saldo_cat["id"]
+                else:
+                    try:
+                        from app.core.database import get_db_cursor
+                        with get_db_cursor(commit=True) as cur:
+                            cur.execute("SELECT id FROM categories WHERE user_id = %s AND name = 'Saldo Awal' AND type = 'INCOME' LIMIT 1", (user_id,))
+                            row = cur.fetchone()
+                            if row:
+                                cat_id = row["id"]
+                            else:
+                                cur.execute("INSERT INTO categories (user_id, name, type, is_system, is_active) VALUES (%s, 'Saldo Awal', 'INCOME', FALSE, TRUE)", (user_id,))
+                                cat_id = cur.lastrowid
+                    except Exception as e_cat:
+                        logger.warning("Gagal membuat/mengambil kategori Saldo Awal: %s", e_cat)
+                        inc_cat = next((c for c in categories if c.get("type") == "INCOME" and c.get("is_active")), None)
+                        if inc_cat:
+                            cat_id = inc_cat["id"]
 
             final_desc = item.get("description")
             if not final_desc or final_desc == user_input or is_balance_statement:
@@ -678,12 +694,16 @@ KALIMAT PENGGUNA YANG HARUS DIPROSES:
                 "transaction_date": today_str
             })
         elif is_income or not is_expense:
-            cat_name = "Gaji & Pendapatan"
-            inc_cats = [c["name"] for c in categories if c.get("type") == "INCOME" and c.get("is_active")]
-            if inc_cats:
-                cat_name = inc_cats[0]
+            is_balance_stmt = any(kw in text_lower for kw in ("duit", "uang", "saldo", "dana", "rekening", "ada", "punya", "jumlah")) and not is_expense
+            if is_balance_stmt:
+                cat_name = "Saldo Awal"
+            else:
+                cat_name = "Gaji & Pendapatan"
+                inc_cats = [c["name"] for c in categories if c.get("type") == "INCOME" and c.get("is_active")]
+                if inc_cats:
+                    cat_name = inc_cats[0]
 
-            desc = f"Saldo {matched_acc_name}" if any(kw in text_lower for kw in ("duit", "uang", "saldo", "dana", "rekening", "ada", "punya", "jumlah")) and not is_expense else text[:100]
+            desc = f"Saldo {matched_acc_name}" if is_balance_stmt else text[:100]
 
             results.append({
                 "type": "INCOME",

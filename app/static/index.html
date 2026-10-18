@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=2.6.1">
+  <link rel="stylesheet" href="css/style.css?v=2.6.2">
   <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
   <link rel="shortcut icon" type="image/svg+xml" href="favicon.svg?v=3">
   <link rel="apple-touch-icon" href="favicon.svg?v=3">
@@ -252,7 +252,47 @@
            Matches Figma Screen 02 1:1
            ================================================================ -->
       <div id="tab-mutasi" class="tab-content active">
-        <div class="full-card-stack" style="display: flex; flex-direction: column; gap: 18px;">
+          <!-- CARD 0: Posisi Saldo Rekening & Uang di Bank -->
+          <div class="figma-card" style="padding: 16px 20px;">
+            <div class="card-header-row" style="margin-bottom: 10px;">
+              <div class="card-title-group">
+                <span class="card-header-icon blue" style="background: var(--accent-blue-bg); color: var(--accent-blue);">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="4" width="20" height="16" rx="3" />
+                    <line x1="2" y1="10" x2="22" y2="10" />
+                  </svg>
+                </span>
+                <div>
+                  <span class="card-section-title">Uang di Bank & Saldo Rekening</span>
+                  <div class="card-subtitle-text" style="margin-top: 2px;">
+                    Posisi saldo likuid riil yang tersedia di setiap rekening aktif
+                  </div>
+                </div>
+              </div>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <button type="button" class="card-action-link" id="btn-toggle-ai-balances" title="Sembunyikan/Tampilkan Saldo" style="display: inline-flex; align-items: center; gap: 4px; cursor: pointer;">
+                  <svg class="ui-icon icon-eye-toggle" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                  <span>Mata</span>
+                </button>
+                <button type="button" class="card-action-link" id="btn-refresh-ai-accounts" style="cursor: pointer;">Segarkan</button>
+                <button type="button" class="card-action-link" id="btn-add-account-ai" style="cursor: pointer;">+ Tambah Akun</button>
+              </div>
+            </div>
+
+            <!-- Grid Kartu Bank & Rekening -->
+            <div id="ai-accounts-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-top: 10px;">
+              <div style="color: var(--text-muted); font-size: 11px; padding: 10px 0;">Memuat saldo rekening...</div>
+            </div>
+
+            <!-- Total Banner Ringkasan Likuiditas -->
+            <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border-main); display: flex; align-items: center; justify-content: space-between; font-size: 11.5px; color: var(--text-secondary);">
+              <span>Total Uang Likuid Tersedia:</span>
+              <span id="ai-total-liquid-balance" style="font-weight: 700; font-size: 13px; color: var(--text-primary);">Rp 0</span>
+            </div>
+          </div>
 
           <!-- CARD 1: Asisten AI Command Center -->
           <div class="figma-card" style="padding: 16px 20px;">
@@ -3702,7 +3742,7 @@
       </div>
     </div>
 
-    <script type="module" src="js/app.js?v=2.6.1"></script>
+    <script type="module" src="js/app.js?v=2.6.2"></script>
 </body>
 
 </html>

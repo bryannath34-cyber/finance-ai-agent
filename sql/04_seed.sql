@@ -32,5 +32,6 @@ INSERT INTO categories (id, user_id, name, type, is_system, is_active) VALUES
 -- 3. KATEGORI SISTEM WAJIB UNTUK BIAYA ADMIN TRANSFER
 -- Kategori ini bertipe EXPENSE, berbendera is_system = TRUE, dan dirujuk oleh ledger_role = 'ADMIN_FEE'
 -- ============================================================================
-(9, 1, 'Biaya Admin', 'EXPENSE', TRUE, TRUE)
+(9, 1, 'Biaya Admin', 'EXPENSE', TRUE, TRUE),
+(10, 1, 'Saldo Awal', 'INCOME', FALSE, TRUE)
 ON DUPLICATE KEY UPDATE name=name;

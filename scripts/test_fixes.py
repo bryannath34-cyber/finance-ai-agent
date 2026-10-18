@@ -54,7 +54,8 @@ accounts = [
 categories = [
     {'id': 10, 'name': 'Gaji & Pendapatan', 'type': 'INCOME', 'is_active': True},
     {'id': 11, 'name': 'Makanan & Minuman', 'type': 'EXPENSE', 'is_active': True},
-    {'id': 12, 'name': 'Transportasi', 'type': 'EXPENSE', 'is_active': True}
+    {'id': 12, 'name': 'Transportasi', 'type': 'EXPENSE', 'is_active': True},
+    {'id': 13, 'name': 'Saldo Awal', 'type': 'INCOME', 'is_active': True}
 ]
 
 from app.services.ai_service import AIService
@@ -68,8 +69,8 @@ assert item['type'] == 'INCOME', f"Expected INCOME, got {item['type']}"
 assert item['amount'] == Decimal('8637513'), f"Expected 8637513, got {item['amount']}"
 assert item['destination_account_name'] == 'BCA', f"Expected BCA, got {item['destination_account_name']}"
 assert item['source_account_name'] is None, f"Expected None, got {item['source_account_name']}"
-assert item['category_name'] == 'Gaji & Pendapatan', f"Expected Gaji & Pendapatan, got {item['category_name']}"
-print('  [PASS] Fallback regex parser correctly mapped balance statement!')
+assert item['category_name'] == 'Saldo Awal', f"Expected Saldo Awal, got {item['category_name']}"
+print('  [PASS] Fallback regex parser correctly mapped balance statement to Saldo Awal!')
 
 print('\n=== 4. TESTING WORST-CASE LLM MISCLASSIFICATION OVERRIDE ===')
 # Test that even if LLM returns EXPENSE, Kas Tunai, Makanan & Minuman, the post-processor corrects it
@@ -153,8 +154,11 @@ for it in parsed_items:
         src_acc_id = None
         if not dest_acc_id or (bank_acc and any(kw in user_input_lower for kw in ('rekening', 'bank', 'bca', 'duit', 'saldo'))):
             dest_acc_id = bank_acc['id'] if bank_acc else default_acc_id
-        inc_cat = next((c for c in categories if c.get('type') == 'INCOME' and c.get('is_active')), None)
-        if inc_cat: cat_id = inc_cat['id']
+        saldo_cat = next((c for c in categories if c.get('type') == 'INCOME' and 'saldo' in c.get('name', '').lower()), None)
+        if saldo_cat: cat_id = saldo_cat['id']
+        else:
+            inc_cat = next((c for c in categories if c.get('type') == 'INCOME' and c.get('is_active')), None)
+            if inc_cat: cat_id = inc_cat['id']
 
     matched_acc = next((a['name'] for a in accounts if a['id'] == (dest_acc_id or src_acc_id)), 'Rekening')
     final_desc = f'Saldo {matched_acc}' if is_balance_statement else user_input[:100]
@@ -174,8 +178,8 @@ assert v['type'] == 'INCOME', f"Expected INCOME, got {v['type']}"
 assert v['amount'] == Decimal('8637513'), f"Expected 8637513, got {v['amount']}"
 assert v['destination_account_id'] == 2, f"Expected 2 (BCA), got {v['destination_account_id']}"
 assert v['source_account_id'] is None, f"Expected None, got {v['source_account_id']}"
-assert v['category_id'] == 10, f"Expected 10 (Gaji & Pendapatan), got {v['category_id']}"
+assert v['category_id'] == 13, f"Expected 13 (Saldo Awal), got {v['category_id']}"
 assert v['description'] == 'Saldo BCA', f"Expected Saldo BCA, got {v['description']}"
-print('  [PASS] Misclassified LLM output was perfectly overridden and normalized!')
+print('  [PASS] Misclassified LLM output was perfectly overridden and normalized to Saldo Awal!')
 
 print('\nALL VERIFICATION TESTS PASSED SUCCESSFULLY (100% GREEN)!')

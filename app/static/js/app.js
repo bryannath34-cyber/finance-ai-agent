@@ -92,6 +92,11 @@ class App {
 
     // Tab 1: Dashboard Mutasi & Accounts
     this.accountsContainer = document.getElementById('accounts-container');
+    this.aiAccountsGrid = document.getElementById('ai-accounts-grid');
+    this.aiTotalLiquidBalance = document.getElementById('ai-total-liquid-balance');
+    this.btnRefreshAiAccounts = document.getElementById('btn-refresh-ai-accounts');
+    this.btnAddAccountAi = document.getElementById('btn-add-account-ai');
+    this.btnToggleAiBalances = document.getElementById('btn-toggle-ai-balances');
     this.totalNetWorth = document.getElementById('total-net-worth');
     this.btnToggleNetWorth = document.getElementById('btn-toggle-net-worth');
     this.eyeIconOpen = document.getElementById('eye-icon-open');
@@ -533,6 +538,21 @@ class App {
     // Refresh Buttons
     if (this.btnRefreshAccounts) {
       this.btnRefreshAccounts.addEventListener('click', () => this.loadAccounts());
+    }
+    if (this.btnRefreshAiAccounts) {
+      this.btnRefreshAiAccounts.addEventListener('click', () => this.loadAccounts());
+    }
+    if (this.btnAddAccountAi) {
+      bindOpenModal(this.btnAddAccountAi, this.modalAddAccount);
+    }
+    if (this.btnToggleAiBalances) {
+      this.btnToggleAiBalances.addEventListener('click', () => {
+        this.isBalanceHidden = !this.isBalanceHidden;
+        try {
+          localStorage.setItem('hide_net_worth', this.isBalanceHidden ? 'true' : 'false');
+        } catch (_) {}
+        this.applyBalanceVisibility();
+      });
     }
     if (this.btnRefreshHistory) {
       this.btnRefreshHistory.addEventListener('click', () => this.loadHistory());
@@ -1660,6 +1680,80 @@ class App {
       this.accountsContainer.appendChild(row);
     });
 
+    // Render Grid Kartu Uang di Bank pada Tab Mutasi AI
+    if (this.aiAccountsGrid) {
+      this.aiAccountsGrid.innerHTML = '';
+      if (this.accounts.length === 0) {
+        this.aiAccountsGrid.innerHTML = `
+          <div style="color: var(--text-muted); font-size: 11px; padding: 10px 0; grid-column: 1 / -1;">Belum ada rekening aktif. Silakan klik <b>+ Tambah Akun</b>.</div>
+        `;
+      } else {
+        this.accounts.forEach((acc) => {
+          const bal = parseFloat(acc.current_balance) || 0;
+          const nameLower = (acc.name || '').toLowerCase();
+          let monogramClass = 'monogram-cash';
+          let monogramText = 'KT';
+
+          if (nameLower.includes('bank') || nameLower.includes('bca') || acc.type === 'BANK') {
+            monogramClass = 'monogram-bank';
+            monogramText = 'BK';
+          } else if (nameLower.includes('ewallet') || nameLower.includes('e-wallet') || nameLower.includes('gopay') || acc.type === 'EWALLET') {
+            monogramClass = 'monogram-ewallet';
+            monogramText = 'EW';
+          } else if (nameLower.includes('kas') || acc.type === 'CASH') {
+            monogramClass = 'monogram-cash';
+            monogramText = 'KT';
+          } else {
+            monogramText = acc.name.substring(0, 3).toUpperCase();
+          }
+
+          const isNegative = bal < 0;
+          const aiCard = document.createElement('div');
+          aiCard.className = 'ai-account-card';
+          aiCard.style.cssText = `
+            background: #FFFFFF;
+            border: 1px solid var(--border-main);
+            border-radius: 12px;
+            padding: 12px 14px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 8px;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+          `;
+          aiCard.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="account-monogram ${monogramClass}" style="width: 28px; height: 28px; font-size: 8.5px; border-radius: 8px;">${monogramText}</div>
+                <span style="font-weight: 600; font-size: 12px; color: var(--text-primary);">${acc.name}</span>
+              </div>
+              <span style="font-size: 9.5px; font-weight: 600; padding: 2px 7px; border-radius: 6px; background: var(--bg-hover); color: var(--text-secondary); text-transform: uppercase;">${acc.type}</span>
+            </div>
+            <div style="margin-top: 4px;">
+              <div style="font-size: 9.5px; color: var(--text-muted); margin-bottom: 2px;">Saldo Tersedia</div>
+              <div class="acc-balance-num ${isNegative ? 'negative' : ''} ${this.isBalanceHidden ? 'is-hidden-mask' : ''}" 
+                   data-real-balance="${this.formatIDR(bal)}"
+                   style="font-size: 14.5px; font-weight: 700; color: ${isNegative ? 'var(--accent-red)' : 'var(--text-primary)'};">
+                ${this.isBalanceHidden ? 'Rp ••••••••' : this.formatIDR(bal)}
+              </div>
+            </div>
+          `;
+          this.aiAccountsGrid.appendChild(aiCard);
+        });
+      }
+    }
+
+    if (this.aiTotalLiquidBalance) {
+      this.aiTotalLiquidBalance.setAttribute('data-real-balance', this.formatIDR(totalBal));
+      this.aiTotalLiquidBalance.textContent = this.isBalanceHidden ? 'Rp ••••••••' : this.formatIDR(totalBal);
+      if (this.isBalanceHidden) {
+        this.aiTotalLiquidBalance.classList.add('is-hidden-mask');
+      } else {
+        this.aiTotalLiquidBalance.classList.remove('is-hidden-mask');
+      }
+    }
+
     this.currentNetWorthValue = totalBal;
     this.renderMobileAccounts();
     this.applyBalanceVisibility();
@@ -1757,6 +1851,17 @@ class App {
       } else {
         this.mobileTotalNetWorth.textContent = this.formatIDR(this.currentNetWorthValue);
         this.mobileTotalNetWorth.style.color = this.currentNetWorthValue < 0 ? 'var(--accent-rose)' : 'var(--text-primary)';
+      }
+    }
+
+    if (this.aiTotalLiquidBalance) {
+      if (this.isBalanceHidden) {
+        this.aiTotalLiquidBalance.textContent = 'Rp ••••••••';
+        this.aiTotalLiquidBalance.classList.add('is-hidden-mask');
+      } else {
+        const real = this.aiTotalLiquidBalance.getAttribute('data-real-balance') || this.formatIDR(this.currentNetWorthValue);
+        this.aiTotalLiquidBalance.textContent = real;
+        this.aiTotalLiquidBalance.classList.remove('is-hidden-mask');
       }
     }
 
