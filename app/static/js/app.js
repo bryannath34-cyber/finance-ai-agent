@@ -1062,9 +1062,6 @@ class App {
       this.loginError.style.display = 'none';
       this.loginError.textContent = '';
     }
-    try {
-      this.switchTab('tab-mutasi');
-    } catch (_) {}
   }
 
   showDashboard() {
@@ -1122,8 +1119,6 @@ class App {
     this.accounts = [];
     this.transactions = [];
     this.filteredTransactions = null;
-    this.renderAccounts();
-    this.renderHistory();
     this.closeModals();
 
     // 3. Batalkan sesi di backend OCI secara asinkron
@@ -1132,6 +1127,11 @@ class App {
     } catch (e) {
       console.warn('Logout notice:', e);
     }
+
+    // 4. Reload bersih halaman agar browser kembali 100% segar ke tampilan login
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
   }
 
   async loadInitialData() {
