@@ -77,6 +77,7 @@ class TransactionService:
     @staticmethod
     def update_draft(user_id: int, draft_id: int, update_data: Dict[str, Any]) -> Dict[str, Any]:
         """Memperbarui kolom draft transaksi yang masih berstatus PENDING dengan konsistensi constraint."""
+        logger.info("Memperbarui draft ID %s untuk user ID %s dengan data: %s", draft_id, user_id, update_data)
         with get_db_cursor(commit=True) as cur:
             # Ambil data draft saat ini
             cur.execute("""
@@ -106,8 +107,22 @@ class TransactionService:
                 final_cat_id = update_data.get("category_id") or draft["category_id"]
                 if not final_src_acc:
                     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Rekening sumber wajib dipilih untuk pengeluaran.")
+                
+                # Pastikan kategori bertipe EXPENSE
+                if final_cat_id:
+                    cur.execute("SELECT id, type FROM categories WHERE id = %s AND user_id = %s", (final_cat_id, user_id))
+                    cat_row = cur.fetchone()
+                    if not cat_row or cat_row["type"] != "EXPENSE":
+                        cur.execute("SELECT id FROM categories WHERE user_id = %s AND type = 'EXPENSE' AND is_active = TRUE ORDER BY id ASC LIMIT 1", (user_id,))
+                        fb_cat = cur.fetchone()
+                        final_cat_id = fb_cat["id"] if fb_cat else None
                 if not final_cat_id:
-                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Kategori wajib dipilih untuk pengeluaran.")
+                    cur.execute("SELECT id FROM categories WHERE user_id = %s AND type = 'EXPENSE' AND is_active = TRUE ORDER BY id ASC LIMIT 1", (user_id,))
+                    fb_cat = cur.fetchone()
+                    final_cat_id = fb_cat["id"] if fb_cat else None
+                if not final_cat_id:
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Kategori pengeluaran wajib dipilih.")
+
             elif target_type == "INCOME":
                 final_admin_fee = Decimal("0.00")
                 final_src_acc = None
@@ -115,8 +130,22 @@ class TransactionService:
                 final_cat_id = update_data.get("category_id") or draft["category_id"]
                 if not final_dest_acc:
                     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Rekening tujuan/masuk wajib dipilih untuk pemasukan.")
+
+                # Pastikan kategori bertipe INCOME
+                if final_cat_id:
+                    cur.execute("SELECT id, type FROM categories WHERE id = %s AND user_id = %s", (final_cat_id, user_id))
+                    cat_row = cur.fetchone()
+                    if not cat_row or cat_row["type"] != "INCOME":
+                        cur.execute("SELECT id FROM categories WHERE user_id = %s AND type = 'INCOME' AND is_active = TRUE ORDER BY id ASC LIMIT 1", (user_id,))
+                        fb_cat = cur.fetchone()
+                        final_cat_id = fb_cat["id"] if fb_cat else None
                 if not final_cat_id:
-                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Kategori wajib dipilih untuk pemasukan.")
+                    cur.execute("SELECT id FROM categories WHERE user_id = %s AND type = 'INCOME' AND is_active = TRUE ORDER BY id ASC LIMIT 1", (user_id,))
+                    fb_cat = cur.fetchone()
+                    final_cat_id = fb_cat["id"] if fb_cat else None
+                if not final_cat_id:
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Kategori pemasukan wajib dipilih.")
+
             else:  # TRANSFER
                 final_cat_id = None
                 final_admin_fee = update_data.get("admin_fee") if update_data.get("admin_fee") is not None else (draft["admin_fee"] or Decimal("0.00"))
@@ -142,6 +171,7 @@ class TransactionService:
                 final_desc, final_date,
                 draft_id, user_id
             ))
+            logger.info("Draft ID %s berhasil diperbarui. Rows affected: %s", draft_id, cur.rowcount)
 
         return {"success": True, "message": "Draft transaksi berhasil diperbarui."}
 

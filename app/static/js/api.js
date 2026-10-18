@@ -36,14 +36,20 @@ async function request(endpoint, options = {}) {
     headers['Content-Type'] = 'application/json';
   }
 
+  const controller = new AbortController();
+  const timeoutMs = options.timeout || 15000;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
   const config = {
     ...options,
     headers,
+    signal: options.signal || controller.signal,
     credentials: 'include', // Include HttpOnly session cookie
   };
 
   try {
     const res = await fetch(url, config);
+    clearTimeout(timeoutId);
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
@@ -52,6 +58,12 @@ async function request(endpoint, options = {}) {
     }
     return data;
   } catch (err) {
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') {
+      const timeoutErr = new Error('Koneksi ke server timeout (15 detik). Silakan coba lagi.');
+      console.error(`[API Timeout] ${method} ${url}:`, timeoutErr);
+      throw timeoutErr;
+    }
     console.error(`[API Error] ${method} ${url}:`, err);
     throw err;
   }

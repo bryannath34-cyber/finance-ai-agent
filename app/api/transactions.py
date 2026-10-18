@@ -1,3 +1,4 @@
+import logging
 from typing import List, Optional
 from fastapi import APIRouter, Depends, Query, Request
 from app.core.security import get_current_user
@@ -14,6 +15,8 @@ from app.schemas.transaction import (
 )
 from app.services.transaction_service import TransactionService
 from app.services.finance_service import FinanceService
+
+logger = logging.getLogger("personal_finance.transactions")
 
 router = APIRouter(prefix="/transactions", tags=["Transactions"])
 
@@ -37,8 +40,10 @@ def get_batch_drafts(batch_id: str, user: dict = Depends(get_current_user)):
     )
 
 @router.patch("/drafts/{draft_id}", response_model=BaseResponse)
+@router.put("/drafts/{draft_id}", response_model=BaseResponse)
 def update_draft(draft_id: int, payload: UpdateDraftRequest, user: dict = Depends(get_current_user)):
     """Menyunting kolom nominal, akun, kategori, atau catatan pada draft berstatus PENDING."""
+    logger.info("PATCH/PUT /drafts/%s oleh user %s: %s", draft_id, user.get("id"), payload)
     update_data = payload.model_dump(exclude_unset=True)
     res = TransactionService.update_draft(user["id"], draft_id, update_data)
     return BaseResponse(success=True, message=res["message"])

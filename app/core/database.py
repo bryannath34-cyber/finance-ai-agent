@@ -24,7 +24,7 @@ def init_db_pool() -> PooledDB:
             creator=pymysql,
             mincached=settings.DB_POOL_MIN,
             maxcached=settings.DB_POOL_MAX,
-            maxconnections=settings.DB_POOL_MAX + 5,
+            maxconnections=settings.DB_POOL_MAX + 15,
             blocking=True,
             host=settings.DB_HOST,
             port=settings.DB_PORT,
@@ -35,6 +35,9 @@ def init_db_pool() -> PooledDB:
             cursorclass=DictCursor,
             ssl={"check_hostname": False},
             autocommit=False,
+            connect_timeout=10,
+            read_timeout=30,
+            write_timeout=30,
             # Wajib sinkronisasi zona waktu UTC pada setiap sesi baru
             setsession=["SET time_zone = '+00:00'"]
         )
@@ -54,9 +57,16 @@ def get_db_connection() -> Generator[pymysql.Connection, None, None]:
     try:
         yield conn
     except Exception:
-        conn.rollback()
+        try:
+            conn.rollback()
+        except Exception:
+            pass
         raise
     finally:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
         conn.close()
 
 @contextmanager
@@ -68,6 +78,11 @@ def get_db_cursor(commit: bool = True) -> Generator[DictCursor, None, None]:
                 yield cur
                 if commit:
                     conn.commit()
+                else:
+                    conn.rollback()
             except Exception:
-                conn.rollback()
+                try:
+                    conn.rollback()
+                except Exception:
+                    pass
                 raise

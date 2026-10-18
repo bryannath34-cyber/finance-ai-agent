@@ -5,7 +5,7 @@
  * Financial Planning, and AI Advisory Copilot.
  */
 
-import { api } from './api.js';
+import { api } from './api.js?v=2.5.6';
 import { AudioRecorder } from './audio_recorder.js';
 
 const Icons = {
@@ -2611,7 +2611,14 @@ class App {
   }
 
   async handleSaveEditDraft(e) {
-    e.preventDefault();
+    if (e) e.preventDefault();
+    const btnSubmit = document.getElementById('btn-submit-edit-draft');
+    const errBox = document.getElementById('edit-draft-error');
+    if (errBox) {
+      errBox.style.display = 'none';
+      errBox.textContent = '';
+    }
+
     const draftId = parseInt(document.getElementById('edit-draft-id').value, 10);
     const type = document.getElementById('edit-draft-type').value;
     const amount = parseFloat(document.getElementById('edit-draft-amount').value);
@@ -2620,7 +2627,14 @@ class App {
     const destAccId = parseInt(document.getElementById('edit-draft-dest-account').value, 10) || null;
     const catId = parseInt(document.getElementById('edit-draft-category').value, 10) || null;
     const description = document.getElementById('edit-draft-description').value.trim();
-    const errBox = document.getElementById('edit-draft-error');
+
+    if (!draftId) {
+      if (errBox) {
+        errBox.textContent = 'ID draft tidak valid. Silakan muat ulang halaman.';
+        errBox.style.display = 'block';
+      }
+      return;
+    }
 
     if (isNaN(amount) || amount <= 0) {
       if (errBox) {
@@ -2633,6 +2647,30 @@ class App {
     if (type === 'TRANSFER' && srcAccId === destAccId) {
       if (errBox) {
         errBox.textContent = 'Rekening sumber dan rekening tujuan transfer tidak boleh sama.';
+        errBox.style.display = 'block';
+      }
+      return;
+    }
+
+    if (type === 'EXPENSE' && !srcAccId) {
+      if (errBox) {
+        errBox.textContent = 'Rekening sumber (keluar dari) wajib dipilih untuk pengeluaran.';
+        errBox.style.display = 'block';
+      }
+      return;
+    }
+
+    if (type === 'INCOME' && !destAccId) {
+      if (errBox) {
+        errBox.textContent = 'Rekening tujuan (masuk ke) wajib dipilih untuk pemasukan.';
+        errBox.style.display = 'block';
+      }
+      return;
+    }
+
+    if ((type === 'EXPENSE' || type === 'INCOME') && !catId) {
+      if (errBox) {
+        errBox.textContent = 'Kategori transaksi wajib dipilih.';
         errBox.style.display = 'block';
       }
       return;
@@ -2659,13 +2697,13 @@ class App {
       payload.category_id = null;
     }
 
-    const btnSubmit = document.getElementById('btn-submit-edit-draft');
     if (btnSubmit) {
       btnSubmit.disabled = true;
       btnSubmit.textContent = 'Menyimpan...';
     }
 
     try {
+      console.log('[EditDraft] Mengirim pembaruan draft ID:', draftId, payload);
       await api.transactions.updateDraft(draftId, payload);
 
       if (this.currentBatch && this.currentBatch.drafts) {
@@ -2711,6 +2749,7 @@ class App {
       this.renderDrafts();
       this.showAlert('Draft mutasi berhasil diperbarui.', 'success');
     } catch (err) {
+      console.error('[EditDraft] Gagal menyimpan draft:', err);
       if (errBox) {
         errBox.textContent = `Gagal memperbarui draft: ${err.message}`;
         errBox.style.display = 'block';
