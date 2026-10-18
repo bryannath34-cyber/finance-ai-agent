@@ -269,11 +269,11 @@
               <div class="ai-online-badge">AI siap</div>
             </div>
             <div class="card-subtitle-text">
-              Tulis kalimat alami atau gunakan suara. AI akan memecahnya menjadi draft untuk kamu periksa.
+              Tulis mutasi alami atau ajukan pertanyaan keuangan. AI siap mencatat draft dan menjawab pertanyaanmu.
             </div>
 
             <textarea id="ai-input" class="ai-textarea"
-              placeholder="Contoh: Beli bensin 50rb pakai Bank, makan siang 35rb E-Wallet, dan bayar parkir 5rb."></textarea>
+              placeholder="Ketik mutasi, saldo, atau pertanyaan (misal: 'di rekening gua ada 8jt', 'beli makan 35rb', 'saldo gua berapa?')"></textarea>
 
             <div class="ai-action-buttons-row">
               <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
@@ -294,6 +294,25 @@
               <button type="button" id="btn-parse" class="btn-process">
                 <span>Proses Mutasi AI</span>
               </button>
+            </div>
+
+            <!-- AI Copilot Natural Response Box -->
+            <div id="ai-response-box" class="ai-response-box" style="display: none;">
+              <div class="ai-response-header">
+                <div class="ai-response-title">
+                  <svg class="ui-icon ui-icon-spark" width="14" height="14" viewBox="0 0 24 24">
+                    <path d="M12 2C12 7.5 7.5 12 2 12C7.5 12 12 16.5 12 22C12 16.5 16.5 12 22 12C16.5 12 12 7.5 12 2Z" />
+                  </svg>
+                  <span>Jawaban AI Copilot</span>
+                </div>
+                <button type="button" id="btn-close-ai-response" class="btn-close-ai-msg" title="Tutup Tanggapan">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+              <div id="ai-response-body" class="ai-response-body"></div>
             </div>
           </div>
 
@@ -855,8 +874,8 @@
               </div>
               <button type="button" class="mobile-fcard-link" id="mobile-btn-dash-jump-mutasi">Buka</button>
             </div>
-            <div class="mobile-fcard-desc">Catat pengeluaran dengan teks atau suara.</div>
-            <textarea id="mobile-dash-ai-input" class="mobile-ai-textarea" placeholder="Contoh: makan siang 35rb pakai GoPay..."></textarea>
+            <div class="mobile-fcard-desc">Catat pengeluaran atau tanya saldo dengan teks atau suara.</div>
+            <textarea id="mobile-dash-ai-input" class="mobile-ai-textarea" placeholder="Ketik mutasi atau pertanyaan (misal: 'di rekening ada 8jt', 'saldo berapa?')..."></textarea>
             <div class="mobile-ai-actions-row">
               <button type="button" id="mobile-dash-btn-record" class="mobile-btn-voice">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -867,6 +886,24 @@
               <button type="button" id="mobile-dash-btn-parse" class="mobile-btn-process">
                 <span>Proses AI</span>
               </button>
+            </div>
+            <!-- Mobile AI Copilot Response Box -->
+            <div id="mobile-ai-response-box" class="ai-response-box mobile-ai-response-box" style="display: none;">
+              <div class="ai-response-header">
+                <div class="ai-response-title">
+                  <svg class="ui-icon ui-icon-spark" width="13" height="13" viewBox="0 0 24 24">
+                    <path d="M12 2C12 7.5 7.5 12 2 12C7.5 12 12 16.5 12 22C12 16.5 16.5 12 22 12C16.5 12 12 7.5 12 2Z" />
+                  </svg>
+                  <span>Jawaban AI</span>
+                </div>
+                <button type="button" id="mobile-btn-close-ai-response" class="btn-close-ai-msg" title="Tutup Tanggapan">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+              <div id="mobile-ai-response-body" class="ai-response-body"></div>
             </div>
           </div>
 
@@ -3665,7 +3702,7 @@
       </div>
     </div>
 
-    <script type="module" src="js/app.js?v=2.5.6"></script>
+    <script type="module" src="js/app.js?v=2.5.7"></script>
 </body>
 
 </html>

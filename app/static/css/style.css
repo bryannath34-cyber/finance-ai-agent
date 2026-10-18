@@ -1315,6 +1315,115 @@ a:hover {
   cursor: not-allowed;
 }
 
+/* AI Copilot Response Card */
+.ai-response-box {
+  margin-top: 14px;
+  background: #F8FAF7;
+  border: 1px solid #DFE6DC;
+  border-left: 3.5px solid #2D7653;
+  border-radius: 12px;
+  padding: 12px 16px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+  animation: slideDownFade 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideDownFade {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ai-response-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.ai-response-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #2D7653;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.ai-response-title .ui-icon-spark {
+  fill: #2D7653;
+}
+
+.btn-close-ai-msg {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 3px;
+  border-radius: 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.btn-close-ai-msg:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text-primary);
+}
+
+.ai-response-body {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
+.ai-response-body p {
+  margin: 0 0 8px 0;
+}
+
+.ai-response-body p:last-child {
+  margin-bottom: 0;
+}
+
+.ai-response-body strong {
+  font-weight: 600;
+  color: #1A1F1B;
+}
+
+.ai-response-body ul {
+  margin: 6px 0 8px 18px;
+  padding: 0;
+}
+
+.ai-response-body li {
+  margin-bottom: 4px;
+}
+
+.ai-response-body .ai-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 5px;
+  background: #E8F3EB;
+  color: #2D7653;
+  margin-right: 4px;
+}
+
+.mobile-ai-response-box {
+  margin-top: 10px;
+  padding: 10px 12px;
+}
+
 /* Staging Drafts Table */
 .figma-table-wrapper {
   overflow-x: auto;

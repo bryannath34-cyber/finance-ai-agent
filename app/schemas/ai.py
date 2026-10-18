@@ -16,6 +16,9 @@ class ParsedDraftItem(BaseModel):
     transaction_date: Optional[str] = None
 
 class LLMParseResult(BaseModel):
-    batch_id: str
-    items_count: int
-    drafts: List[dict]
+    batch_id: Optional[str] = None
+    items_count: int = 0
+    drafts: List[dict] = []
+    intent: str = "TRANSACTION_DRAFT"
+    ai_response: Optional[str] = None
+    advisory: Optional[dict] = None

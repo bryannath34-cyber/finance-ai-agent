@@ -51,6 +51,246 @@ def parse_indonesian_amount(text: str) -> Optional[Decimal]:
 
 class AIService:
     @staticmethod
+    def process_command(user_id: int, user_input: str) -> Dict[str, Any]:
+        """
+        Asisten Finansial AI Omnichannel:
+        1. Menjawab pertanyaan saldo, uang, dan laporan pengeluaran (Inquiry)
+        2. Memberikan evaluasi pertimbangan kelayakan belanja (Advisory)
+        3. Menjelaskan kemampuan asisten dan panduan penggunaan (Capability)
+        4. Mengekstrak mutasi multi-transaksi atau pencatatan saldo ke draft (Transaction Drafting)
+        """
+        raw_text = (user_input or "").strip()
+        if not raw_text:
+            return {
+                "intent": "CAPABILITY",
+                "ai_response": "Silakan ketik pertanyaan, kalimat mutasi, atau gunakan suara untuk berbicara dengan Asisten AI.",
+                "items_count": 0,
+                "drafts": []
+            }
+
+        t_lower = raw_text.lower()
+
+        def _idr(amt: Any) -> str:
+            try:
+                val = Decimal(str(amt or 0))
+                return f"Rp {val:,.0f}".replace(",", ".")
+            except Exception:
+                return "Rp 0"
+
+        # 1. KEMAMPUAN & PANDUAN PENGGUNAAN (CAPABILITY)
+        capability_triggers = (
+            "bisa apa", "ngapain aja", "bisa ngapain", "kamu bisa apa", "apa saja fitur",
+            "apa fungsimu", "panduan", "bantuan", "help", "menu bantuan", "fitur ai"
+        )
+        if any(trig in t_lower for trig in capability_triggers):
+            ai_msg = (
+                "Halo! Saya adalah **Asisten Finansial AI** kamu. Saya siap membantu mengelola keuangan pribadi dengan fitur-fitur berikut:\n\n"
+                "1. **Pencatatan Saldo / Uang Masuk:**\n"
+                "   Ketik: *'di rekening gua ada 8jt'* atau *'gaji masuk 12jt ke BCA'*\n\n"
+                "2. **Pencatatan Pengeluaran & Transfer:**\n"
+                "   Ketik: *'beli makan 35rb pake gopay, bayar bensin 50rb bank'* atau *'transfer 100rb dari bank ke e-wallet'*\n\n"
+                "3. **Tanya Saldo & Kekayaan Bersih:**\n"
+                "   Ketik: *'saldo gua sekarang berapa?'* atau *'uang di rekening ada berapa?'*\n\n"
+                "4. **Cek Pengeluaran & Anggaran Bulanan:**\n"
+                "   Ketik: *'pengeluaran bulan ini berapa?'* atau *'sisa budget gua berapa?'*\n\n"
+                "5. **Konsultasi Rencana Belanja:**\n"
+                "   Ketik: *'aman gak beli laptop 8jt?'* atau *'bisa beli sepatu 700rb gak?'*\n\n"
+                "Kamu juga dapat menggunakan tombol **Rekam suara** untuk berbicara langsung!"
+            )
+            return {
+                "intent": "CAPABILITY",
+                "ai_response": ai_msg,
+                "items_count": 0,
+                "drafts": []
+            }
+
+        # 2. KONSULTASI KELAYAKAN BELANJA (PURCHASE ADVISORY)
+        advisory_triggers = (
+            "bisa beli", "aman gak", "boleh beli", "layak beli", "saran beli",
+            "mampu beli", "pengen beli", "mau beli", "kira kira aman gak", "konsultasi beli"
+        )
+        if any(adv in t_lower for adv in advisory_triggers):
+            try:
+                from app.services.planning_service import PlanningService
+                adv_res = PlanningService.analyze_purchase_decision(user_id, raw_text)
+                scenario = adv_res.get("scenario", {})
+                badge = adv_res.get("verdict_badge", "Pertimbangan AI")
+                reason = adv_res.get("reason", "Evaluasi kelayakan anggaran dan saldo akun.")
+                cost = Decimal(str(scenario.get("item_cost", 0)))
+                after_bal = Decimal(str(scenario.get("balance_after", 0)))
+                rem_budget = Decimal(str(scenario.get("budget_remaining_after", 0)))
+
+                ai_msg = (
+                    f"Pertimbangan Finansial: **{badge}**.\n\n"
+                    f"{reason}\n\n"
+                    f"• Estimasi Biaya: **{_idr(cost)}**\n"
+                    f"• Saldo Rekening Setelah Beli: **{_idr(after_bal)}**\n"
+                    f"• Sisa Pagu Anggaran Bulanan: **{_idr(rem_budget)}**"
+                )
+                return {
+                    "intent": "PURCHASE_ADVISORY",
+                    "ai_response": ai_msg,
+                    "items_count": 0,
+                    "drafts": [],
+                    "advisory": adv_res
+                }
+            except Exception as e:
+                logger.warning("Gagal memproses purchase decision via PlanningService: %s", e)
+
+        # 3. TANYA SALDO & LAPORAN KEUANGAN (FINANCIAL INQUIRY)
+        is_question_word = any(q in t_lower for q in ("berapa", "cek", "lihat", "gimana", "status", "kondisi", "posisi", "total saldo", "total uang", "total kekayaan"))
+        has_financial_entity = any(f in t_lower for f in ("saldo", "uang", "duit", "dana", "pengeluaran", "anggaran", "budget", "rekening", "kas", "dompet", "bank", "wallet"))
+        has_action_verb = any(v in t_lower for v in ("beli", "bayar", "transfer", "tf ", " tf", "setor", "simpan", "masuk", "terima", "tarik", "top up", "isi saldo"))
+        has_amount_specified = parse_indonesian_amount(raw_text) is not None
+
+        if (is_question_word and has_financial_entity and not has_action_verb and (not has_amount_specified or "berapa" in t_lower or "cek" in t_lower)):
+            accounts = FinanceService.get_accounts_with_balance(user_id)
+            total_net_worth = sum(Decimal(str(a.get("balance", 0))) for a in accounts if a.get("is_active"))
+
+            # Menanyakan pengeluaran / anggaran
+            if any(w in t_lower for w in ("pengeluaran", "keluar", "habis", "anggaran", "budget", "serapan", "boros")):
+                try:
+                    from app.services.planning_service import PlanningService
+                    overview = PlanningService.get_budget_overview(user_id)
+                    total_spent = Decimal(str(overview.get("total_spent", 0)))
+                    total_limit = Decimal(str(overview.get("total_limit", 0)))
+                    rem = Decimal(str(overview.get("remaining", 0)))
+                    pct = overview.get("percentage", 0)
+
+                    ai_msg = (
+                        f"Laporan Pengeluaran Bulan Ini:\n\n"
+                        f"• Total Pengeluaran Aktual: **{_idr(total_spent)}**\n"
+                        f"• Batas Plafon Anggaran: **{_idr(total_limit)}**\n"
+                        f"• Sisa Anggaran Tersedia: **{_idr(rem)}** (Serapan: **{pct}%**)\n\n"
+                        f"Semua mutasi telah diverifikasi dan tercatat resmi di buku besar."
+                    )
+                    return {
+                        "intent": "FINANCIAL_INQUIRY",
+                        "ai_response": ai_msg,
+                        "items_count": 0,
+                        "drafts": []
+                    }
+                except Exception as e:
+                    logger.warning("Gagal mengambil budget overview untuk query AI: %s", e)
+
+            # Menanyakan saldo rekening tertentu
+            is_bank_query = any(w in t_lower for w in ("rekening", "bank", "bca", "mandiri", "bri", "bni", "jago"))
+            is_wallet_query = any(w in t_lower for w in ("wallet", "gopay", "ovo", "dana", "shopee"))
+            is_cash_query = any(w in t_lower for w in ("kas", "tunai", "cash", "dompet"))
+
+            if is_bank_query:
+                target_acc = next((a for a in accounts if a.get("type") == "BANK" or "bank" in a.get("name", "").lower()), None)
+                if target_acc:
+                    bal = Decimal(str(target_acc.get("balance", 0)))
+                    ai_msg = f"Saldo di rekening **{target_acc['name']}** kamu saat ini adalah **{_idr(bal)}**."
+                    return {
+                        "intent": "FINANCIAL_INQUIRY",
+                        "ai_response": ai_msg,
+                        "items_count": 0,
+                        "drafts": []
+                    }
+
+            if is_wallet_query:
+                target_acc = next((a for a in accounts if a.get("type") == "EWALLET" or "wallet" in a.get("name", "").lower()), None)
+                if target_acc:
+                    bal = Decimal(str(target_acc.get("balance", 0)))
+                    ai_msg = f"Saldo pada akun **{target_acc['name']}** kamu saat ini adalah **{_idr(bal)}**."
+                    return {
+                        "intent": "FINANCIAL_INQUIRY",
+                        "ai_response": ai_msg,
+                        "items_count": 0,
+                        "drafts": []
+                    }
+
+            if is_cash_query:
+                target_acc = next((a for a in accounts if a.get("type") == "CASH" or "kas" in a.get("name", "").lower() or "tunai" in a.get("name", "").lower()), None)
+                if target_acc:
+                    bal = Decimal(str(target_acc.get("balance", 0)))
+                    ai_msg = f"Saldo pada **{target_acc['name']}** kamu saat ini adalah **{_idr(bal)}**."
+                    return {
+                        "intent": "FINANCIAL_INQUIRY",
+                        "ai_response": ai_msg,
+                        "items_count": 0,
+                        "drafts": []
+                    }
+
+            # Menanyakan total saldo keseluruhan
+            acc_lines = []
+            for a in accounts:
+                if a.get("is_active"):
+                    acc_lines.append(f"• **{a['name']}**: {_idr(Decimal(str(a.get('balance', 0))))}")
+            acc_details_str = "\n".join(acc_lines) if acc_lines else "• Belum ada rekening aktif."
+
+            ai_msg = (
+                f"Total kekayaan bersih kamu saat ini tercatat sebesar **{_idr(total_net_worth)}**.\n\n"
+                f"Rincian saldo per rekening:\n"
+                f"{acc_details_str}\n\n"
+                f"Semua saldo terverifikasi secara real-time dari buku besar resmi."
+            )
+            return {
+                "intent": "FINANCIAL_INQUIRY",
+                "ai_response": ai_msg,
+                "items_count": 0,
+                "drafts": []
+            }
+
+        # 4. PENCATATAN TRANSAKSI / SALDO (TRANSACTION DRAFTING)
+        parse_res = AIService.parse_finance_text(user_id, raw_text)
+        drafts = parse_res.get("drafts", [])
+        batch_id = parse_res.get("batch_id")
+        items_count = parse_res.get("items_count", len(drafts))
+
+        if items_count == 1:
+            d = drafts[0]
+            d_type = d.get("type")
+            d_amt = Decimal(str(d.get("amount", 0)))
+            d_desc = d.get("description") or raw_text
+            
+            if d_type == "INCOME":
+                acc_name = d.get("destination_account_name") or "Bank"
+                cat_name = d.get("category_name") or "Gaji & Pendapatan"
+                ai_msg = (
+                    f"Siap! Saya telah menyiapkan draft pencatatan saldo sebesar **{_idr(d_amt)}** "
+                    f"ke rekening **{acc_name}** (kategori: {cat_name}).\n"
+                    f"Silakan periksa detailnya pada tabel draft di bawah sebelum dikonfirmasi ke buku besar."
+                )
+            elif d_type == "TRANSFER":
+                src = d.get("source_account_name") or "Sumber"
+                dst = d.get("destination_account_name") or "Tujuan"
+                fee = Decimal(str(d.get("admin_fee", 0)))
+                fee_str = f" dengan biaya admin {_idr(fee)}" if fee > 0 else ""
+                ai_msg = (
+                    f"Baik, draft transfer dana sebesar **{_idr(d_amt)}** dari **{src}** ke **{dst}**{fee_str} "
+                    f"telah disiapkan. Silakan tinjau pada tabel draft di bawah."
+                )
+            else: # EXPENSE
+                src = d.get("source_account_name") or "Kas Tunai"
+                cat_name = d.get("category_name") or "Pengeluaran"
+                ai_msg = (
+                    f"Draft pengeluaran sebesar **{_idr(d_amt)}** untuk **{d_desc}** dari rekening **{src}** "
+                    f"(kategori: {cat_name}) telah disiapkan.\n"
+                    f"Silakan tinjau dan konfirmasi pada tabel draft di bawah."
+                )
+        elif items_count > 1:
+            ai_msg = (
+                f"Saya berhasil mengekstrak **{items_count} draft transaksi** dari kalimat kamu. "
+                f"Silakan periksa rincian masing-masing mutasi pada tabel draft di bawah sebelum melakukan konfirmasi serentak."
+            )
+        else:
+            ai_msg = (
+                "Saya telah menganalisis kalimat kamu. Silakan periksa tabel draft di bawah atau tuliskan perintah "
+                "transaksi seperti *'beli makan 30rb'* atau *'di rekening gua ada 8jt'*."
+            )
+
+        return {
+            "intent": "TRANSACTION_DRAFT",
+            "batch_id": batch_id,
+            "items_count": items_count,
+            "drafts": drafts,
+            "ai_response": ai_msg
+        }
+
+    @staticmethod
     def parse_finance_text(user_id: int, user_input: str) -> Dict[str, Any]:
         """
         Mengekstrak teks kalimat bebas menjadi draft multi-transaksi terstruktur:
@@ -181,7 +421,7 @@ KALIMAT PENGGUNA YANG HARUS DIPROSES:
         )
         is_balance_statement = not has_expense_verb and any(kw in user_input_lower for kw in balance_keywords)
 
-        bank_keywords = ("bank", "bca", "mandiri", "bri", "bni", "cimb", "jago")
+        bank_keywords = ("bank", "bca", "mandiri", "bri", "bni", "cimb", "jago", "rekening", "tabungan", "atm", "debit")
         ew_keywords = ("ewallet", "e-wallet", "wallet", "gopay", "ovo", "dana", "shopeepay", "shopee")
         cash_keywords = ("kas", "tunai", "cash", "dompet")
 
@@ -315,7 +555,7 @@ KALIMAT PENGGUNA YANG HARUS DIPROSES:
         # Cek alias Bank (BCA, Mandiri, BRI, BNI, Jago, CIMB, dll)
         if not matched_acc_name:
             bank_acc = next((a for a in accounts if a.get("type") == "BANK" or "bank" in a.get("name", "").lower()), None)
-            if bank_acc and any(kw in text_lower for kw in ("bca", "mandiri", "bri", "bni", "cimb", "jago", "bank")):
+            if bank_acc and any(kw in text_lower for kw in ("bca", "mandiri", "bri", "bni", "cimb", "jago", "bank", "rekening", "tabungan")):
                 matched_acc_name = bank_acc["name"]
 
         # Cek alias E-Wallet (GoPay, OVO, DANA, ShopeePay, dll)

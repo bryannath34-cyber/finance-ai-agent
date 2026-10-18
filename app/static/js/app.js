@@ -5,7 +5,7 @@
  * Financial Planning, and AI Advisory Copilot.
  */
 
-import { api } from './api.js?v=2.5.6';
+import { api } from './api.js?v=2.5.7';
 import { AudioRecorder } from './audio_recorder.js';
 
 const Icons = {
@@ -109,6 +109,12 @@ class App {
     this.btnParse = document.getElementById('btn-parse');
     this.btnRecord = document.getElementById('btn-record');
     this.recordStatus = document.getElementById('record-status');
+    this.aiResponseBox = document.getElementById('ai-response-box');
+    this.aiResponseBody = document.getElementById('ai-response-body');
+    this.btnCloseAiResponse = document.getElementById('btn-close-ai-response');
+    this.mobileAiResponseBox = document.getElementById('mobile-ai-response-box');
+    this.mobileAiResponseBody = document.getElementById('mobile-ai-response-body');
+    this.mobileBtnCloseAiResponse = document.getElementById('mobile-btn-close-ai-response');
 
     // Staging Drafts
     this.draftSection = document.getElementById('draft-section');
@@ -553,6 +559,17 @@ class App {
         this.handleAIParse();
       }
     });
+
+    if (this.btnCloseAiResponse) {
+      this.btnCloseAiResponse.addEventListener('click', () => {
+        if (this.aiResponseBox) this.aiResponseBox.style.display = 'none';
+      });
+    }
+    if (this.mobileBtnCloseAiResponse) {
+      this.mobileBtnCloseAiResponse.addEventListener('click', () => {
+        if (this.mobileAiResponseBox) this.mobileAiResponseBox.style.display = 'none';
+      });
+    }
 
     // Modal Triggers
     const bindOpenModal = (btn, modal, onOpen = null) => {
@@ -1090,12 +1107,12 @@ class App {
       this.mobileDashBtnParse.addEventListener('click', () => {
         const text = (this.mobileDashAiInput?.value || '').trim();
         if (!text) {
-          this.showAlert('Masukkan kalimat transaksi terlebih dahulu.', 'warning');
+          this.showAlert('Masukkan kalimat mutasi atau pertanyaan terlebih dahulu.', 'warning');
           return;
         }
         if (this.aiInput) this.aiInput.value = text;
         this.switchTab('tab-mutasi');
-        this.handleParseNaturalLanguage();
+        this.handleAIParse();
       });
     }
 
@@ -2437,10 +2454,49 @@ class App {
   // ==========================================
   // AI & Voice Flow (Tab 1 / Screen 02)
   // ==========================================
+  formatAiMarkdown(text) {
+    if (!text) return '';
+    let escaped = String(text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+
+    // Bold Markdown
+    escaped = escaped.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+    // Bullet lists & paragraphs
+    const rawLines = escaped.split('\n');
+    let inList = false;
+    const output = [];
+
+    for (let i = 0; i < rawLines.length; i++) {
+      const line = rawLines[i].trim();
+      if (line.startsWith('* ') || line.startsWith('- ') || line.startsWith('• ')) {
+        if (!inList) {
+          output.push('<ul>');
+          inList = true;
+        }
+        output.push(`<li>${line.substring(2)}</li>`);
+      } else {
+        if (inList) {
+          output.push('</ul>');
+          inList = false;
+        }
+        if (line.length > 0) {
+          output.push(`<p>${line}</p>`);
+        }
+      }
+    }
+    if (inList) {
+      output.push('</ul>');
+    }
+    return output.join('');
+  }
+
   async handleAIParse() {
-    const text = this.aiInput.value.trim();
+    const text = (this.aiInput ? this.aiInput.value : '').trim();
     if (!text) {
-      this.showAlert('Masukkan kalimat mutasi terlebih dahulu.', 'warning');
+      this.showAlert('Masukkan kalimat mutasi atau pertanyaan terlebih dahulu.', 'warning');
       return;
     }
 
@@ -2449,12 +2505,46 @@ class App {
 
     try {
       const res = await api.ai.parse(text);
-      this.currentBatch = {
-        batch_id: res.data.batch_id,
-        drafts: res.data.drafts || [],
-      };
-      this.renderDrafts();
-      this.showAlert(`Berhasil mengekstrak ${res.data.items_count} draft transaksi.`, 'success');
+      const data = res.data || {};
+      const aiResponse = data.ai_response;
+      const drafts = data.drafts || [];
+      const intent = data.intent || 'TRANSACTION_DRAFT';
+
+      // 1. Tampilkan Tanggapan Alami AI di Response Box jika ada
+      if (aiResponse) {
+        const formatted = this.formatAiMarkdown(aiResponse);
+        if (this.aiResponseBody) this.aiResponseBody.innerHTML = formatted;
+        if (this.aiResponseBox) this.aiResponseBox.style.display = 'block';
+
+        if (this.mobileAiResponseBody) this.mobileAiResponseBody.innerHTML = formatted;
+        if (this.mobileAiResponseBox) this.mobileAiResponseBox.style.display = 'block';
+      }
+
+      // 2. Tangani Draft Transaksi
+      if (drafts.length > 0) {
+        this.currentBatch = {
+          batch_id: data.batch_id,
+          drafts: drafts,
+        };
+        this.renderDrafts();
+        if (this.draftSection) {
+          this.draftSection.style.display = 'block';
+        }
+        this.showAlert(`AI mendeteksi ${drafts.length} draft transaksi untuk ditinjau.`, 'success');
+      } else {
+        this.currentBatch = null;
+        this.renderDrafts();
+
+        if (intent === 'FINANCIAL_INQUIRY') {
+          // Segarkan rekening agar sinkron dengan saldo real-time
+          this.loadAccounts();
+          this.showAlert('Informasi saldo & keuangan berhasil diperbarui.', 'info');
+        } else if (intent === 'PURCHASE_ADVISORY') {
+          this.showAlert('Rekomendasi keputusan belanja siap dibaca.', 'info');
+        } else {
+          this.showAlert(res.message || 'Tanggapan AI siap dibaca.', 'info');
+        }
+      }
     } catch (err) {
       this.showAlert(`Gagal menganalisis kalimat: ${err.message}`, 'error');
     } finally {

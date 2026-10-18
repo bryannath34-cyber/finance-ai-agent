@@ -9,18 +9,21 @@ router = APIRouter(prefix="/ai", tags=["AI Engine"])
 @router.post("/parse", response_model=DataResponse[LLMParseResult])
 def parse_financial_text(payload: ParseTextRequest, user: dict = Depends(get_current_user)):
     """
-    Menganalisis kalimat mutasi keuangan menggunakan model OCI GenAI (Cohere Command A):
-    - Memecah multi-transaksi dalam satu kalimat
-    - Memetakan nama rekening dan kategori ke ID database pengguna
-    - Menyimpan hasilnya sebagai batch draft sementara berdurasi 15 menit
+    Asisten Finansial AI Omnichannel:
+    - Menjawab pertanyaan saldo, kondisi keuangan, atau pengeluaran
+    - Memberikan pertimbangan kelayakan belanja & konsultasi finansial
+    - Mengekstrak mutasi & pencatatan saldo ke draft transaksi
     """
-    res = AIService.parse_finance_text(user["id"], payload.text)
+    res = AIService.process_command(user["id"], payload.text)
     return DataResponse(
         success=True,
-        message=f"Berhasil mengekstrak {res['items_count']} draft transaksi.",
+        message=res.get("message") or "Berhasil memproses perintah AI.",
         data=LLMParseResult(
-            batch_id=res["batch_id"],
-            items_count=res["items_count"],
-            drafts=res["drafts"]
+            batch_id=res.get("batch_id"),
+            items_count=res.get("items_count", 0),
+            drafts=res.get("drafts", []),
+            intent=res.get("intent", "TRANSACTION_DRAFT"),
+            ai_response=res.get("ai_response"),
+            advisory=res.get("advisory")
         )
     )
