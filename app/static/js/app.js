@@ -64,6 +64,15 @@ class App {
     this.btnToggleLoginPassword = document.getElementById('btn-toggle-login-password');
     this.btnGoogleLogin = document.getElementById('btn-google-login');
     this.loginRememberMe = document.getElementById('login-remember-me');
+    this.authViewLogin = document.getElementById('auth-view-login');
+    this.authViewSignup = document.getElementById('auth-view-signup');
+    this.authViewReset = document.getElementById('auth-view-reset');
+    this.formMobileSignup = document.getElementById('form-mobile-signup');
+    this.formMobileReset = document.getElementById('form-mobile-reset');
+    this.btnSignupToLogin = document.getElementById('btn-signup-to-login');
+    this.btnResetToLoginLink = document.getElementById('btn-reset-to-login-link');
+    this.linkOverlayForgot = document.getElementById('link-overlay-forgot');
+    this.linkOverlayRegister = document.getElementById('link-overlay-register');
 
     this.usernameDisplay = document.getElementById('username-display');
     this.userAvatarInitial = document.getElementById('user-avatar-initial');
@@ -293,6 +302,7 @@ class App {
     this.reportsBarsContainer = document.getElementById('reports-bars-container');
     this.reportsChartNote = document.getElementById('reports-chart-note');
     this.reportsMonthlyTableBody = document.getElementById('reports-monthly-table-body');
+    this.mobileReportsMonthlyList = document.getElementById('mobile-reports-monthly-list');
     this.btnReportSelectMonth = document.getElementById('btn-report-select-month');
     this.activeChartSeries = 'ALL'; // 'ALL' | 'INCOME' | 'EXPENSE'
 
@@ -928,15 +938,54 @@ class App {
     if (this.linkOverlayForgot) {
       this.linkOverlayForgot.addEventListener('click', (e) => {
         e.preventDefault();
-        this.authOverlay.style.display = 'none';
-        this.switchTab('tab-auth');
+        this.showAuthView('reset');
       });
     }
     if (this.linkOverlayRegister) {
       this.linkOverlayRegister.addEventListener('click', (e) => {
         e.preventDefault();
-        this.authOverlay.style.display = 'none';
-        this.switchTab('tab-auth');
+        this.showAuthView('signup');
+      });
+    }
+    if (this.btnSignupToLogin) {
+      this.btnSignupToLogin.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.showAuthView('login');
+      });
+    }
+    if (this.btnResetToLoginLink) {
+      this.btnResetToLoginLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.showAuthView('login');
+      });
+    }
+    if (this.formMobileSignup) {
+      this.formMobileSignup.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = document.getElementById('mobile-signup-name')?.value.trim();
+        const email = document.getElementById('mobile-signup-email')?.value.trim();
+        const pwd = document.getElementById('mobile-signup-password')?.value;
+        const confirm = document.getElementById('mobile-signup-confirm')?.value;
+        if (pwd !== confirm) {
+          this.showAlert('Konfirmasi kata sandi tidak cocok.', 'error');
+          return;
+        }
+        if (pwd.length < 8) {
+          this.showAlert('Kata sandi minimal 8 karakter.', 'error');
+          return;
+        }
+        this.showAlert(`Akun untuk ${name} (${email}) berhasil didaftarkan! Silakan masuk.`, 'success');
+        this.formMobileSignup.reset();
+        this.showAuthView('login');
+      });
+    }
+    if (this.formMobileReset) {
+      this.formMobileReset.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const email = document.getElementById('mobile-reset-email')?.value.trim();
+        this.showAlert(`Instruksi pemulihan telah dikirim ke ${email}.`, 'success');
+        this.formMobileReset.reset();
+        this.showAuthView('login');
       });
     }
 
@@ -1079,8 +1128,8 @@ class App {
       'tab-mutasi': { title: 'Mutasi & Suara AI', intro: 'Catat transaksi lewat teks atau suara, periksa draft, lalu konfirmasi ke buku besar.' },
       'tab-planning': { title: 'Anggaran & Tabungan', intro: 'Atur pagu bulanan dan pantau progres tujuan tabungan.' },
       'tab-copilot': { title: 'Penasihat Finansial AI', intro: 'Tanyakan rencana pembelian, evaluasi kelayakan anggaran, dan pantau pola pengeluaran berbasis AI.' },
-      'tab-reports': { title: 'Laporan Keuangan', intro: 'Tinjau arus kas, komposisi pengeluaran, dan perubahan dari bulan ke bulan.' },
-      'tab-settings': { title: 'Pengaturan & Profil', intro: 'Kelola profil, rekening, keamanan, dan preferensi aplikasi.' },
+      'tab-reports': { title: 'Laporan Keuangan', intro: (window.innerWidth <= 768 ? 'Pantau arus kas dari bulan ke bulan.' : 'Tinjau arus kas, komposisi pengeluaran, dan perubahan dari bulan ke bulan.') },
+      'tab-settings': { title: (window.innerWidth <= 768 ? 'Pengaturan' : 'Pengaturan & Profil'), intro: (window.innerWidth <= 768 ? 'Kelola akun dan preferensi aplikasi.' : 'Kelola profil, rekening, keamanan, dan preferensi aplikasi.') },
       'tab-auth': { title: 'Akun pengguna', intro: 'Rancangan layar daftar akun dan reset kata sandi.' }
     };
 
@@ -1221,7 +1270,14 @@ class App {
     }
   }
 
+  showAuthView(viewName) {
+    if (this.authViewLogin) this.authViewLogin.style.display = (viewName === 'login') ? 'block' : 'none';
+    if (this.authViewSignup) this.authViewSignup.style.display = (viewName === 'signup') ? 'block' : 'none';
+    if (this.authViewReset) this.authViewReset.style.display = (viewName === 'reset') ? 'block' : 'none';
+  }
+
   showLogin() {
+    this.showAuthView('login');
     document.body.classList.add('user-logged-out');
     if (this.appShell) {
       this.appShell.style.setProperty('display', 'none', 'important');
@@ -3538,9 +3594,10 @@ class App {
     if (!data) return;
 
     // 1. Metric Cards
-    if (this.reportStatIncome) this.reportStatIncome.textContent = this.formatIDR(data.current_income);
+    const isMobile = window.innerWidth <= 768;
+    if (this.reportStatIncome) this.reportStatIncome.textContent = isMobile ? this.formatCompactIDR(data.current_income) : this.formatIDR(data.current_income);
     if (this.reportStatIncomeSub) this.reportStatIncomeSub.textContent = `Dari ${data.income_count} transaksi tercatat`;
-    if (this.reportStatExpense) this.reportStatExpense.textContent = this.formatIDR(data.current_expense);
+    if (this.reportStatExpense) this.reportStatExpense.textContent = isMobile ? this.formatCompactIDR(data.current_expense) : this.formatIDR(data.current_expense);
     if (this.reportStatExpenseSub) {
       if (data.prev_month_expense > 0) {
         const sign = data.expense_change_percent >= 0 ? '+' : '';
@@ -3549,9 +3606,9 @@ class App {
         this.reportStatExpenseSub.textContent = `Dari ${data.expense_count} transaksi pengeluaran`;
       }
     }
-    if (this.reportStatNet) this.reportStatNet.textContent = this.formatIDR(data.current_net);
+    if (this.reportStatNet) this.reportStatNet.textContent = isMobile ? this.formatCompactIDR(data.current_net) : this.formatIDR(data.current_net);
     if (this.reportStatNetSub) this.reportStatNetSub.textContent = 'Pemasukan - pengeluaran riil';
-    if (this.reportStatRate) this.reportStatRate.textContent = `${data.savings_rate}%`;
+    if (this.reportStatRate) this.reportStatRate.textContent = `${(data.savings_rate || 0).toLocaleString('id-ID', { maximumFractionDigits: 1 })}%`;
     if (this.reportStatRateSub) this.reportStatRateSub.textContent = 'Dari total pemasukan';
 
     // 2. Komposisi Pengeluaran
@@ -3631,7 +3688,10 @@ class App {
             ${showIncome ? `<div class="bar-income ${isActive ? 'active' : ''}" style="height: ${incH}px; ${singleBarWidth}" title="${item.month_label} Masuk: ${this.formatIDR(inc)}"></div>` : ''}
             ${showExpense ? `<div class="bar-expense ${isActive ? 'active' : ''}" style="height: ${expH}px; ${singleBarWidth}" title="${item.month_label} Keluar: ${this.formatIDR(exp)}"></div>` : ''}
           </div>
-          <div class="grouped-month-label ${isActive ? 'active' : ''}">${item.month_label}</div>
+          <div class="grouped-month-label ${isActive ? 'active' : ''}">
+            <span class="desktop-only-inline">${item.month_label}</span>
+            <span class="mobile-only-inline">${(item.month_label || '').charAt(0)}</span>
+          </div>
         `;
 
         col.addEventListener('click', () => {
@@ -3676,6 +3736,23 @@ class App {
         });
 
         this.reportsMonthlyTableBody.appendChild(tr);
+      });
+    }
+
+    // 4b. Mobile Monthly History List (Matching Figma Screenshot 1)
+    if (this.mobileReportsMonthlyList && data.monthly_history && data.monthly_history.length > 0) {
+      this.mobileReportsMonthlyList.innerHTML = '';
+      data.monthly_history.slice(0, 5).forEach((row) => {
+        const div = document.createElement('div');
+        div.className = 'mobile-month-history-row';
+        const incText = this.formatCompactIDR(row.income).replace('Rp ', 'Masuk ');
+        const expText = this.formatCompactIDR(row.expense).replace('Rp ', 'Keluar ');
+        div.innerHTML = `
+          <span class="mobile-month-name">${row.period_str}</span>
+          <span class="mobile-month-inc">${incText}</span>
+          <span class="mobile-month-exp">${expText}</span>
+        `;
+        this.mobileReportsMonthlyList.appendChild(div);
       });
     }
 
@@ -4029,6 +4106,14 @@ class App {
           iconClass = 'cash';
         }
 
+        const nameLower = (acc.name || '').toLowerCase();
+        let subText = `${acc.type || 'Rekening aktif'} · ${this.formatIDR(acc.balance || 0)}`;
+        if (window.innerWidth <= 768) {
+          if (nameLower.includes('bca') || acc.type === 'CHECKING') subText = 'Rekening utama';
+          else if (nameLower.includes('gopay') || acc.type === 'EWALLET') subText = 'E-wallet harian';
+          else if (nameLower.includes('kas') || nameLower.includes('tunai') || acc.type === 'CASH') subText = 'Uang tunai';
+        }
+
         const row = document.createElement('div');
         row.className = 'connected-acc-row';
         row.innerHTML = `
@@ -4036,7 +4121,7 @@ class App {
             <div class="connected-acc-icon ${iconClass}">${iconSvg}</div>
             <div>
               <div class="connected-acc-type">${acc.name}</div>
-              <div class="connected-acc-nickname">${acc.type || 'Rekening aktif'} · ${this.formatIDR(acc.balance || 0)}</div>
+              <div class="connected-acc-nickname">${subText}</div>
             </div>
           </div>
           <div class="badge-connected">Terhubung</div>

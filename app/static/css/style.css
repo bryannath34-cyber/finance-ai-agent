@@ -4157,8 +4157,25 @@ body.user-logged-out #auth-overlay.desktop-login-overlay {
 .mobile-top-bar,
 .mobile-bottom-nav,
 .mobile-dashboard-section,
-.mobile-only-block {
+.mobile-only-block,
+.mobile-only-inline,
+.mobile-monthly-history-list,
+.mobile-pref-tag,
+.profile-chevron-mobile {
   display: none !important;
+}
+
+.auth-link-action {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.auth-link-action:hover {
+  text-decoration: underline;
 }
 
 @media (max-width: 768px) {
@@ -4849,8 +4866,492 @@ body.user-logged-out #auth-overlay.desktop-login-overlay {
     max-width: 100% !important;
     border-radius: 20px 20px 0 0 !important;
     max-height: 85vh !important;
-    padding: 20px 16px 28px 16px !important;
-    box-sizing: border-box !important;
+  /* 8. Mobile Laporan Keuangan (Screen 05 / Screenshot 1) */
+  #tab-reports .reports-top-controls {
+    margin-bottom: 12px;
+  }
+
+  #tab-reports #btn-report-month-picker {
+    width: 100% !important;
+    justify-content: space-between !important;
+    padding: 12px 14px !important;
+    border-radius: 14px !important;
+    background: #FFFFFF !important;
+    border: 1px solid #E2E5DF !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    color: #202420 !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02) !important;
+  }
+
+  #tab-reports .reports-stat-cards {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+    margin-bottom: 14px !important;
+  }
+
+  #tab-reports .reports-stat-card {
+    background: #FFFFFF !important;
+    border: 1px solid #E2E5DF !important;
+    border-radius: 16px !important;
+    padding: 14px 16px !important;
+    min-height: 84px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02) !important;
+  }
+
+  #tab-reports .reports-stat-label {
+    font-size: 11px !important;
+    color: #6F7770 !important;
+    font-weight: 400 !important;
+  }
+
+  #tab-reports .reports-stat-val {
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    color: #202420 !important;
+    letter-spacing: -0.3px !important;
+  }
+
+  #tab-reports .reports-middle-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 14px !important;
+    margin-bottom: 14px !important;
+  }
+
+  #tab-reports .figma-card {
+    border-radius: 18px !important;
+    padding: 18px !important;
+    background: #FFFFFF !important;
+    border: 1px solid #E2E5DF !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02) !important;
+  }
+
+  #tab-reports .card-subtitle-text {
+    display: none !important;
+  }
+
+  #tab-reports .reports-chart-legends {
+    display: flex !important;
+    gap: 8px !important;
+    margin-bottom: 16px !important;
+  }
+
+  #tab-reports #btn-series-all {
+    display: none !important;
+  }
+
+  #tab-reports .chart-series-btn {
+    border-radius: 8px !important;
+    padding: 6px 14px !important;
+    font-size: 11px !important;
+    border: none !important;
+    background: #F8F9F7 !important;
+    color: #6F7770 !important;
+  }
+
+  #tab-reports .chart-series-btn.active {
+    background: #EAF4EE !important;
+    color: #2D7653 !important;
+    font-weight: 600 !important;
+  }
+
+  #tab-reports .series-dot {
+    display: none !important;
+  }
+
+  #tab-reports .grouped-chart-container {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-end !important;
+    height: 130px !important;
+    padding: 0 2px !important;
+    gap: 2px !important;
+  }
+
+  #tab-reports .grouped-month-col {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+
+  #tab-reports .grouped-bars-wrapper {
+    width: 12px !important;
+    gap: 2px !important;
+    align-items: flex-end !important;
+    justify-content: center !important;
+  }
+
+  #tab-reports .bar-income {
+    width: 5px !important;
+    border-radius: 2px 2px 0 0 !important;
+    background: #9AC7AF !important;
+  }
+
+  #tab-reports .bar-expense {
+    width: 5px !important;
+    border-radius: 2px 2px 0 0 !important;
+    background: #CAD8D0 !important;
+  }
+
+  #tab-reports .bar-income.active {
+    background: #1E5E41 !important;
+  }
+
+  #tab-reports .bar-expense.active {
+    background: #55685D !important;
+  }
+
+  #tab-reports .grouped-month-label {
+    font-size: 10px !important;
+    color: #6F7770 !important;
+    margin-top: 6px !important;
+  }
+
+  #tab-reports .grouped-month-label.active {
+    font-weight: 700 !important;
+    color: #202420 !important;
+  }
+
+  #tab-reports .grouped-chart-baseline {
+    height: 1px !important;
+    background: #E2E5DF !important;
+    width: 100% !important;
+    margin: 4px 0 0 0 !important;
+  }
+
+  #tab-reports #reports-chart-note {
+    display: none !important;
+  }
+
+  /* Komposisi Pengeluaran 4-Column Grid on Mobile */
+  #tab-reports #report-comp-month,
+  #tab-reports #report-comp-total {
+    display: none !important;
+  }
+
+  #tab-reports #reports-cat-progress-container {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 10px !important;
+    margin-top: 14px !important;
+  }
+
+  #tab-reports .reports-cat-row {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+  }
+
+  #tab-reports .reports-cat-header {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 2px !important;
+  }
+
+  #tab-reports .reports-cat-header span:first-child {
+    font-size: 10px !important;
+    color: #6F7770 !important;
+    font-weight: 400 !important;
+    order: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  #tab-reports .reports-cat-header span:last-child {
+    font-size: 13.5px !important;
+    font-weight: 700 !important;
+    color: #202420 !important;
+    order: 2;
+    margin-bottom: 4px;
+  }
+
+  #tab-reports .reports-cat-track {
+    order: 3;
+    height: 5px !important;
+    border-radius: 3px !important;
+    background: transparent !important;
+  }
+
+  #tab-reports .reports-cat-fill {
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 3px !important;
+  }
+
+  #tab-reports .reports-cat-fill-0 {
+    background: #1E5E41 !important;
+  }
+
+  #tab-reports .reports-cat-fill-1 {
+    background: #73A78A !important;
+  }
+
+  #tab-reports .reports-cat-fill-2 {
+    background: #9DB4A5 !important;
+  }
+
+  #tab-reports .reports-cat-fill-3,
+  #tab-reports .reports-cat-fill-4 {
+    background: #CAD8D0 !important;
+  }
+
+  #tab-reports .reports-cat-row + div[style*="height: 1px"],
+  #tab-reports div[style*="Persentase dihitung"] {
+    display: none !important;
+  }
+
+  /* Riwayat Bulan List */
+  #tab-reports .figma-table-wrapper {
+    display: none !important;
+  }
+
+  #tab-reports #mobile-btn-report-view-all {
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    color: #3E72A7 !important;
+    background: none !important;
+    border: none !important;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .mobile-monthly-history-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 14px !important;
+    margin-top: 14px !important;
+  }
+
+  .mobile-month-history-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    font-size: 11.5px !important;
+  }
+
+  .mobile-month-name {
+    font-weight: 500 !important;
+    color: #202420 !important;
+    flex: 1.2 !important;
+  }
+
+  .mobile-month-inc {
+    font-weight: 500 !important;
+    color: #2D7653 !important;
+    flex: 1 !important;
+    text-align: right !important;
+  }
+
+  .mobile-month-exp {
+    font-weight: 400 !important;
+    color: #6F7770 !important;
+    flex: 1 !important;
+    text-align: right !important;
+  }
+
+  /* 9. Mobile Pengaturan & Profil (Screen 06 / Screenshot 2) */
+  #tab-settings .settings-grid-row {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 14px !important;
+    margin-bottom: 14px !important;
+  }
+
+  #tab-settings .figma-card {
+    border-radius: 18px !important;
+    padding: 18px !important;
+    background: #FFFFFF !important;
+    border: 1px solid #E2E5DF !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02) !important;
+  }
+
+  #tab-settings #btn-edit-profile,
+  #tab-settings #btn-settings-logout {
+    display: none !important;
+  }
+
+  #tab-settings .profile-card-content {
+    display: flex !important;
+    align-items: center !important;
+    gap: 14px !important;
+    width: 100% !important;
+  }
+
+  #tab-settings .profile-avatar-large {
+    width: 52px !important;
+    height: 52px !important;
+    border-radius: 50% !important;
+    background: #202420 !important;
+    color: #FFFFFF !important;
+    font-size: 20px !important;
+    font-weight: 600 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+  }
+
+  #tab-settings .profile-info-col {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 3px !important;
+  }
+
+  #tab-settings .profile-full-name {
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    color: #202420 !important;
+  }
+
+  #tab-settings .profile-email-text {
+    font-size: 11px !important;
+    color: #6F7770 !important;
+  }
+
+  #tab-settings .profile-badge-active {
+    align-self: flex-start !important;
+    background: #EAF4EE !important;
+    color: #2D7653 !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    padding: 2px 8px !important;
+    border-radius: 12px !important;
+    margin-top: 2px !important;
+  }
+
+  .profile-chevron-mobile {
+    display: flex !important;
+    margin-left: auto !important;
+    align-items: center !important;
+  }
+
+  #tab-settings .profile-footer-meta,
+  #tab-settings #settings-user-id-text,
+  #tab-settings .settings-inner-divider.desktop-only-block {
+    display: none !important;
+  }
+
+  #tab-settings #btn-add-account-settings {
+    color: #3E72A7 !important;
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    background: none !important;
+    border: none !important;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  #tab-settings .connected-acc-icon {
+    display: none !important;
+  }
+
+  #tab-settings .connected-acc-row {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 6px 0 !important;
+  }
+
+  #tab-settings .connected-acc-type {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: #202420 !important;
+  }
+
+  #tab-settings .connected-acc-nickname {
+    font-size: 10.5px !important;
+    color: #6F7770 !important;
+    margin-top: 2px !important;
+  }
+
+  #tab-settings .badge-connected {
+    background: none !important;
+    border: none !important;
+    color: #2D7653 !important;
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    padding: 0 !important;
+  }
+
+  #tab-settings .security-row {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 6px 0 !important;
+  }
+
+  #tab-settings .security-row-title {
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    color: #202420 !important;
+  }
+
+  #tab-settings .security-action-link {
+    font-size: 11px !important;
+    color: #6F7770 !important;
+    font-weight: 400 !important;
+    background: none !important;
+    border: none !important;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  #tab-settings .security-bottom-note {
+    display: none !important;
+  }
+
+  #tab-settings .preference-row {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 6px 0 !important;
+  }
+
+  #tab-settings .preference-row-title {
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    color: #202420 !important;
+  }
+
+  .mobile-pref-tag {
+    font-size: 11px !important;
+    font-weight: 500 !important;
+  }
+
+  .mobile-pref-tag.green {
+    color: #2D7653 !important;
+  }
+
+  .mobile-pref-tag.muted {
+    color: #6F7770 !important;
+  }
+
+  #tab-settings .toggle-switch.desktop-only-flex {
+    display: none !important;
+  }
+
+  /* 10. Mobile Auth Views (Screens 07 & Reset / Screenshots 3 & 4) */
+  #auth-view-signup,
+  #auth-view-reset {
+    width: 100%;
+  }
+
+  .desktop-login-input.with-left-icon {
+    padding-left: 36px !important;
+  }
+
+  .mobile-only-inline {
+    display: inline !important;
   }
 }
 
