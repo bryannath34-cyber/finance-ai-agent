@@ -32,22 +32,73 @@ def get_genai_client():
     return _genai_client
 
 def parse_indonesian_amount(text: str) -> Optional[Decimal]:
-    """Helper regex konversi nominal khas Indonesia (misal: '50rb' -> 50000, '1,5jt' -> 1500000, '250k' -> 250000)."""
-    text = text.lower().replace("rp", "").replace(".", "").strip()
-    match = re.search(r"(\d+(?:[.,]\d+)?)\s*(rb|ribu|k|jt|juta)?", text)
-    if not match:
+    """Helper konversi nominal khas Indonesia & format perbankan (misal: '8,637,518.23', '8.637.518,23', '8.5jt', '50rb', '250k')."""
+    if not text:
         return None
-    val_str = match.group(1).replace(",", ".")
-    unit = match.group(2)
-    try:
-        val = Decimal(val_str)
-        if unit in ("rb", "ribu", "k"):
-            val *= Decimal(1000)
-        elif unit in ("jt", "juta"):
-            val *= Decimal(1000000)
-        return val
-    except Exception:
-        return None
+    t = text.lower().replace("rp", "").replace("idr", "").strip()
+
+    # 1. Nominal dengan akhiran satuan (misal: 8.5jt, 8,5 jt, 50rb, 250k, 1.2m)
+    unit_match = re.search(r"(\d+(?:[.,]\d+)?)\s*(rb|ribu|k|jt|juta|m|miliar|milyar)\b", t)
+    if unit_match:
+        val_str = unit_match.group(1).replace(",", ".")
+        unit = unit_match.group(2)
+        try:
+            val = Decimal(val_str)
+            if unit in ("rb", "ribu", "k"):
+                return val * Decimal(1000)
+            elif unit in ("jt", "juta"):
+                return val * Decimal(1000000)
+            elif unit in ("m", "miliar", "milyar"):
+                return val * Decimal(1000000000)
+        except Exception:
+            pass
+
+    # 2. Angka berformat perbankan: 8,637,518.23 atau 8.637.518,23 atau 8,637,518 atau 8.637.518 atau 35000
+    num_matches = re.finditer(r"(?:\b|\s|^)(\d{1,3}(?:[.,]\d{3})+(?:[.,]\d+)?|\d+(?:[.,]\d+)?)(?:\b|\s|$)", t)
+    candidates = []
+    for m in num_matches:
+        s = m.group(1).strip()
+        if not s:
+            continue
+        cleaned = ""
+        if "." in s and "," in s:
+            last_dot = s.rfind(".")
+            last_comma = s.rfind(",")
+            if last_dot > last_comma:
+                # Format US: 8,637,518.23 -> koma adalah ribuan, titik desimal
+                cleaned = s.replace(",", "")
+            else:
+                # Format Indo/EU: 8.637.518,23 -> titik adalah ribuan, koma desimal
+                cleaned = s.replace(".", "").replace(",", ".")
+        elif "," in s:
+            parts = s.split(",")
+            if len(parts) > 1 and all(len(p) == 3 for p in parts[1:]):
+                cleaned = s.replace(",", "")
+            elif len(parts) == 2 and len(parts[1]) <= 2:
+                cleaned = s.replace(",", ".")
+            else:
+                cleaned = s.replace(",", "")
+        elif "." in s:
+            parts = s.split(".")
+            if len(parts) > 1 and all(len(p) == 3 for p in parts[1:]):
+                cleaned = s.replace(".", "")
+            elif len(parts) == 2 and len(parts[1]) <= 2:
+                cleaned = s
+            else:
+                cleaned = s.replace(".", "")
+        else:
+            cleaned = s
+
+        try:
+            val = Decimal(cleaned)
+            if val > 0:
+                candidates.append(val)
+        except Exception:
+            continue
+
+    if candidates:
+        return candidates[0]
+    return None
 
 class AIService:
     @staticmethod
@@ -73,6 +124,8 @@ class AIService:
         def _idr(amt: Any) -> str:
             try:
                 val = Decimal(str(amt or 0))
+                if val % 1 != 0:
+                    return f"Rp {val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
                 return f"Rp {val:,.0f}".replace(",", ".")
             except Exception:
                 return "Rp 0"
@@ -324,7 +377,7 @@ ATURAN STRUKTUR JSON:
 Kembalikan HANYA array JSON [] tanpa teks pengantar, tanpa markdown ```json.
 Setiap elemen objek dalam array wajib memiliki properti:
 - "type": "INCOME" (pemasukan/saldo masuk/catat uang), "EXPENSE" (pengeluaran/beli/bayar), atau "TRANSFER" (pindah dana antar-rekening).
-- "amount": angka nominal positif (misal 50000 untuk 50rb/50k, 1500000 untuk 1,5jt, 8600000 untuk 8.600.000).
+- "amount": angka nominal float/int murni tanpa pemisah ribuan (misal 50000 untuk 50rb/50k, 1500000 untuk 1,5jt, 8637518.23 untuk '8,637,518.23' atau '8.637.518,23'). JANGAN PERNAH memotong angka ribuan menjadi angka satuan (misal jangan ubah 8,637,518.23 menjadi 8 atau 9)!
 - "admin_fee": angka biaya admin (default 0, hanya relevan jika transfer berbiaya admin).
 - "source_account_name": nama rekening sumber (wajib ada untuk EXPENSE dan TRANSFER, null untuk INCOME).
 - "destination_account_name": nama rekening tujuan (wajib ada untuk INCOME dan TRANSFER, null untuk EXPENSE).
@@ -334,16 +387,22 @@ Setiap elemen objek dalam array wajib memiliki properti:
 
 ATURAN DETEKSI INTENT BAHASA INDONESIA:
 1. PENCATATAN SALDO / SALDO AWAL / SIMPANAN (SANGAT PENTING):
-   Jika pengguna menyatakan kepemilikan uang, ada saldo di rekening, atau ada duit (contoh: "duit gua di rekening bca ada 8.600.000", "rekening bca gua saat ini ada 8.600.000", "saldo bank ada 5 juta", "uang di kas ada 200rb"):
+   Jika pengguna menyatakan kepemilikan uang, ada saldo di rekening, atau ada duit (contoh: "di rekening bca gua ada jumlah nya 8,637,518.23", "duit gua di rekening bca ada 8.600.000", "rekening bca gua saat ini ada 8.600.000", "saldo bank ada 5 juta", "uang di kas ada 200rb"):
    - "type": "INCOME" (karena menambah saldo rekening buku besar).
    - "source_account_name": null.
    - "destination_account_name": nama rekening yang disebut (misal: "Bank" untuk BCA/Mandiri/BRI, "Kas Tunai" untuk dompet/tunai, "E-Wallet" untuk GoPay/OVO/Dana).
    - "category_name": pilih kategori pemasukan sah (misal "Gaji & Pendapatan").
    - JANGAN PERNAH mengategorikan pernyataan saldo/ada uang sebagai EXPENSE atau "Makanan & Minuman"!
 2. BAHASA SEHARI-HARI & GAUL:
-   Pahami kata gaul Indonesia: "gua", "gw", "gue", "duit", "uang", "saat ini ada", "sekarang ada", "tf", "cair", "ngopi", "beli", "jajan".
+   Pahami kata gaul Indonesia: "gua", "gw", "gue", "duit", "uang", "saat ini ada", "sekarang ada", "ada jumlah", "jumlah nya", "tf", "cair", "ngopi", "beli", "jajan".
 
 CONTOH LENGKAP:
+Input: "di rekening bca gua ada jumlah nya 8,637,518.23"
+Output:
+[
+  {{"type": "INCOME", "amount": 8637518.23, "admin_fee": 0, "source_account_name": null, "destination_account_name": "Bank", "category_name": "Gaji & Pendapatan", "description": "Saldo rekening BCA", "transaction_date": "{today_str}"}}
+]
+
 Input: "duit gua di rekening bca ada 8.600.000"
 Output:
 [
@@ -417,7 +476,8 @@ KALIMAT PENGGUNA YANG HARUS DIPROSES:
         balance_keywords = (
             "duit", "uang", "saldo", "dana", "tabungan", "rekening", "ada uang",
             "punya uang", "di rekening", "rekening bca", "rekening bank", "di bca",
-            "di bank", "di dompet", "di gopay", "di ovo", "di dana", "isi saldo"
+            "di bank", "di dompet", "di gopay", "di ovo", "di dana", "isi saldo",
+            "jumlah nya", "jumlahnya", "jumlah", "total saldo", "ada jumlah", "ada", "punya"
         )
         is_balance_statement = not has_expense_verb and any(kw in user_input_lower for kw in balance_keywords)
 
@@ -468,7 +528,7 @@ KALIMAT PENGGUNA YANG HARUS DIPROSES:
                 if is_bank_mentioned:
                     if tx_type in ("EXPENSE", "TRANSFER") and not src_acc_id:
                         src_acc_id = bank_acc["id"]
-                    if tx_type in ("INCOME", "TRANSFER") and not dest_acc_id:
+                    if tx_type in ("INCOME", "TRANSFER"):
                         dest_acc_id = bank_acc["id"]
 
             # Alias E-Wallet dari nama akun LLM ATAU teks pengguna
@@ -493,8 +553,10 @@ KALIMAT PENGGUNA YANG HARUS DIPROSES:
             default_acc_id = accounts[0]["id"] if accounts else None
             if tx_type in ("EXPENSE", "TRANSFER") and not src_acc_id:
                 src_acc_id = default_acc_id
-            if tx_type == "INCOME" and not dest_acc_id:
-                dest_acc_id = default_acc_id
+            if tx_type == "INCOME":
+                src_acc_id = None
+                if not dest_acc_id:
+                    dest_acc_id = bank_acc["id"] if (bank_acc and is_bank_mentioned) else default_acc_id
 
             # Pencocokan kategori yang sesuai dengan tipe mutasi (INCOME vs EXPENSE)
             if tx_type in ("INCOME", "EXPENSE"):
@@ -510,7 +572,7 @@ KALIMAT PENGGUNA YANG HARUS DIPROSES:
                             break
 
             final_desc = item.get("description")
-            if not final_desc or final_desc == user_input:
+            if not final_desc or final_desc == user_input or is_balance_statement:
                 if is_balance_statement:
                     matched_acc = next((a["name"] for a in accounts if a["id"] == (dest_acc_id or src_acc_id)), "Rekening")
                     final_desc = f"Saldo {matched_acc}"
@@ -582,9 +644,10 @@ KALIMAT PENGGUNA YANG HARUS DIPROSES:
             "gaji", "terima", "dapat", "masuk", "bonus", "saldo", "saat ini ada",
             "sekarang ada", "ada uang", "punya uang", "rekening di", "di rekening", "uang di",
             "duit", "uang", "dana", "ada", "punya", "simpan", "setor", "isi saldo",
-            "top up", "nabung", "cair", "pendapatan", "piutang", "penjualan", "dividen"
+            "top up", "nabung", "cair", "pendapatan", "piutang", "penjualan", "dividen",
+            "jumlah nya", "jumlahnya", "jumlah", "ada jumlah"
         ])
-        is_expense = any(w in text_lower for w in [
+        is_expense = not is_income and any(w in text_lower for w in [
             "beli", "bayar", "keluar", "habis", "belanja", "makan", "minum",
             "ongkir", "bensin", "parkir", "tagihan", "sewa", "pulsa", "listrik",
             "jajan", "ngopi"
@@ -608,7 +671,7 @@ KALIMAT PENGGUNA YANG HARUS DIPROSES:
             if inc_cats:
                 cat_name = inc_cats[0]
 
-            desc = f"Saldo {matched_acc_name}" if any(kw in text_lower for kw in ("duit", "uang", "saldo", "dana", "rekening", "ada", "punya")) and not is_expense else text[:100]
+            desc = f"Saldo {matched_acc_name}" if any(kw in text_lower for kw in ("duit", "uang", "saldo", "dana", "rekening", "ada", "punya", "jumlah")) and not is_expense else text[:100]
 
             results.append({
                 "type": "INCOME",

@@ -1234,11 +1234,12 @@ class App {
 
   formatIDR(num) {
     const val = parseFloat(num) || 0;
+    const hasDecimals = (val % 1 !== 0);
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
       currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
+      minimumFractionDigits: hasDecimals ? 2 : 0,
+      maximumFractionDigits: 2,
     }).format(val);
   }
 
@@ -2582,6 +2583,7 @@ class App {
     this.draftTableBody.innerHTML = '';
 
     let totalExpense = 0;
+    let totalIncome = 0;
 
     pendingDrafts.forEach((d, idx) => {
       const tr = document.createElement('tr');
@@ -2594,6 +2596,7 @@ class App {
       else if (d.type === 'TRANSFER') accText = `${d.source_account_name} ${Icons.arrowRight} ${d.destination_account_name}`;
 
       if (d.type === 'EXPENSE') totalExpense += parseFloat(d.amount) || 0;
+      if (d.type === 'INCOME') totalIncome += parseFloat(d.amount) || 0;
 
       tr.innerHTML = `
         <td style="color: var(--text-secondary); font-size: 10px;">${idx + 1}</td>
@@ -2617,7 +2620,13 @@ class App {
     });
 
     if (this.draftTotalSummary) {
-      this.draftTotalSummary.textContent = `Total pengeluaran draft: ${this.formatIDR(totalExpense)}`;
+      if (totalExpense > 0 && totalIncome > 0) {
+        this.draftTotalSummary.textContent = `Total draft: ${this.formatIDR(totalIncome)} (Masuk) · ${this.formatIDR(totalExpense)} (Keluar)`;
+      } else if (totalIncome > 0) {
+        this.draftTotalSummary.textContent = `Total pemasukan draft: ${this.formatIDR(totalIncome)}`;
+      } else {
+        this.draftTotalSummary.textContent = `Total pengeluaran draft: ${this.formatIDR(totalExpense)}`;
+      }
     }
     if (this.draftFooterRow) {
       this.draftFooterRow.style.display = 'flex';
