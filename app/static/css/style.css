@@ -4138,3 +4138,105 @@ a:hover {
   color: var(--accent-green);
 }
 
+/* ==========================================================================
+   MYSQL DATABASE STUDIO STYLES
+   ========================================================================== */
+.db-table-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  background: transparent;
+  text-align: left;
+  width: 100%;
+}
+
+.db-table-item:hover {
+  background: var(--bg-hover);
+}
+
+.db-table-item.active {
+  background: rgba(2, 132, 199, 0.08);
+  border-color: rgba(2, 132, 199, 0.25);
+}
+
+.db-table-item.active .db-table-item-name {
+  color: #0284C7;
+  font-weight: 600;
+}
+
+.db-table-item-name {
+  font-family: monospace;
+  font-size: 11px;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.db-table-item-count {
+  font-size: 10px;
+  color: var(--text-muted);
+  background: var(--bg-main);
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.db-preset-btn {
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border-main);
+  background: var(--bg-main);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.db-preset-btn:hover {
+  border-color: #0284C7;
+  color: #0284C7;
+  background: #FFFFFF;
+}
+
+.db-null-tag {
+  font-size: 9px;
+  font-style: italic;
+  color: var(--text-muted);
+  background: rgba(0, 0, 0, 0.04);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.db-pri-key {
+  font-size: 9px;
+  font-weight: 700;
+  color: #D97706;
+  background: rgba(217, 119, 6, 0.1);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.db-cell-val {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#db-data-table th, #db-data-table td {
+  padding: 8px 10px;
+  border: 1px solid var(--border-main);
+  white-space: nowrap;
+}
+
+#db-data-table tbody tr:hover {
+  background: rgba(2, 132, 199, 0.03);
+}
+
+
