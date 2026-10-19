@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=2.6.7">
+  <link rel="stylesheet" href="css/style.css?v=2.6.8">
   <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
   <link rel="shortcut icon" type="image/svg+xml" href="favicon.svg?v=3">
   <link rel="apple-touch-icon" href="favicon.svg?v=3">
@@ -342,6 +342,15 @@
               </button>
             </div>
 
+            <div id="ai-process-status" class="ai-process-status" role="status" aria-live="polite" style="display: none;">
+              <span class="ai-process-indicator" aria-hidden="true"></span>
+              <div class="ai-process-copy">
+                <strong id="ai-process-title">Menyiapkan analisis</strong>
+                <span id="ai-process-detail">Teks transaksi tetap bisa kamu tinjau sebelum dikonfirmasi.</span>
+              </div>
+              <button type="button" id="btn-retry-ai" class="ai-retry-btn" style="display: none;">Coba lagi</button>
+            </div>
+
             <!-- AI Copilot Natural Response Box -->
             <div id="ai-response-box" class="ai-response-box" style="display: none;">
               <div class="ai-response-header">
@@ -470,6 +479,10 @@
                   </svg>
                   <span>Catat Transaksi</span>
                 </button>
+                <button type="button" class="btn-secondary-light btn-ledger-import" id="btn-import-csv" title="Header wajib: type, amount. Kolom lain: date, account, source_account, destination_account, category, description, admin_fee." aria-label="Impor CSV transaksi">
+                  <span>Impor CSV</span>
+                </button>
+                <input type="file" id="input-import-csv" accept=".csv,text/csv" hidden>
               </div>
             </div>
 
@@ -2086,6 +2099,7 @@
                 <span class="card-section-title"><span class="desktop-only-inline">Preferensi aplikasi</span><span class="mobile-only-inline">Preferensi</span></span>
               </div>
             </div>
+            <div class="card-subtitle-text preference-delivery-note">Preferensi tersimpan di akun. Pengiriman pengingat otomatis belum diaktifkan.</div>
 
             <div style="margin-top: 10px;">
               <!-- Pref 1: Pengingat anggaran (ON) -->
@@ -2094,7 +2108,7 @@
                   <span class="preference-row-title">Pengingat anggaran</span>
                   <span class="preference-row-desc desktop-only-block">Notifikasi saat mendekati batas kategori.</span>
                 </div>
-                <span class="mobile-pref-tag green mobile-only-inline">Aktif</span>
+                <button type="button" class="mobile-pref-tag mobile-pref-toggle green mobile-only-inline" data-pref="budget-alert" aria-pressed="true">Aktif</button>
                 <button type="button" class="toggle-switch active desktop-only-flex" data-pref="budget-alert"
                   aria-label="Toggle Pengingat anggaran">
                   <div class="toggle-knob"></div>
@@ -2109,7 +2123,7 @@
                   <span class="preference-row-title">Ringkasan bulanan</span>
                   <span class="preference-row-desc desktop-only-block">Terima ringkasan keuangan di akhir bulan.</span>
                 </div>
-                <span class="mobile-pref-tag green mobile-only-inline">Aktif</span>
+                <button type="button" class="mobile-pref-tag mobile-pref-toggle green mobile-only-inline" data-pref="monthly-summary" aria-pressed="true">Aktif</button>
                 <button type="button" class="toggle-switch active desktop-only-flex" data-pref="monthly-summary"
                   aria-label="Toggle Ringkasan bulanan">
                   <div class="toggle-knob"></div>
@@ -2124,7 +2138,7 @@
                   <span class="preference-row-title">Pengingat tabungan</span>
                   <span class="preference-row-desc desktop-only-block">Pengingat kontribusi tabungan berkala.</span>
                 </div>
-                <span class="mobile-pref-tag muted mobile-only-inline">Nonaktif</span>
+                <button type="button" class="mobile-pref-tag mobile-pref-toggle muted mobile-only-inline" data-pref="savings-reminder" aria-pressed="false">Nonaktif</button>
                 <button type="button" class="toggle-switch desktop-only-flex" data-pref="savings-reminder"
                   aria-label="Toggle Pengingat target tabungan">
                   <div class="toggle-knob"></div>
@@ -2136,12 +2150,12 @@
               <!-- Pref 4: Format mata uang (ON) -->
               <div class="preference-row">
                 <div class="preference-row-info">
-                  <span class="preference-row-title">Mata uang</span>
-                  <span class="preference-row-desc desktop-only-block">Gunakan Rupiah (IDR) untuk angka keuangan.</span>
+                  <span class="preference-row-title">Simbol Rupiah</span>
+                  <span class="preference-row-desc desktop-only-block">Tampilkan awalan Rp pada angka keuangan.</span>
                 </div>
-                <span class="mobile-pref-tag green mobile-only-inline">Rupiah (IDR)</span>
+                <button type="button" class="mobile-pref-tag mobile-pref-toggle green mobile-only-inline" data-pref="currency-format" aria-pressed="true">Rp tampil</button>
                 <button type="button" class="toggle-switch active desktop-only-flex" data-pref="currency-format"
-                  aria-label="Toggle Format mata uang">
+                  aria-label="Toggle simbol Rupiah">
                   <div class="toggle-knob"></div>
                 </button>
               </div>
@@ -3207,8 +3221,7 @@
           </svg>
           <span>Edit Profil Pengguna</span>
         </h3>
-        <p style="font-size: 10px; color: var(--text-secondary); margin-bottom: 16px;">Perbarui informasi tampilan nama
-          akun dan alamat email.</p>
+        <p style="font-size: 10px; color: var(--text-secondary); margin-bottom: 16px;">Perbarui nama yang ditampilkan pada aplikasi.</p>
         <form id="form-edit-profile">
           <div style="margin-bottom: 12px;">
             <label style="font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Nama
@@ -3217,8 +3230,8 @@
           </div>
           <div style="margin-bottom: 16px;">
             <label
-              style="font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Email</label>
-            <input type="email" id="input-profile-email" class="auth-input" value="bryan@example.com" required>
+              style="font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Username</label>
+            <input type="text" id="input-profile-email" class="auth-input" value="" readonly>
           </div>
           <div style="display: flex; justify-content: flex-end; gap: 8px;">
             <button type="button" class="btn-secondary-light btn-close-modal">Batal</button>
@@ -3327,25 +3340,35 @@
         <p style="font-size: 11px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 14px;">
           Daftar perangkat dan browser yang saat ini memiliki token sesi terautentikasi ke akun Anda.
         </p>
-        <div
-          style="background: #F8F9F7; border: 1px solid #E2E5DF; border-radius: 9px; padding: 12px; margin-bottom: 14px; font-size: 10.5px; line-height: 1.6;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-            <span style="font-weight: 600; color: var(--text-primary);">Perangkat Saat Ini</span>
-            <span
-              style="background: #EAF4EE; color: #2D7653; padding: 2px 8px; border-radius: 12px; font-size: 9.5px; font-weight: 600;">Sesi
-              Aktif</span>
-          </div>
-          <div style="color: var(--text-secondary); font-size: 10px; margin-bottom: 2px;">Sistem Operasi:
-            <strong>Windows (Desktop)</strong></div>
-          <div style="color: var(--text-secondary); font-size: 10px; margin-bottom: 2px;">Host Deployment: <strong>OCI
-              VM 161.118.216.250</strong></div>
-          <div style="color: var(--text-secondary); font-size: 10px; margin-bottom: 2px;">Waktu Masuk: <strong>Baru
-              Saja</strong></div>
-          <div style="color: var(--text-secondary); font-size: 10px;">Metode Enkripsi: <strong>Argon2id + HttpOnly
-              Cookie</strong></div>
+        <div id="sessions-list" class="sessions-list" aria-live="polite">
+          <div class="session-loading">Memuat daftar sesi…</div>
         </div>
         <div style="display: flex; justify-content: flex-end;">
           <button type="button" class="btn-primary-dark btn-close-modal">Tutup</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: Konfigurasi autentikasi dua faktor TOTP -->
+    <div id="modal-two-factor" class="modal-overlay" style="display: none;">
+      <div class="modal-content two-factor-modal-content">
+        <h3 class="two-factor-title">Autentikasi dua faktor</h3>
+        <p id="two-factor-help" class="two-factor-help">Tambahkan akun ini ke aplikasi authenticator, lalu verifikasi kode 6 digit.</p>
+        <div id="two-factor-setup-fields">
+          <label class="two-factor-label" for="two-factor-secret">Secret setup</label>
+          <input id="two-factor-secret" class="two-factor-secret" type="text" readonly>
+          <button type="button" id="btn-copy-two-factor-secret" class="btn-secondary-light two-factor-copy">Salin secret</button>
+        </div>
+        <label class="two-factor-label" for="two-factor-code">Kode 6 digit</label>
+        <input id="two-factor-code" class="two-factor-input" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000">
+        <div id="two-factor-password-field" style="display: none;">
+          <label class="two-factor-label" for="two-factor-password">Kata sandi saat ini</label>
+          <input id="two-factor-password" class="two-factor-input" type="password" autocomplete="current-password" placeholder="Kata sandi">
+        </div>
+        <div class="two-factor-actions">
+          <button type="button" class="btn-secondary-light btn-close-modal">Batal</button>
+          <button type="button" id="btn-enable-two-factor" class="btn-primary-dark">Aktifkan 2FA</button>
+          <button type="button" id="btn-disable-two-factor" class="btn-primary-dark" style="display: none;">Nonaktifkan</button>
         </div>
       </div>
     </div>
@@ -3449,6 +3472,13 @@
                           <circle cx="12" cy="12" r="3" />
                         </svg>
                       </button>
+                    </div>
+                  </div>
+
+                  <div class="login-field-group" id="login-totp-group" style="display: none;">
+                    <label for="login-totp-code" class="login-field-label">Kode autentikasi</label>
+                    <div class="login-input-box">
+                      <input type="text" id="login-totp-code" class="desktop-login-input" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="6 digit dari aplikasi authenticator">
                     </div>
                   </div>
 
@@ -3747,7 +3777,7 @@
       </div>
     </div>
 
-    <script type="module" src="js/app.js?v=2.6.6"></script>
+    <script type="module" src="js/app.js?v=2.6.8"></script>
 </body>
 
 </html>

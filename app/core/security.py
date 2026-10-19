@@ -2,14 +2,58 @@ import hashlib
 import hmac
 import secrets
 import logging
+import base64
+import struct
+import time
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any
 from fastapi import Request, HTTPException, status, Depends
 from passlib.context import CryptContext
+from cryptography.fernet import Fernet
 from app.core.config import settings
 from app.core.database import get_db_cursor
 
 logger = logging.getLogger("personal_finance.security")
+
+
+def _totp_cipher() -> Fernet:
+    # Derive a purpose-specific encryption key from the app's deployment secret.
+    key_material = hashlib.sha256((settings.SECRET_KEY + ":totp-encryption:v1").encode("utf-8")).digest()
+    return Fernet(base64.urlsafe_b64encode(key_material))
+
+
+def encrypt_totp_secret(secret: str) -> str:
+    return _totp_cipher().encrypt(secret.encode("ascii")).decode("ascii")
+
+
+def decrypt_totp_secret(ciphertext: str) -> str:
+    return _totp_cipher().decrypt(ciphertext.encode("ascii")).decode("ascii")
+
+
+def generate_totp_secret() -> str:
+    return base64.b32encode(secrets.token_bytes(20)).decode("ascii").rstrip("=")
+
+
+def verify_totp(secret: str, code: str, last_counter: Optional[int] = None) -> Optional[int]:
+    """Validate RFC 6238 6-digit TOTP with ±1 time-step clock skew tolerance."""
+    code = str(code or "").strip().replace(" ", "")
+    if len(code) != 6 or not code.isdigit():
+        return None
+    padded_secret = secret + "=" * ((8 - len(secret) % 8) % 8)
+    try:
+        key = base64.b32decode(padded_secret, casefold=True)
+    except Exception:
+        return None
+    current = int(time.time() // 30)
+    for counter in (current - 1, current, current + 1):
+        if counter < 0 or (last_counter is not None and counter <= int(last_counter)):
+            continue
+        digest = hmac.new(key, struct.pack(">Q", counter), hashlib.sha1).digest()
+        offset = digest[-1] & 0x0F
+        number = (struct.unpack(">I", digest[offset:offset + 4])[0] & 0x7FFFFFFF) % 1_000_000
+        if hmac.compare_digest(f"{number:06d}", code):
+            return counter
+    return None
 
 pwd_context = CryptContext(
     schemes=["argon2", "pbkdf2_sha256", "bcrypt"],

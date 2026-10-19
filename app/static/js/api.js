@@ -67,7 +67,7 @@ async function request(endpoint, options = {}) {
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      const errorMsg = data.detail || data.message || `HTTP Error ${res.status}`;
+      const errorMsg = (typeof data.detail === 'string' ? data.detail : data.detail?.message) || data.message || `HTTP Error ${res.status}`;
       const err = new Error(errorMsg);
       err.status = res.status;
       err.data = data;
@@ -89,10 +89,10 @@ async function request(endpoint, options = {}) {
 export const api = {
   // Authentication
   auth: {
-    login: async (username, password) => {
+    login: async (username, password, totpCode = null) => {
       const res = await request('/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, ...(totpCode ? { totp_code: totpCode } : {}) }),
       });
       if (res && res.csrf_token) {
         memoryCsrfToken = res.csrf_token;
@@ -125,6 +125,27 @@ export const api = {
       }
     },
     getMe: () => request('/auth/me'),
+    getSessions: () => request('/auth/sessions'),
+    revokeSession: (sessionId) => request(`/auth/sessions/${sessionId}`, { method: 'DELETE' }),
+    getPreferences: () => request('/auth/preferences'),
+    updatePreferences: (preferences) => request('/auth/preferences', {
+      method: 'PUT',
+      body: JSON.stringify(preferences),
+    }),
+    getTwoFactorStatus: () => request('/auth/2fa'),
+    setupTwoFactor: () => request('/auth/2fa/setup', { method: 'POST', body: JSON.stringify({}) }),
+    enableTwoFactor: (secret, code) => request('/auth/2fa/enable', {
+      method: 'POST', body: JSON.stringify({ secret, code }),
+    }),
+    disableTwoFactor: (password, code) => request('/auth/2fa/disable', {
+      method: 'POST', body: JSON.stringify({ password, code }),
+    }),
+    changePassword: (currentPassword, newPassword) => request('/auth/change-password', {
+      method: 'POST', body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+    }),
+    updateProfile: (fullName) => request('/auth/profile', {
+      method: 'PATCH', body: JSON.stringify({ full_name: fullName }),
+    }),
   },
 
 
@@ -173,6 +194,11 @@ export const api = {
 
   // Transactions & Drafts
   transactions: {
+    importCsv: (file) => {
+      const formData = new FormData();
+      formData.append('file', file, file.name);
+      return request('/transactions/import-csv', { method: 'POST', body: formData, timeout: 60000 });
+    },
     getDrafts: (batchId) => request(`/transactions/drafts/${batchId}`),
     updateDraft: async (draftId, payload) => {
       // Prioritaskan metode standar RESTful: PUT /transactions/drafts/{draftId}

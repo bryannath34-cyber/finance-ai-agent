@@ -1,5 +1,5 @@
 import logging
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from app.core.security import get_current_user
 from app.schemas.common import DataResponse
 from app.schemas.ai import ParseTextRequest, LLMParseResult
@@ -20,12 +20,10 @@ def parse_financial_text(payload: ParseTextRequest, user: dict = Depends(get_cur
         res = AIService.process_command(user["id"], payload.text)
     except Exception as e:
         logger.error("Error processing AI command: %s", e, exc_info=True)
-        res = {
-            "intent": "CAPABILITY",
-            "ai_response": "Mohon maaf, sistem AI mendeteksi kendala saat memproses kalimat. Silakan periksa kembali format teks atau coba sesaat lagi.",
-            "items_count": 0,
-            "drafts": []
-        }
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Asisten AI atau penyimpanan draft sedang bermasalah. Teks kamu belum dicatat; coba lagi sebentar.",
+        ) from e
 
     return DataResponse(
         success=True,

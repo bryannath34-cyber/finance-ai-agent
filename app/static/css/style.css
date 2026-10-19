@@ -4903,6 +4903,143 @@ a:focus-visible {
   }
 }
 
+.two-factor-modal-content { max-width: 440px; }
+.two-factor-title { margin: 0 0 6px; color: var(--text-primary); font-size: 17px; letter-spacing: -0.025em; }
+.two-factor-help { margin: 0 0 16px; color: var(--text-secondary); font-size: 11px; line-height: 1.55; }
+.two-factor-label { display: block; margin: 12px 0 6px; color: var(--text-primary); font-size: 10.5px; font-weight: 600; }
+.two-factor-secret,.two-factor-input { width: 100%; min-height: 40px; padding: 9px 11px; border: 1px solid var(--border-main); border-radius: 9px; background: #fff; color: var(--text-primary); font: 500 12px 'Inter', sans-serif; }
+.two-factor-secret { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; letter-spacing: 0.06em; }
+.two-factor-copy { margin-top: 7px; }
+.two-factor-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+.sessions-list { max-height: min(350px, 50vh); }
+.mobile-pref-toggle { border: 0; padding: 5px 0; background: transparent; font: inherit; cursor: pointer; }
+
+@media (max-width: 768px) {
+  .two-factor-modal-content { width: min(100%, 460px); padding: 20px; }
+  .two-factor-actions { flex-wrap: wrap; }
+}
+
+/* Workflow, review, import, and session feedback surfaces. */
+.ai-process-status {
+  align-items: center;
+  gap: 11px;
+  margin-top: 12px;
+  padding: 11px 13px;
+  border: 1px solid #DCE7D8;
+  border-radius: 12px;
+  background: linear-gradient(100deg, #F3F7EF, #FAFBF7);
+  color: #264A37;
+}
+
+.ai-process-status[data-state="error"] {
+  background: #FBF3F0;
+  border-color: #EAD4CD;
+  color: #884C43;
+}
+
+.ai-process-status[data-state="success"] {
+  background: #F0F6EB;
+  border-color: #D6E5D1;
+}
+
+.ai-process-indicator {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 10px;
+  border-radius: 50%;
+  background: #8DAF69;
+  box-shadow: 0 0 0 4px rgba(141, 175, 105, 0.16);
+}
+
+.ai-process-status[data-state="loading"] .ai-process-indicator {
+  animation: ai-status-pulse 1.1s ease-in-out infinite;
+}
+
+.ai-process-status[data-state="error"] .ai-process-indicator { background: #BA7164; box-shadow: 0 0 0 4px rgba(186, 113, 100, 0.13); }
+.ai-process-status[data-state="success"] .ai-process-indicator { background: #5D9668; box-shadow: 0 0 0 4px rgba(93, 150, 104, 0.13); }
+
+@keyframes ai-status-pulse {
+  50% { transform: scale(0.76); opacity: 0.65; }
+}
+
+.ai-process-copy { display: grid; gap: 2px; min-width: 0; flex: 1; }
+.ai-process-copy strong { font-size: 11px; font-weight: 650; }
+.ai-process-copy span { font-size: 10px; color: var(--text-secondary); line-height: 1.45; }
+.ai-retry-btn { border: 1px solid #D8C0B8; border-radius: 8px; background: #FFFCFA; color: #854B42; padding: 6px 10px; font-family: inherit; font-size: 10px; font-weight: 600; cursor: pointer; }
+.ai-retry-btn:hover { background: #F8E9E4; }
+
+.draft-review-needed { background: #FFFCF4; }
+.draft-status { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; font-size: 10px; font-weight: 600; }
+.draft-status-dot { width: 7px; height: 7px; display: inline-block; border-radius: 50%; background: #68A276; }
+.draft-status.needs-review { color: #8F672B; }
+.draft-status.needs-review .draft-status-dot { background: #D29B45; }
+.draft-review-note { display: block; margin-top: 4px; color: #9A7136; font-size: 10px; line-height: 1.4; }
+.draft-amount strong { white-space: nowrap; }
+.draft-actions button { min-height: 32px; }
+.btn-ledger-import { height: 34px; padding: 0 13px; border-radius: 9px; font-size: 11px; }
+
+.sessions-list { display: grid; gap: 9px; margin-bottom: 14px; max-height: 350px; overflow-y: auto; }
+.session-loading { padding: 16px; border: 1px dashed #D8E0D5; border-radius: 11px; color: var(--text-secondary); font-size: 11px; text-align: center; }
+.session-error { color: var(--accent-rose); }
+.session-card { padding: 12px; border: 1px solid #E1E7DE; border-radius: 11px; background: #FBFCF8; }
+.session-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.session-card-head strong { overflow: hidden; color: var(--text-primary); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.session-state { flex: 0 0 auto; padding: 3px 8px; border-radius: 20px; background: #EDF1EC; color: #68756D; font-size: 9px; font-weight: 650; }
+.session-state.current { background: #E9F3E9; color: #347553; }
+.session-card p,.session-card small { display: block; margin-top: 5px; color: var(--text-secondary); font-size: 10px; line-height: 1.5; }
+.session-revoke-btn,.session-refresh-btn { margin-top: 9px; padding: 5px 8px; border: 1px solid #E8D2CE; border-radius: 7px; background: #FFF9F7; color: #9A5149; font-family: inherit; font-size: 10px; font-weight: 600; cursor: pointer; }
+.session-revoke-btn:hover,.session-refresh-btn:hover { background: #F8E9E4; }
+
+@media (max-width: 768px) {
+  #draft-section { scroll-margin-top: 68px; }
+  #draft-section .figma-table-wrapper { overflow: visible; border: 0; }
+  #draft-section .figma-table { display: block; width: 100%; }
+  #draft-section .figma-table thead { display: none; }
+  #draft-section .figma-table tbody { display: grid; gap: 11px; }
+  #draft-section .figma-table tbody tr:not(:has(td[colspan])) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 10px 14px;
+    padding: 13px;
+    border: 1px solid #E3E8DE;
+    border-radius: 13px;
+    background: #FFFEFB;
+    box-shadow: 0 3px 10px rgba(33, 52, 40, 0.045);
+  }
+  #draft-section .figma-table tbody tr.draft-review-needed { border-color: #E9D8B9; background: #FFFCF5; }
+  #draft-section .figma-table td {
+    display: grid;
+    align-content: start;
+    gap: 4px;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    color: var(--text-primary);
+    font-size: 11px;
+    text-align: left;
+  }
+  #draft-section .figma-table td::before {
+    content: attr(data-label);
+    color: #849087;
+    font-size: 9px;
+    font-weight: 650;
+    letter-spacing: 0.055em;
+    text-transform: uppercase;
+  }
+  #draft-section .figma-table td.draft-index { display: none; }
+  #draft-section .figma-table td.draft-description,
+  #draft-section .figma-table td.draft-actions { grid-column: 1 / -1; }
+  #draft-section .figma-table td.draft-description strong { font-size: 13px; line-height: 1.4; }
+  #draft-section .figma-table td.draft-amount strong { font-size: 14px; }
+  #draft-section .figma-table td.draft-actions { padding-top: 9px; border-top: 1px solid #EDF0E9; }
+  #draft-section .figma-table td.draft-actions > div { justify-content: flex-start !important; }
+  #draft-section .figma-table td.draft-actions button { height: 34px !important; padding: 0 14px !important; }
+  #draft-section .figma-table td[colspan] { display: block; padding: 18px 12px !important; }
+  #draft-section .figma-table td[colspan]::before { content: none; }
+  .ai-process-status { align-items: flex-start; }
+  .ai-retry-btn { min-height: 34px; }
+}
+
 @media (max-width: 768px) {
   /* 1. Canvas & App Shell Layout */
   body {
@@ -6335,6 +6472,55 @@ a:focus-visible {
   .mobile-only-inline {
     display: inline !important;
   }
+}
+
+/* Keep AI draft cards readable after the legacy mobile layout rules. */
+@media (max-width: 768px) {
+  #draft-section { scroll-margin-top: 68px; }
+  #draft-section .figma-table-wrapper { overflow: visible !important; border: 0 !important; }
+  #draft-section .figma-table { display: block !important; width: 100% !important; }
+  #draft-section .figma-table thead { display: none !important; }
+  #draft-section .figma-table tbody { display: grid !important; gap: 11px; }
+  #draft-section .figma-table tbody tr:not(:has(td[colspan])) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 10px 14px;
+    padding: 13px;
+    border: 1px solid #E3E8DE;
+    border-radius: 13px;
+    background: #FFFEFB;
+    box-shadow: 0 3px 10px rgba(33, 52, 40, 0.045);
+  }
+  #draft-section .figma-table tbody tr.draft-review-needed { border-color: #E9D8B9; background: #FFFCF5; }
+  #draft-section .figma-table td {
+    display: grid !important;
+    align-content: start;
+    gap: 4px;
+    min-width: 0;
+    padding: 0 !important;
+    border: 0 !important;
+    color: var(--text-primary);
+    font-size: 11px;
+    text-align: left !important;
+  }
+  #draft-section .figma-table td::before {
+    content: attr(data-label);
+    color: #849087;
+    font-size: 9px;
+    font-weight: 650;
+    letter-spacing: 0.055em;
+    text-transform: uppercase;
+  }
+  #draft-section .figma-table td.draft-index { display: none !important; }
+  #draft-section .figma-table td.draft-description,
+  #draft-section .figma-table td.draft-actions { grid-column: 1 / -1; }
+  #draft-section .figma-table td.draft-description strong { font-size: 13px; line-height: 1.4; }
+  #draft-section .figma-table td.draft-amount strong { font-size: 14px; }
+  #draft-section .figma-table td.draft-actions { padding-top: 9px !important; border-top: 1px solid #EDF0E9 !important; }
+  #draft-section .figma-table td.draft-actions > div { justify-content: flex-start !important; }
+  #draft-section .figma-table td.draft-actions button { height: 34px !important; padding: 0 14px !important; }
+  #draft-section .figma-table td[colspan] { display: block !important; padding: 18px 12px !important; }
+  #draft-section .figma-table td[colspan]::before { content: none; }
 }
 
 /* Final responsive overrides for the warm editorial refresh. */

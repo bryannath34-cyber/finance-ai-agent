@@ -12,13 +12,17 @@ REQUIRE SSL;
 -- 2. HAK AKSES TABEL IDENTITAS & SESI
 -- ============================================================================
 -- app_users: Hanya SELECT profil dan UPDATE lockout login
-GRANT SELECT, UPDATE (failed_login_attempts, locked_until) 
+GRANT SELECT, UPDATE (failed_login_attempts, locked_until, totp_secret_ciphertext, totp_enabled, totp_last_counter, password_hash, full_name)
 ON personal_finance.app_users 
 TO 'fin_bot_app'@'10.10.2.%';
 
 -- web_sessions: Siklus hidup token sesi web (login, validasi, perpanjangan, logout)
 GRANT SELECT, INSERT, UPDATE, DELETE 
 ON personal_finance.web_sessions 
+TO 'fin_bot_app'@'10.10.2.%';
+
+GRANT SELECT, INSERT, UPDATE
+ON personal_finance.user_preferences
 TO 'fin_bot_app'@'10.10.2.%';
 
 -- ============================================================================

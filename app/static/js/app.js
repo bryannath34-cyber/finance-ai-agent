@@ -5,7 +5,7 @@
  * Financial Planning, and AI Advisory Copilot.
  */
 
-import { api } from './api.js?v=2.6.0';
+import { api } from './api.js?v=2.6.8';
 import { AudioRecorder } from './audio_recorder.js';
 
 const Icons = {
@@ -42,6 +42,12 @@ class App {
     this.budgetData = null;
     this.savingsGoals = [];
     this.scenarios = [];
+    this.userPreferences = {
+      'budget-alert': true,
+      'monthly-summary': true,
+      'savings-reminder': false,
+      'currency-format': true,
+    };
 
     this.recorder = new AudioRecorder({
       maxDurationSeconds: 30,
@@ -60,6 +66,8 @@ class App {
     this.loginForm = document.getElementById('login-form');
     this.loginUsername = document.getElementById('login-username');
     this.loginPassword = document.getElementById('login-password');
+    this.loginTotpGroup = document.getElementById('login-totp-group');
+    this.loginTotpCode = document.getElementById('login-totp-code');
     this.loginError = document.getElementById('login-error');
     this.btnToggleLoginPassword = document.getElementById('btn-toggle-login-password');
     this.btnGoogleLogin = document.getElementById('btn-google-login');
@@ -113,6 +121,14 @@ class App {
     // AI Command Center
     this.aiInput = document.getElementById('ai-input');
     this.btnParse = document.getElementById('btn-parse');
+    this.aiProcessStatus = document.getElementById('ai-process-status');
+    this.aiProcessTitle = document.getElementById('ai-process-title');
+    this.aiProcessDetail = document.getElementById('ai-process-detail');
+    this.btnRetryAi = document.getElementById('btn-retry-ai');
+    this.lastAIInput = '';
+    this.aiRequestBusy = false;
+    this.lastAudioBlob = null;
+    this.retryMode = null;
     this.btnRecord = document.getElementById('btn-record');
     this.recordStatus = document.getElementById('record-status');
     this.aiResponseBox = document.getElementById('ai-response-box');
@@ -341,6 +357,19 @@ class App {
     this.btnSettingsExportCsv = document.getElementById('btn-settings-export-csv');
     this.btnSettingsBackupStatus = document.getElementById('btn-settings-backup-status');
     this.btnSettingsPrivacyPolicy = document.getElementById('btn-settings-privacy-policy');
+    this.preferenceToggles = document.querySelectorAll('.toggle-switch[data-pref], .mobile-pref-toggle[data-pref]');
+    this.sessionsList = document.getElementById('sessions-list');
+    this.modalTwoFactor = document.getElementById('modal-two-factor');
+    this.twoFactorSecret = document.getElementById('two-factor-secret');
+    this.twoFactorCode = document.getElementById('two-factor-code');
+    this.twoFactorPassword = document.getElementById('two-factor-password');
+    this.twoFactorSetupFields = document.getElementById('two-factor-setup-fields');
+    this.twoFactorPasswordField = document.getElementById('two-factor-password-field');
+    this.btnEnableTwoFactor = document.getElementById('btn-enable-two-factor');
+    this.btnDisableTwoFactor = document.getElementById('btn-disable-two-factor');
+    this.btnCopyTwoFactorSecret = document.getElementById('btn-copy-two-factor-secret');
+    this.btnImportCsv = document.getElementById('btn-import-csv');
+    this.inputImportCsv = document.getElementById('input-import-csv');
 
     this.modalEditProfile = document.getElementById('modal-edit-profile');
     this.formEditProfile = document.getElementById('form-edit-profile');
@@ -579,6 +608,10 @@ class App {
 
     // Tab 1 Events (AI Parse & Voice)
     this.btnParse.addEventListener('click', () => this.handleAIParse());
+    if (this.btnRetryAi) this.btnRetryAi.addEventListener('click', () => {
+      if (this.retryMode === 'speech' && this.lastAudioBlob) this.submitSpeechTranscription(this.lastAudioBlob);
+      else this.handleAIParse(this.lastAIInput);
+    });
     this.btnRecord.addEventListener('click', () => this.toggleRecording());
     this.btnConfirmBatch.addEventListener('click', () => this.handleConfirmBatch());
 
@@ -888,58 +921,83 @@ class App {
     }
 
     if (this.btnToggle2fa) {
-      this.btnToggle2fa.addEventListener('click', () => {
-        const is2faActive = localStorage.getItem('user_2fa_enabled') === 'true';
-        const newState = !is2faActive;
-        localStorage.setItem('user_2fa_enabled', newState ? 'true' : 'false');
-        this.update2faButton(newState);
-        this.showAlert(`Autentikasi dua faktor (2FA) TOTP berhasil ${newState ? 'diaktifkan' : 'dinonaktifkan'}.`, 'success');
-      });
+      this.btnToggle2fa.addEventListener('click', () => this.openTwoFactorModal());
     }
+    if (this.btnEnableTwoFactor) this.btnEnableTwoFactor.addEventListener('click', () => this.enableTwoFactor());
+    if (this.btnDisableTwoFactor) this.btnDisableTwoFactor.addEventListener('click', () => this.disableTwoFactor());
+    if (this.btnCopyTwoFactorSecret) this.btnCopyTwoFactorSecret.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(this.twoFactorSecret?.value || '');
+        this.showAlert('Secret authenticator disalin.', 'success');
+      } catch (_) {
+        this.twoFactorSecret?.select();
+        this.showAlert('Pilih lalu salin secret secara manual.', 'info');
+      }
+    });
 
     if (this.btnViewSessions) {
       this.btnViewSessions.addEventListener('click', () => {
         this.openModal(this.modalActiveSessions);
+        this.loadSessions();
       });
     }
 
     // Toggle Switches (Screen 06 Preferences)
-    document.querySelectorAll('.toggle-switch').forEach((toggle) => {
-      toggle.addEventListener('click', () => {
-        toggle.classList.toggle('active');
-        const pref = toggle.getAttribute('data-pref');
-        const state = toggle.classList.contains('active') ? 'diaktifkan' : 'dinonaktifkan';
-        this.showAlert(`Preferensi ${pref || 'aplikasi'} berhasil ${state}.`, 'success');
+    this.preferenceToggles.forEach((toggle) => {
+      toggle.addEventListener('click', async () => {
+        const key = toggle.getAttribute('data-pref');
+        const previous = toggle.classList.contains('active');
+        toggle.disabled = true;
+        toggle.classList.toggle('active', !previous);
+        toggle.setAttribute('aria-pressed', String(!previous));
+        try {
+          const result = await api.auth.updatePreferences({ [key]: !previous });
+          this.applyPreferences(result.data || {});
+          this.showAlert('Preferensi berhasil disimpan.', 'success');
+        } catch (err) {
+          toggle.classList.toggle('active', previous);
+          toggle.setAttribute('aria-pressed', String(previous));
+          this.showAlert(`Preferensi belum tersimpan: ${err.message}`, 'error');
+        } finally {
+          toggle.disabled = false;
+        }
       });
     });
 
+    if (this.btnImportCsv && this.inputImportCsv) {
+      this.btnImportCsv.addEventListener('click', () => this.inputImportCsv.click());
+      this.inputImportCsv.addEventListener('change', () => this.handleCsvImport());
+    }
+
     // Form Edit Profile
     if (this.formEditProfile) {
-      this.formEditProfile.addEventListener('submit', (e) => {
+      this.formEditProfile.addEventListener('submit', async (e) => {
         e.preventDefault();
         const newName = this.inputProfileFullname.value.trim();
-        const newEmail = this.inputProfileEmail.value.trim();
-        if (newName) {
-          localStorage.setItem('user_fullname', newName);
-          if (this.settingsProfileName) this.settingsProfileName.textContent = newName;
-          if (this.usernameDisplay) this.usernameDisplay.textContent = newName.split(' ')[0];
-          if (this.desktopGreetingName) this.desktopGreetingName.textContent = newName.split(' ')[0];
-          if (this.settingsAvatarInitial) this.settingsAvatarInitial.textContent = newName[0].toUpperCase();
-          if (this.userAvatarInitial) this.userAvatarInitial.textContent = newName[0].toUpperCase();
+        if (!newName) return;
+        try {
+          const response = await api.auth.updateProfile(newName);
+          this.currentUser = response.data || this.currentUser;
+          const profileName = this.currentUser?.full_name || newName;
+          if (this.settingsProfileName) this.settingsProfileName.textContent = profileName;
+          if (this.usernameDisplay) this.usernameDisplay.textContent = profileName.split(' ')[0];
+          if (this.desktopGreetingName) this.desktopGreetingName.textContent = profileName.split(' ')[0];
+          if (this.mobileGreetingName) this.mobileGreetingName.textContent = profileName.split(' ')[0];
+          if (this.settingsAvatarInitial) this.settingsAvatarInitial.textContent = profileName[0].toUpperCase();
+          if (this.userAvatarInitial) this.userAvatarInitial.textContent = profileName[0].toUpperCase();
+          this.closeModals();
+          this.showAlert('Nama profil berhasil diperbarui.', 'success');
+        } catch (err) {
+          this.showAlert(`Nama profil belum tersimpan: ${err.message}`, 'error');
         }
-        if (newEmail) {
-          localStorage.setItem('user_email', newEmail);
-          if (this.settingsProfileEmail) this.settingsProfileEmail.textContent = newEmail;
-        }
-        this.closeModals();
-        this.showAlert('Profil pengguna berhasil diperbarui.', 'success');
       });
     }
 
     // Form Change Password
     if (this.formChangePassword) {
-      this.formChangePassword.addEventListener('submit', (e) => {
+      this.formChangePassword.addEventListener('submit', async (e) => {
         e.preventDefault();
+        const oldP = this.inputOldPassword?.value || '';
         const newP = this.inputNewPassword.value;
         const confP = this.inputConfirmPassword.value;
 
@@ -952,9 +1010,14 @@ class App {
           return;
         }
 
-        this.closeModals();
-        this.formChangePassword.reset();
-        this.showAlert('Kata sandi akun Anda berhasil diperbarui.', 'success');
+        try {
+          await api.auth.changePassword(oldP, newP);
+          this.closeModals();
+          this.formChangePassword.reset();
+          this.showAlert('Kata sandi diperbarui. Sesi di perangkat lain telah dicabut.', 'success');
+        } catch (err) {
+          this.showAlert(`Kata sandi belum berubah: ${err.message}`, 'error');
+        }
       });
     }
 
@@ -1269,8 +1332,8 @@ class App {
     const val = parseFloat(num) || 0;
     const hasDecimals = (val % 1 !== 0);
     return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
+      style: this.userPreferences?.['currency-format'] === false ? 'decimal' : 'currency',
+      ...(this.userPreferences?.['currency-format'] === false ? {} : { currency: 'IDR' }),
       minimumFractionDigits: hasDecimals ? 2 : 0,
       maximumFractionDigits: 2,
     }).format(val);
@@ -1278,6 +1341,7 @@ class App {
 
   formatCompactIDR(num, includeRp = true) {
     const val = parseFloat(num) || 0;
+    includeRp = includeRp && this.userPreferences?.['currency-format'] !== false;
     const isNegative = val < 0;
     const abs = Math.abs(val);
     let str = '';
@@ -1399,13 +1463,24 @@ class App {
     if (!user || !pass) return;
 
     try {
-      const res = await api.auth.login(user, pass);
+      const totpCode = this.loginTotpCode?.value.trim() || null;
+      const res = await api.auth.login(user, pass, totpCode);
       sessionStorage.removeItem('pf_logged_out');
       localStorage.removeItem('pf_logged_out');
       this.currentUser = res.user || (res.data ? (res.data.user || res.data) : res);
       this.loginPassword.value = '';
+      if (this.loginTotpCode) this.loginTotpCode.value = '';
+      if (this.loginTotpGroup) this.loginTotpGroup.style.display = 'none';
       this.showDashboard();
     } catch (err) {
+      const code = err.data?.detail?.code;
+      if (code === 'TOTP_REQUIRED' || code === 'TOTP_INVALID') {
+        if (this.loginTotpGroup) this.loginTotpGroup.style.display = 'block';
+        if (this.loginTotpCode) {
+          if (code === 'TOTP_INVALID') this.loginTotpCode.value = '';
+          this.loginTotpCode.focus();
+        }
+      }
       this.loginError.textContent = err.message || 'Username atau password salah.';
       this.loginError.style.display = 'block';
     }
@@ -2605,15 +2680,62 @@ class App {
     return output.join('');
   }
 
-  async handleAIParse() {
-    const text = (this.aiInput ? this.aiInput.value : '').trim();
+  setAIProcessState(title, detail, state = 'loading') {
+    if (!this.aiProcessStatus) return;
+    this.aiProcessStatus.dataset.state = state;
+    this.aiProcessStatus.style.display = 'flex';
+    if (this.aiProcessTitle) this.aiProcessTitle.textContent = title;
+    if (this.aiProcessDetail) this.aiProcessDetail.textContent = detail;
+    if (this.btnRetryAi) {
+      this.btnRetryAi.style.display = state === 'error' ? 'inline-flex' : 'none';
+      this.btnRetryAi.textContent = this.retryMode === 'speech' ? 'Coba transkripsi lagi' : 'Coba lagi';
+    }
+  }
+
+  escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[char]);
+  }
+
+  findPossibleDuplicate(draft) {
+    const date = String(draft.transaction_date || '').slice(0, 10);
+    const amount = Number(draft.amount || 0);
+    const description = String(draft.description || '').trim().toLocaleLowerCase('id');
+    const sameTransaction = (tx) =>
+      !tx.is_reversal && String(tx.transaction_date || '').slice(0, 10) === date &&
+      tx.type === draft.type && Number(tx.amount || 0) === amount &&
+      (tx.source_account_id || null) === (draft.source_account_id || null) &&
+      (tx.destination_account_id || null) === (draft.destination_account_id || null) &&
+      String(tx.description || '').trim().toLocaleLowerCase('id') === description;
+    const ledgerMatch = (this.transactions || []).find(sameTransaction);
+    if (ledgerMatch) return ledgerMatch;
+    return (this.currentBatch?.drafts || []).find((other) => other !== draft && sameTransaction(other)) || null;
+  }
+
+  async handleAIParse(inputText = null) {
+    const text = String(inputText ?? (this.aiInput ? this.aiInput.value : '')).trim();
     if (!text) {
       this.showAlert('Masukkan kalimat mutasi atau pertanyaan terlebih dahulu.', 'warning');
       return;
     }
-
-    this.btnParse.disabled = true;
-    this.btnParse.innerHTML = `<span class="loading-spinner"></span> Memproses AI...`;
+    if (this.aiRequestBusy) return;
+    this.aiRequestBusy = true;
+    this.lastAIInput = text;
+    const originalButton = this.btnParse?.innerHTML;
+    const originalMobileButton = this.mobileDashBtnParse?.innerHTML;
+    this.setAIProcessState('Menyiapkan analisis…', 'Mengirim teks ke asisten keuangan.', 'loading');
+    if (this.btnParse) {
+      this.btnParse.disabled = true;
+      this.btnParse.innerHTML = `<span class="loading-spinner"></span> Memproses…`;
+    }
+    if (this.mobileDashBtnParse) {
+      this.mobileDashBtnParse.disabled = true;
+      this.mobileDashBtnParse.innerHTML = `<span class="loading-spinner"></span> Memproses…`;
+    }
+    const stageTimer = setTimeout(() => this.setAIProcessState(
+      'AI sedang membaca transaksi…', 'Memeriksa jenis, nominal, tanggal, rekening, dan kategori.', 'loading'
+    ), 900);
 
     try {
       const res = await api.ai.parse(text);
@@ -2622,33 +2744,27 @@ class App {
       const drafts = data.drafts || [];
       const intent = data.intent || 'TRANSACTION_DRAFT';
 
-      // 1. Tampilkan Tanggapan Alami AI di Response Box jika ada
       if (aiResponse) {
         const formatted = this.formatAiMarkdown(aiResponse);
         if (this.aiResponseBody) this.aiResponseBody.innerHTML = formatted;
         if (this.aiResponseBox) this.aiResponseBox.style.display = 'block';
-
         if (this.mobileAiResponseBody) this.mobileAiResponseBody.innerHTML = formatted;
         if (this.mobileAiResponseBox) this.mobileAiResponseBox.style.display = 'block';
       }
 
-      // 2. Tangani Draft Transaksi
       if (drafts.length > 0) {
-        this.currentBatch = {
-          batch_id: data.batch_id,
-          drafts: drafts,
-        };
+        this.retryMode = null;
+        this.currentBatch = { batch_id: data.batch_id, drafts };
         this.renderDrafts();
-        if (this.draftSection) {
-          this.draftSection.style.display = 'block';
-        }
-        this.showAlert(`AI mendeteksi ${drafts.length} draft transaksi untuk ditinjau.`, 'success');
+        if (this.draftSection) this.draftSection.style.display = 'block';
+        this.setAIProcessState('Draft siap diperiksa', `${drafts.length} transaksi dibuat sebagai draft. Periksa penanda kuning sebelum konfirmasi.`, 'success');
+        this.showAlert(`AI menyiapkan ${drafts.length} draft transaksi untuk ditinjau.`, 'success');
       } else {
+        this.retryMode = null;
         this.currentBatch = null;
         this.renderDrafts();
-
+        this.setAIProcessState('Analisis selesai', aiResponse ? 'Baca jawaban AI di bawah ini.' : 'Tidak ada transaksi yang perlu ditambahkan.', 'success');
         if (intent === 'FINANCIAL_INQUIRY') {
-          // Segarkan rekening agar sinkron dengan saldo real-time
           this.loadAccounts();
           this.showAlert('Informasi saldo & keuangan berhasil diperbarui.', 'info');
         } else if (intent === 'PURCHASE_ADVISORY') {
@@ -2657,11 +2773,61 @@ class App {
           this.showAlert(res.message || 'Tanggapan AI siap dibaca.', 'info');
         }
       }
+      setTimeout(() => {
+        if (this.aiProcessStatus?.dataset.state === 'success') this.aiProcessStatus.style.display = 'none';
+      }, 7000);
     } catch (err) {
-      this.showAlert(`Gagal menganalisis kalimat: ${err.message}`, 'error');
+      this.retryMode = 'ai';
+      this.setAIProcessState('Analisis belum berhasil', `${err.message || 'Koneksi ke AI terputus.'} Teks kamu tetap tersimpan; coba lagi.`, 'error');
+      this.showAlert('Analisis gagal. Teks tetap tersimpan dan bisa dicoba lagi.', 'error');
     } finally {
-      this.btnParse.disabled = false;
-      this.btnParse.innerHTML = `<span>Proses Mutasi AI</span>`;
+      clearTimeout(stageTimer);
+      this.aiRequestBusy = false;
+      if (this.btnParse) {
+        this.btnParse.disabled = false;
+        this.btnParse.innerHTML = originalButton || `<span>Proses Mutasi AI</span>`;
+      }
+      if (this.mobileDashBtnParse) {
+        this.mobileDashBtnParse.disabled = false;
+        this.mobileDashBtnParse.innerHTML = originalMobileButton || `<span>Proses AI</span>`;
+      }
+    }
+  }
+
+  async handleCsvImport() {
+    const file = this.inputImportCsv?.files?.[0];
+    if (!file) return;
+    const importButton = this.btnImportCsv;
+    const original = importButton?.innerHTML;
+    if (importButton) {
+      importButton.disabled = true;
+      importButton.textContent = 'Membaca CSV…';
+    }
+    try {
+      const response = await api.transactions.importCsv(file);
+      const result = response.data || {};
+      if (result.drafts?.length) {
+        this.currentBatch = { batch_id: result.batch_id, drafts: result.drafts };
+        this.renderDrafts();
+        if (this.draftSection) this.draftSection.style.display = 'block';
+        this.showAlert(`${result.drafts.length} transaksi diimpor sebagai draft. Tinjau rekening, kategori, dan duplikat sebelum konfirmasi.`, 'success');
+        this.switchTab('tab-mutasi');
+        this.draftSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        this.showAlert('Tidak ada baris CSV yang bisa dijadikan draft.', 'warning');
+      }
+      if (result.errors?.length) {
+        const firstErrors = result.errors.slice(0, 3).map((e) => `Baris ${e.row}: ${e.message}`).join(' · ');
+        this.showAlert(`Sebagian baris dilewati. ${firstErrors}`, 'warning');
+      }
+    } catch (err) {
+      this.showAlert(`Impor CSV gagal: ${err.message}`, 'error');
+    } finally {
+      if (importButton) {
+        importButton.disabled = false;
+        importButton.innerHTML = original || 'Impor CSV';
+      }
+      if (this.inputImportCsv) this.inputImportCsv.value = '';
     }
   }
 
@@ -2700,24 +2866,33 @@ class App {
       const tr = document.createElement('tr');
       const pillCatClass = d.category_name && d.category_name.toLowerCase().includes('makan') ? 'cat-amber' : 'cat-blue';
       const typeClass = d.type === 'INCOME' ? 'cat-green' : (d.type === 'TRANSFER' ? 'cat-blue' : 'cat-rose');
+      const duplicate = Boolean(d.possible_duplicate || this.findPossibleDuplicate(d));
 
       let accText = '-';
-      if (d.type === 'EXPENSE') accText = `${d.source_account_name || 'Rekening'}`;
-      else if (d.type === 'INCOME') accText = `${d.destination_account_name || 'Rekening'}`;
-      else if (d.type === 'TRANSFER') accText = `${d.source_account_name} ${Icons.arrowRight} ${d.destination_account_name}`;
+      if (d.type === 'EXPENSE') accText = this.escapeHtml(d.source_account_name || 'Pilih rekening');
+      else if (d.type === 'INCOME') accText = this.escapeHtml(d.destination_account_name || 'Pilih rekening');
+      else if (d.type === 'TRANSFER') accText = `${this.escapeHtml(d.source_account_name || 'Pilih sumber')} <span aria-hidden="true">→</span> ${this.escapeHtml(d.destination_account_name || 'Pilih tujuan')}`;
+
+      const reviewReasons = [];
+      if (['EXPENSE', 'TRANSFER'].includes(d.type) && !d.source_account_id) reviewReasons.push('Rekening sumber belum cocok');
+      if (['INCOME', 'TRANSFER'].includes(d.type) && !d.destination_account_id) reviewReasons.push('Rekening tujuan belum cocok');
+      if (d.type !== 'TRANSFER' && !d.category_id) reviewReasons.push('Kategori belum cocok');
+      if (duplicate) reviewReasons.push('Mirip transaksi yang sudah ada');
+      const needsReview = reviewReasons.length > 0;
+      tr.classList.toggle('draft-review-needed', needsReview);
 
       if (d.type === 'EXPENSE') totalExpense += parseFloat(d.amount) || 0;
       if (d.type === 'INCOME') totalIncome += parseFloat(d.amount) || 0;
 
       tr.innerHTML = `
-        <td style="color: var(--text-secondary); font-size: 10px;">${idx + 1}</td>
-        <td><strong>${d.description || d.type}</strong></td>
-        <td><span class="badge-cat-pill ${pillCatClass}">${d.category_name || '-'}</span></td>
-        <td><strong>${this.formatIDR(d.amount)}</strong></td>
-        <td style="color: var(--text-secondary); font-size: 10px;">${accText}</td>
-        <td><span class="badge-cat-pill ${typeClass}">${d.type}</span></td>
-        <td><span style="display: inline-flex; align-items: center; gap: 5px;"><span class="ready-status-dot"></span><span style="font-size: 10.5px; color: var(--accent-green); font-weight: 500;">Siap</span></span></td>
-        <td style="text-align: right;">
+        <td data-label="No." class="draft-index">${idx + 1}</td>
+        <td data-label="Deskripsi" class="draft-description"><strong>${this.escapeHtml(d.description || d.type)}</strong>${needsReview ? `<small class="draft-review-note">${reviewReasons.map((r) => this.escapeHtml(r)).join(' · ')}</small>` : ''}</td>
+        <td data-label="Kategori"><span class="badge-cat-pill ${pillCatClass}">${this.escapeHtml(d.category_name || (d.type === 'TRANSFER' ? 'Transfer' : 'Pilih kategori'))}</span></td>
+        <td data-label="Jumlah" class="draft-amount"><strong>${this.formatIDR(d.amount)}</strong></td>
+        <td data-label="Rekening" class="draft-account">${accText}</td>
+        <td data-label="Tipe"><span class="badge-cat-pill ${typeClass}">${this.escapeHtml(d.type)}</span></td>
+        <td data-label="Pemeriksaan"><span class="draft-status ${needsReview ? 'needs-review' : 'ready'}"><span class="draft-status-dot"></span>${needsReview ? 'Perlu dicek' : 'Siap'}</span></td>
+        <td data-label="Aksi" class="draft-actions">
           <div style="display: flex; gap: 6px; justify-content: flex-end;">
             <button type="button" class="btn-draft-edit btn-edit-draft" data-id="${d.id}" style="height: 26px; padding: 0 10px; font-size: 10.5px; font-weight: 600; border-radius: 7px; border: 1px solid var(--border-main); background: #FFFFFF; color: var(--text-primary); cursor: pointer;">Edit</button>
             <button type="button" class="btn-draft-remove btn-cancel-draft" data-id="${d.id}" style="height: 26px; padding: 0 10px; font-size: 10.5px; font-weight: 500; border-radius: 7px; border: 1px solid var(--border-main); background: #FFFFFF; color: var(--accent-rose); cursor: pointer;">Batal</button>
@@ -3037,62 +3212,78 @@ class App {
   async stopRecordingAndTranscribe() {
     const audioBlob = await this.recorder.stop();
     if (!audioBlob) return;
+    this.lastAudioBlob = audioBlob;
+    await this.submitSpeechTranscription(audioBlob);
+  }
 
-    this.recordStatus.innerHTML = `<span class="loading-spinner"></span> Mengunggah ke OCI Speech...`;
-    this.btnRecord.disabled = true;
-
+  async submitSpeechTranscription(audioBlob) {
+    if (this.speechRequestBusy || !audioBlob) return;
+    this.speechRequestBusy = true;
+    this.retryMode = 'speech';
+    if (this.recordStatus) this.recordStatus.innerHTML = `<span class="loading-spinner"></span> Mengunggah rekaman…`;
+    if (this.btnRecord) this.btnRecord.disabled = true;
+    this.setAIProcessState('Mengunggah rekaman…', 'Audio dikirim ke OCI Speech untuk ditranskripsikan.', 'loading');
     try {
       const jobRes = await api.speech.transcribe(audioBlob, 'recorded_speech.webm');
-      const jobId = jobRes.job_id;
-      this.pollTranscription(jobId);
+      await this.pollTranscription(jobRes.job_id);
     } catch (err) {
-      this.showAlert(`Gagal memulai transkripsi: ${err.message}`, 'error');
-      this.recordStatus.textContent = 'Bahasa Indonesia · hasil transkripsi ditinjau sebelum diproses';
-      this.btnRecord.disabled = false;
+      this.retryMode = 'speech';
+      this.setAIProcessState('Transkripsi belum berhasil', `${err.message || 'Koneksi ke OCI Speech terputus.'} Rekaman masih tersedia untuk dicoba lagi.`, 'error');
+      this.showAlert('Transkripsi gagal dimulai. Rekaman tersimpan sementara; kamu bisa mencoba lagi.', 'error');
+    } finally {
+      this.speechRequestBusy = false;
+      if (this.btnRecord) this.btnRecord.disabled = false;
+      if (this.recordStatus && !this.recordStatus.textContent.includes('Transkripsi selesai')) {
+        this.recordStatus.textContent = 'Bahasa Indonesia · hasil transkripsi ditinjau sebelum diproses';
+      }
     }
   }
 
   async pollTranscription(jobId) {
     const startTime = Date.now();
     const maxPollTimeMs = 90 * 1000;
-    this.recordStatus.innerHTML = `<span class="loading-spinner"></span> Menerjemahkan suara (OCI Whisper)...`;
-
-    const pollInterval = setInterval(async () => {
-      if (Date.now() - startTime > maxPollTimeMs) {
-        clearInterval(pollInterval);
-        this.recordStatus.textContent = 'Bahasa Indonesia · hasil transkripsi ditinjau sebelum diproses';
-        this.btnRecord.disabled = false;
-        this.showAlert('Transkripsi suara timeout. Silakan coba lagi.', 'error');
-        return;
-      }
-
+    if (this.recordStatus) this.recordStatus.innerHTML = `<span class="loading-spinner"></span> Menunggu transkripsi OCI Speech…`;
+    this.setAIProcessState('Menunggu hasil transkripsi…', 'OCI Speech sedang mengenali bahasa Indonesia. Rekaman tidak akan masuk ke ledger tanpa konfirmasi.', 'loading');
+    let pollErrors = 0;
+    while (Date.now() - startTime <= maxPollTimeMs) {
+      await new Promise((resolve) => setTimeout(resolve, 2500));
       try {
         const res = await api.speech.getStatus(jobId);
-        const data = res.data;
-
+        pollErrors = 0;
+        const data = res.data || {};
         if (data.status === 'SUCCEEDED') {
-          clearInterval(pollInterval);
-          this.recordStatus.textContent = 'Bahasa Indonesia · hasil transkripsi ditinjau sebelum diproses';
-          this.btnRecord.disabled = false;
-
           const transcript = data.transcript || '';
-          if (transcript) {
-            this.aiInput.value = transcript;
-            this.showAlert('Suara berhasil ditranskrip! Silakan tinjau teks lalu klik Proses.', 'success');
-            this.aiInput.focus();
-          } else {
-            this.showAlert('Tidak ada suara terdeteksi dalam rekaman.', 'warning');
+          if (!transcript.trim()) {
+            const emptyTranscript = new Error('Tidak ada suara yang dapat dikenali di rekaman.');
+            emptyTranscript.permanent = true;
+            throw emptyTranscript;
           }
-        } else if (data.status === 'FAILED') {
-          clearInterval(pollInterval);
-          this.recordStatus.textContent = 'Bahasa Indonesia · hasil transkripsi ditinjau sebelum diproses';
-          this.btnRecord.disabled = false;
-          this.showAlert(`Transkripsi gagal: ${data.error_message || 'Terjadi kesalahan sistem.'}`, 'error');
+          this.retryMode = null;
+          if (this.aiInput) this.aiInput.value = transcript;
+          if (this.recordStatus) this.recordStatus.textContent = 'Transkripsi selesai · tinjau teks sebelum diproses';
+          this.setAIProcessState('Transkripsi selesai', 'Tinjau atau koreksi teks di kolom transaksi, lalu jalankan proses AI.', 'success');
+          if (this.aiInput) this.aiInput.focus();
+          this.showAlert('Suara berhasil ditranskrip. Tinjau teks sebelum diproses.', 'success');
+          setTimeout(() => {
+            if (this.aiProcessStatus?.dataset.state === 'success') this.aiProcessStatus.style.display = 'none';
+          }, 8000);
+          return;
+        }
+        if (data.status === 'FAILED' || data.status === 'TIMEOUT') {
+          const failedJob = new Error(data.error_message || 'Layanan transkripsi gagal memproses rekaman.');
+          failedJob.permanent = true;
+          throw failedJob;
         }
       } catch (err) {
-        console.warn('Polling error:', err);
+        if (err.permanent) throw err;
+        pollErrors += 1;
+        if (pollErrors >= 3 && Date.now() - startTime > 15000) {
+          this.setAIProcessState('Koneksi transkripsi terganggu', 'Akan mencoba menyambung kembali otomatis.', 'loading');
+        }
+        console.warn('Polling transkripsi akan dicoba kembali:', err.message);
       }
-    }, 2500);
+    }
+    throw new Error('Waktu tunggu transkripsi habis. Rekaman masih tersedia untuk dicoba lagi.');
   }
 
   // ==========================================
@@ -4454,6 +4645,147 @@ class App {
   // ====================================================================
   // SCREEN 06: PENGATURAN & PROFIL LOGIC
   // ====================================================================
+  async loadPreferences() {
+    try {
+      const response = await api.auth.getPreferences();
+      this.applyPreferences(response.data || {});
+    } catch (err) {
+      this.showAlert(`Preferensi tidak dapat dimuat: ${err.message}`, 'error');
+    }
+  }
+
+  applyPreferences(preferences) {
+    this.userPreferences = { ...this.userPreferences, ...preferences };
+    this.preferenceToggles?.forEach((toggle) => {
+      const key = toggle.getAttribute('data-pref');
+      const enabled = Boolean(this.userPreferences[key]);
+      toggle.classList.toggle('active', enabled);
+      toggle.setAttribute('aria-pressed', String(enabled));
+      const status = toggle.closest('.preference-row')?.querySelector('.mobile-pref-tag');
+      if (status) {
+        status.textContent = key === 'currency-format' ? (enabled ? 'Rp tampil' : 'Rp disembunyikan') : (enabled ? 'Aktif' : 'Nonaktif');
+        status.classList.toggle('muted', !enabled);
+        status.classList.toggle('green', enabled);
+      }
+    });
+  }
+
+  async loadSessions() {
+    if (!this.sessionsList) return;
+    this.sessionsList.innerHTML = '<div class="session-loading">Memuat daftar sesi…</div>';
+    try {
+      const response = await api.auth.getSessions();
+      const sessions = response.data || [];
+      if (!sessions.length) {
+        this.sessionsList.innerHTML = '<div class="session-loading">Tidak ada sesi aktif lain.</div>';
+        return;
+      }
+      this.sessionsList.innerHTML = sessions.map((session) => {
+        const ua = this.escapeHtml(session.user_agent || 'Browser tidak diketahui');
+        const expiresAt = session.expires_at ? this.formatDateTime(session.expires_at) : 'Waktu tidak tersedia';
+        return `<article class="session-card">
+          <div class="session-card-head"><strong>${session.is_current ? 'Perangkat ini' : ua}</strong><span class="session-state ${session.is_current ? 'current' : ''}">${session.is_current ? 'Sesi ini' : 'Aktif'}</span></div>
+          <p>${session.is_current ? ua : ''}</p>
+          <small>Masuk ${this.escapeHtml(this.formatDateTime(session.created_at))} · Berakhir ${this.escapeHtml(expiresAt)} · IP ${this.escapeHtml(session.ip_address || 'tidak tersedia')}</small>
+          ${session.is_current ? '' : `<button type="button" class="session-revoke-btn" data-session-id="${Number(session.id)}">Cabut sesi</button>`}
+        </article>`;
+      }).join('');
+      this.sessionsList.querySelectorAll('.session-revoke-btn').forEach((button) => {
+        button.addEventListener('click', async () => {
+          const id = Number(button.dataset.sessionId);
+          if (!id || !window.confirm('Cabut akses perangkat ini?')) return;
+          button.disabled = true;
+          try {
+            await api.auth.revokeSession(id);
+            this.showAlert('Sesi perangkat berhasil dicabut.', 'success');
+            this.loadSessions();
+          } catch (err) {
+            button.disabled = false;
+            this.showAlert(`Sesi belum bisa dicabut: ${err.message}`, 'error');
+          }
+        });
+      });
+    } catch (err) {
+      this.sessionsList.innerHTML = `<div class="session-loading session-error">Gagal memuat sesi: ${this.escapeHtml(err.message)} <button type="button" class="session-refresh-btn">Coba lagi</button></div>`;
+      this.sessionsList.querySelector('.session-refresh-btn')?.addEventListener('click', () => this.loadSessions());
+    }
+  }
+
+  formatDateTime(value) {
+    if (!value) return '—';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    return new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+  }
+
+  async openTwoFactorModal() {
+    if (!this.modalTwoFactor) return;
+    const button = this.btnToggle2fa;
+    if (button) button.disabled = true;
+    try {
+      const status = await api.auth.getTwoFactorStatus();
+      this.twoFactorEnabled = Boolean(status.data?.enabled);
+      this.update2faButton(this.twoFactorEnabled);
+      if (this.twoFactorSetupFields) this.twoFactorSetupFields.style.display = this.twoFactorEnabled ? 'none' : 'block';
+      if (this.twoFactorPasswordField) this.twoFactorPasswordField.style.display = this.twoFactorEnabled ? 'block' : 'none';
+      if (this.btnEnableTwoFactor) this.btnEnableTwoFactor.style.display = this.twoFactorEnabled ? 'none' : 'inline-flex';
+      if (this.btnDisableTwoFactor) this.btnDisableTwoFactor.style.display = this.twoFactorEnabled ? 'inline-flex' : 'none';
+      if (this.twoFactorCode) this.twoFactorCode.value = '';
+      if (this.twoFactorPassword) this.twoFactorPassword.value = '';
+      if (!this.twoFactorEnabled) {
+        const setup = await api.auth.setupTwoFactor();
+        if (this.twoFactorSecret) this.twoFactorSecret.value = setup.data?.secret || '';
+      }
+      this.openModal(this.modalTwoFactor);
+    } catch (err) {
+      this.showAlert(`Pengaturan 2FA belum dapat dimuat: ${err.message}`, 'error');
+    } finally {
+      if (button) button.disabled = false;
+    }
+  }
+
+  async enableTwoFactor() {
+    const secret = this.twoFactorSecret?.value || '';
+    const code = this.twoFactorCode?.value.trim() || '';
+    if (!secret || !/^\d{6}$/.test(code)) {
+      this.showAlert('Masukkan kode 6 digit dari aplikasi authenticator.', 'warning');
+      return;
+    }
+    this.btnEnableTwoFactor.disabled = true;
+    try {
+      await api.auth.enableTwoFactor(secret, code);
+      this.twoFactorEnabled = true;
+      this.update2faButton(true);
+      this.closeModals();
+      this.showAlert('2FA aktif. Login berikutnya akan meminta kode authenticator.', 'success');
+    } catch (err) {
+      this.showAlert(`2FA belum aktif: ${err.message}`, 'error');
+    } finally {
+      this.btnEnableTwoFactor.disabled = false;
+    }
+  }
+
+  async disableTwoFactor() {
+    const password = this.twoFactorPassword?.value || '';
+    const code = this.twoFactorCode?.value.trim() || '';
+    if (!password || !/^\d{6}$/.test(code)) {
+      this.showAlert('Masukkan kata sandi dan kode authenticator terbaru.', 'warning');
+      return;
+    }
+    this.btnDisableTwoFactor.disabled = true;
+    try {
+      await api.auth.disableTwoFactor(password, code);
+      this.twoFactorEnabled = false;
+      this.update2faButton(false);
+      this.closeModals();
+      this.showAlert('2FA dinonaktifkan.', 'success');
+    } catch (err) {
+      this.showAlert(`2FA belum dinonaktifkan: ${err.message}`, 'error');
+    } finally {
+      this.btnDisableTwoFactor.disabled = false;
+    }
+  }
+
   update2faButton(isActive) {
     if (!this.btnToggle2fa) return;
     if (isActive) {
@@ -4474,12 +4806,11 @@ class App {
   }
 
   loadSettingsData() {
+    this.loadPreferences();
     const displayName = (this.currentUser && (this.currentUser.full_name || this.currentUser.username))
       || localStorage.getItem('user_fullname')
       || 'Pengguna';
-    const displayEmail = (this.currentUser && this.currentUser.email)
-      || localStorage.getItem('user_email')
-      || (this.currentUser ? `${this.currentUser.username}@finance.app` : 'user@finance.app');
+    const displayEmail = this.currentUser?.username ? `@${this.currentUser.username}` : 'Username akun';
 
     if (this.settingsProfileName) this.settingsProfileName.textContent = displayName;
     if (this.settingsAvatarInitial) this.settingsAvatarInitial.textContent = displayName[0].toUpperCase();
@@ -4491,8 +4822,16 @@ class App {
     if (this.settingsProfileEmail) this.settingsProfileEmail.textContent = displayEmail;
     if (this.inputProfileEmail) this.inputProfileEmail.value = displayEmail;
 
-    const is2faActive = localStorage.getItem('user_2fa_enabled') === 'true';
-    this.update2faButton(is2faActive);
+    api.auth.getTwoFactorStatus().then((response) => {
+      this.twoFactorEnabled = Boolean(response.data?.enabled);
+      this.update2faButton(this.twoFactorEnabled);
+    }).catch((err) => {
+      if (this.btnToggle2fa) {
+        this.btnToggle2fa.textContent = 'Status tidak tersedia';
+        this.btnToggle2fa.disabled = true;
+      }
+      console.warn('Status 2FA tidak dapat dimuat:', err.message);
+    });
 
     // Render Connected Accounts
     if (this.accounts && this.accounts.length > 0 && this.settingsAccountsList) {

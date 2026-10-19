@@ -204,7 +204,7 @@ class AIService:
 
         if (is_question_word and has_financial_entity and not has_action_verb and (not has_amount_specified or "berapa" in t_lower or "cek" in t_lower)):
             accounts = FinanceService.get_accounts_with_balance(user_id)
-            total_net_worth = sum(Decimal(str(a.get("balance", 0))) for a in accounts if a.get("is_active"))
+            total_net_worth = sum(Decimal(str(a.get("current_balance", 0))) for a in accounts if a.get("is_active"))
 
             # Menanyakan pengeluaran / anggaran
             if any(w in t_lower for w in ("pengeluaran", "keluar", "habis", "anggaran", "budget", "serapan", "boros")):
@@ -238,9 +238,11 @@ class AIService:
             is_cash_query = any(w in t_lower for w in ("kas", "tunai", "cash", "dompet"))
 
             if is_bank_query:
-                target_acc = next((a for a in accounts if a.get("type") == "BANK" or "bank" in a.get("name", "").lower()), None)
+                target_acc = next((a for a in accounts if a.get("is_active") and a.get("name", "").lower() in t_lower), None)
+                if not target_acc or (target_acc.get("type") != "BANK" and "bank" not in target_acc.get("name", "").lower()):
+                    target_acc = next((a for a in accounts if a.get("is_active") and (a.get("type") == "BANK" or "bank" in a.get("name", "").lower())), None)
                 if target_acc:
-                    bal = Decimal(str(target_acc.get("balance", 0)))
+                    bal = Decimal(str(target_acc.get("current_balance", 0)))
                     ai_msg = f"Saldo di rekening **{target_acc['name']}** kamu saat ini adalah **{_idr(bal)}**."
                     return {
                         "intent": "FINANCIAL_INQUIRY",
@@ -250,9 +252,11 @@ class AIService:
                     }
 
             if is_wallet_query:
-                target_acc = next((a for a in accounts if a.get("type") == "EWALLET" or "wallet" in a.get("name", "").lower()), None)
+                target_acc = next((a for a in accounts if a.get("is_active") and a.get("name", "").lower() in t_lower), None)
+                if not target_acc or (target_acc.get("type") != "EWALLET" and "wallet" not in target_acc.get("name", "").lower()):
+                    target_acc = next((a for a in accounts if a.get("is_active") and (a.get("type") == "EWALLET" or "wallet" in a.get("name", "").lower())), None)
                 if target_acc:
-                    bal = Decimal(str(target_acc.get("balance", 0)))
+                    bal = Decimal(str(target_acc.get("current_balance", 0)))
                     ai_msg = f"Saldo pada akun **{target_acc['name']}** kamu saat ini adalah **{_idr(bal)}**."
                     return {
                         "intent": "FINANCIAL_INQUIRY",
@@ -262,9 +266,11 @@ class AIService:
                     }
 
             if is_cash_query:
-                target_acc = next((a for a in accounts if a.get("type") == "CASH" or "kas" in a.get("name", "").lower() or "tunai" in a.get("name", "").lower()), None)
+                target_acc = next((a for a in accounts if a.get("is_active") and a.get("name", "").lower() in t_lower), None)
+                if not target_acc or (target_acc.get("type") != "CASH" and not any(k in target_acc.get("name", "").lower() for k in ("kas", "tunai", "cash", "dompet"))):
+                    target_acc = next((a for a in accounts if a.get("is_active") and (a.get("type") == "CASH" or any(k in a.get("name", "").lower() for k in ("kas", "tunai")))), None)
                 if target_acc:
-                    bal = Decimal(str(target_acc.get("balance", 0)))
+                    bal = Decimal(str(target_acc.get("current_balance", 0)))
                     ai_msg = f"Saldo pada **{target_acc['name']}** kamu saat ini adalah **{_idr(bal)}**."
                     return {
                         "intent": "FINANCIAL_INQUIRY",
@@ -277,7 +283,7 @@ class AIService:
             acc_lines = []
             for a in accounts:
                 if a.get("is_active"):
-                    acc_lines.append(f"• **{a['name']}**: {_idr(Decimal(str(a.get('balance', 0))))}")
+                    acc_lines.append(f"• **{a['name']}**: {_idr(Decimal(str(a.get('current_balance', 0))))}")
             acc_details_str = "\n".join(acc_lines) if acc_lines else "• Belum ada rekening aktif."
 
             ai_msg = (
@@ -306,16 +312,16 @@ class AIService:
             d_desc = d.get("description") or raw_text
             
             if d_type == "INCOME":
-                acc_name = d.get("destination_account_name") or "Bank"
-                cat_name = d.get("category_name") or "Gaji & Pendapatan"
+                acc_name = d.get("destination_account_name") or "rekening yang perlu dipilih"
+                cat_name = d.get("category_name") or "kategori yang perlu dipilih"
                 ai_msg = (
                     f"Siap! Saya telah menyiapkan draft pencatatan saldo sebesar **{_idr(d_amt)}** "
                     f"ke rekening **{acc_name}** (kategori: {cat_name}).\n"
                     f"Silakan periksa detailnya pada tabel draft di bawah sebelum dikonfirmasi ke buku besar."
                 )
             elif d_type == "TRANSFER":
-                src = d.get("source_account_name") or "Sumber"
-                dst = d.get("destination_account_name") or "Tujuan"
+                src = d.get("source_account_name") or "rekening sumber yang perlu dipilih"
+                dst = d.get("destination_account_name") or "rekening tujuan yang perlu dipilih"
                 fee = Decimal(str(d.get("admin_fee", 0)))
                 fee_str = f" dengan biaya admin {_idr(fee)}" if fee > 0 else ""
                 ai_msg = (
@@ -323,8 +329,8 @@ class AIService:
                     f"telah disiapkan. Silakan tinjau pada tabel draft di bawah."
                 )
             else: # EXPENSE
-                src = d.get("source_account_name") or "Kas Tunai"
-                cat_name = d.get("category_name") or "Pengeluaran"
+                src = d.get("source_account_name") or "rekening yang perlu dipilih"
+                cat_name = d.get("category_name") or "kategori yang perlu dipilih"
                 ai_msg = (
                     f"Draft pengeluaran sebesar **{_idr(d_amt)}** untuk **{d_desc}** dari rekening **{src}** "
                     f"(kategori: {cat_name}) telah disiapkan.\n"
@@ -494,6 +500,7 @@ KALIMAT PENGGUNA YANG HARUS DIPROSES:
         bank_acc = next((a for a in accounts if a.get("type") == "BANK" or "bank" in a.get("name", "").lower()), None)
         ewallet_acc = next((a for a in accounts if a.get("type") == "EWALLET" or "wallet" in a.get("name", "").lower()), None)
         cash_acc = next((a for a in accounts if a.get("type") == "CASH" or "kas" in a.get("name", "").lower() or "tunai" in a.get("name", "").lower()), None)
+        transfer_match = re.search(r"\b(?:dari|from)\s+(.+?)\s+(?:ke|menuju|to)\s+(.+?)(?:\s+(?:admin|biaya)\b|$)", user_input_lower)
 
         # Resolusi Nama ke ID Database Sah (Anti-Halusinasi & Anti-IDOR)
         validated_drafts = []
@@ -520,69 +527,80 @@ KALIMAT PENGGUNA YANG HARUS DIPROSES:
             src_name = (item.get("source_account_name") or "").lower()
             dest_name = (item.get("destination_account_name") or "").lower()
             cat_name = (item.get("category_name") or "").lower()
+            src_context = f"{src_name} {transfer_match.group(1) if transfer_match else ''}".strip()
+            dest_context = f"{dest_name} {transfer_match.group(2) if transfer_match else ''}".strip()
+
+            def alias_matches(keywords, side_context):
+                return any(kw in side_context for kw in keywords)
 
             # Pencocokan nama akun langsung
             for name, aid in acc_map.items():
-                if name in src_name or src_name in name:
+                if src_name and (name in src_name or src_name in name):
                     src_acc_id = aid
-                if name in dest_name or dest_name in name:
+                if dest_name and (name in dest_name or dest_name in name):
                     dest_acc_id = aid
 
-            # Alias Bank dari nama akun LLM ATAU teks pengguna
+            # Alias hanya dipetakan ke sisi yang disebut; ini mencegah transfer
+            # bank -> e-wallet berakhir dengan rekening yang sama di kedua sisi.
             if bank_acc:
-                is_bank_mentioned = any(kw in src_name for kw in bank_keywords) or any(kw in dest_name for kw in bank_keywords) or any(kw in user_input_lower for kw in bank_keywords)
-                if is_bank_mentioned:
-                    if tx_type in ("EXPENSE", "TRANSFER") and not src_acc_id:
+                is_bank_mentioned = any(kw in user_input_lower for kw in bank_keywords)
+                if tx_type == "TRANSFER":
+                    if alias_matches(bank_keywords, src_context) and not src_acc_id:
                         src_acc_id = bank_acc["id"]
-                    if tx_type in ("INCOME", "TRANSFER"):
+                    if alias_matches(bank_keywords, dest_context) and not dest_acc_id:
+                        dest_acc_id = bank_acc["id"]
+                elif is_bank_mentioned:
+                    if tx_type == "EXPENSE" and not src_acc_id:
+                        src_acc_id = bank_acc["id"]
+                    if tx_type == "INCOME" and not dest_acc_id:
                         dest_acc_id = bank_acc["id"]
 
             # Alias E-Wallet dari nama akun LLM ATAU teks pengguna
             if ewallet_acc:
-                is_ew_mentioned = any(kw in src_name for kw in ew_keywords) or any(kw in dest_name for kw in ew_keywords) or any(kw in user_input_lower for kw in ew_keywords)
-                if is_ew_mentioned:
-                    if tx_type in ("EXPENSE", "TRANSFER") and not src_acc_id:
+                is_ew_mentioned = any(kw in user_input_lower for kw in ew_keywords)
+                if tx_type == "TRANSFER":
+                    if alias_matches(ew_keywords, src_context) and not src_acc_id:
                         src_acc_id = ewallet_acc["id"]
-                    if tx_type in ("INCOME", "TRANSFER") and not dest_acc_id:
+                    if alias_matches(ew_keywords, dest_context) and not dest_acc_id:
+                        dest_acc_id = ewallet_acc["id"]
+                elif is_ew_mentioned:
+                    if tx_type == "EXPENSE" and not src_acc_id:
+                        src_acc_id = ewallet_acc["id"]
+                    if tx_type == "INCOME" and not dest_acc_id:
                         dest_acc_id = ewallet_acc["id"]
 
             # Alias Cash / Tunai
             if cash_acc:
-                is_cash_mentioned = any(kw in src_name for kw in cash_keywords) or any(kw in dest_name for kw in cash_keywords) or any(kw in user_input_lower for kw in cash_keywords)
-                if is_cash_mentioned:
-                    if tx_type in ("EXPENSE", "TRANSFER") and not src_acc_id:
+                is_cash_mentioned = any(kw in user_input_lower for kw in cash_keywords)
+                if tx_type == "TRANSFER":
+                    if alias_matches(cash_keywords, src_context) and not src_acc_id:
                         src_acc_id = cash_acc["id"]
-                    if tx_type in ("INCOME", "TRANSFER") and not dest_acc_id:
+                    if alias_matches(cash_keywords, dest_context) and not dest_acc_id:
+                        dest_acc_id = cash_acc["id"]
+                elif is_cash_mentioned:
+                    if tx_type == "EXPENSE" and not src_acc_id:
+                        src_acc_id = cash_acc["id"]
+                    if tx_type == "INCOME" and not dest_acc_id:
                         dest_acc_id = cash_acc["id"]
 
-            # Default fallback akun jika tidak terdeteksi sama sekali
-            default_acc_id = accounts[0]["id"] if accounts else None
-            if tx_type in ("EXPENSE", "TRANSFER") and not src_acc_id:
-                src_acc_id = default_acc_id
             if tx_type == "INCOME":
                 src_acc_id = None
-                if not dest_acc_id:
-                    dest_acc_id = bank_acc["id"] if (bank_acc and is_bank_mentioned) else default_acc_id
+                if not dest_acc_id and bank_acc and is_bank_mentioned:
+                    dest_acc_id = bank_acc["id"]
 
             # Pencocokan kategori yang sesuai dengan tipe mutasi (INCOME vs EXPENSE)
             if tx_type in ("INCOME", "EXPENSE"):
                 for name, (cid, ctype) in cat_map.items():
-                    if ctype == tx_type and (name in cat_name or cat_name in name):
+                    if cat_name and ctype == tx_type and (name in cat_name or cat_name in name):
                         cat_id = cid
                         break
-                if not cat_id:
-                    # Ambil kategori pertama yang sesuai tipe
-                    for cid, ctype in cat_map.values():
-                        if ctype == tx_type:
-                            cat_id = cid
-                            break
 
             # Proteksi mutlak jika merupakan pernyataan kepemilikan uang / saldo
             if is_balance_statement:
                 tx_type = "INCOME"
                 src_acc_id = None
-                if not dest_acc_id or (bank_acc and any(kw in user_input_lower for kw in ("rekening", "bank", "bca", "duit", "saldo"))):
-                    dest_acc_id = bank_acc["id"] if bank_acc else default_acc_id
+                if not dest_acc_id and bank_acc and is_bank_mentioned:
+                    dest_acc_id = bank_acc["id"]
                 
                 # Gunakan kategori khusus 'Saldo Awal' agar tidak tercampur dengan 'Gaji & Pendapatan'
                 saldo_cat = next((c for c in categories if c.get("type") == "INCOME" and "saldo" in c.get("name", "").lower()), None)
@@ -624,33 +642,16 @@ KALIMAT PENGGUNA YANG HARUS DIPROSES:
                 "transaction_date": item.get("transaction_date", today_str)
             })
 
-        # Simpan ke tabel transaction_drafts dengan fallback tangguh
-        batch_id = None
-        drafts = []
+        if not validated_drafts:
+            return {"batch_id": None, "items_count": 0, "drafts": []}
+
+        # Draft harus tersimpan di database agar ID dan batch dapat dikonfirmasi.
         try:
             batch_id = TransactionService.create_batch_drafts(user_id, validated_drafts)
             drafts = TransactionService.get_batch_drafts(user_id, batch_id)
         except Exception as e_draft:
-            logger.warning("Gagal menyimpan draft ke database: %s. Menggunakan in-memory drafts fallback.", e_draft)
-            for vd in validated_drafts:
-                src_acc = next((a["name"] for a in accounts if a["id"] == vd.get("source_account_id")), None)
-                dest_acc = next((a["name"] for a in accounts if a["id"] == vd.get("destination_account_id")), None)
-                cat = next((c["name"] for c in categories if c["id"] == vd.get("category_id")), None)
-                drafts.append({
-                    "id": 0,
-                    "type": vd["type"],
-                    "amount": vd["amount"],
-                    "admin_fee": vd["admin_fee"],
-                    "source_account_id": vd["source_account_id"],
-                    "source_account_name": src_acc,
-                    "destination_account_id": vd["destination_account_id"],
-                    "destination_account_name": dest_acc,
-                    "category_id": vd["category_id"],
-                    "category_name": cat,
-                    "description": vd["description"],
-                    "transaction_date": vd["transaction_date"],
-                    "status": "PENDING"
-                })
+            logger.exception("Gagal menyimpan draft transaksi ke database")
+            raise RuntimeError("Draft transaksi gagal disimpan. Coba lagi.") from e_draft
 
         return {
             "batch_id": batch_id,
@@ -690,41 +691,47 @@ KALIMAT PENGGUNA YANG HARUS DIPROSES:
             if cash_acc and any(kw in text_lower for kw in ("kas", "tunai", "cash", "dompet")):
                 matched_acc_name = cash_acc["name"]
 
-        if not matched_acc_name:
-            matched_acc_name = accounts[0]["name"] if accounts else "Kas Tunai"
-
         # 2. Cek Nominal
-        amt = parse_indonesian_amount(text) or Decimal("10000")
+        amt = parse_indonesian_amount(text)
+        if amt is None or amt <= 0:
+            logger.info("Fallback AI tidak membuat draft karena nominal tidak terdeteksi")
+            return results
 
         # 3. Klasifikasi Intent / Tipe Mutasi
         is_transfer = any(w in text_lower for w in ["transfer", "tf ", " tf", "pindah dana", "kirim uang"])
-        is_income = any(w in text_lower for w in [
-            "gaji", "terima", "dapat", "masuk", "bonus", "saldo", "saat ini ada",
-            "sekarang ada", "ada uang", "punya uang", "rekening di", "di rekening", "uang di",
-            "duit", "uang", "dana", "ada", "punya", "simpan", "setor", "isi saldo",
-            "top up", "nabung", "cair", "pendapatan", "piutang", "penjualan", "dividen",
-            "jumlah nya", "jumlahnya", "jumlah", "ada jumlah"
-        ])
-        is_expense = not is_income and any(w in text_lower for w in [
-            "beli", "bayar", "keluar", "habis", "belanja", "makan", "minum",
-            "ongkir", "bensin", "parkir", "tagihan", "sewa", "pulsa", "listrik",
-            "jajan", "ngopi"
-        ])
+        expense_terms = (
+            "beli", "bayar", "belanja", "pengeluaran", "makan", "minum", "ongkir",
+            "bensin", "parkir", "tagihan", "sewa", "pulsa", "listrik", "jajan", "ngopi"
+        )
+        income_terms = (
+            "gaji", "terima", "dapat", "bonus", "pendapatan", "setor", "simpan",
+            "isi saldo", "top up", "nabung", "cair", "penjualan", "piutang", "dividen"
+        )
+        is_expense = any(w in text_lower for w in expense_terms)
+        is_balance_stmt = not is_expense and any(phrase in text_lower for phrase in (
+            "saldo", "duit", "uang", "di rekening", "rekening di", "punya uang",
+            "ada uang", "saat ini ada", "sekarang ada", "jumlah", "tabungan"
+        ))
+        is_income = not is_expense and (is_balance_stmt or any(w in text_lower for w in income_terms))
 
         if is_transfer:
-            dest_acc = accounts[1]["name"] if len(accounts) > 1 and accounts[1]["name"] != matched_acc_name else (accounts[0]["name"] if accounts[0]["name"] != matched_acc_name else "E-Wallet")
+            mentioned_accounts = [
+                a for a in accounts
+                if a.get("is_active") and a.get("name", "").strip().lower() in text_lower
+            ]
+            source_acc = mentioned_accounts[0]["name"] if mentioned_accounts else matched_acc_name
+            dest_acc = mentioned_accounts[1]["name"] if len(mentioned_accounts) > 1 else None
             results.append({
                 "type": "TRANSFER",
                 "amount": amt,
                 "admin_fee": Decimal("0.00"),
-                "source_account_name": matched_acc_name,
+                "source_account_name": source_acc,
                 "destination_account_name": dest_acc,
                 "category_name": None,
                 "description": text[:100],
                 "transaction_date": today_str
             })
-        elif is_income or not is_expense:
-            is_balance_stmt = any(kw in text_lower for kw in ("duit", "uang", "saldo", "dana", "rekening", "ada", "punya", "jumlah")) and not is_expense
+        elif is_income:
             if is_balance_stmt:
                 cat_name = "Saldo Awal"
             else:
@@ -745,7 +752,7 @@ KALIMAT PENGGUNA YANG HARUS DIPROSES:
                 "description": desc,
                 "transaction_date": today_str
             })
-        else:
+        elif is_expense:
             cat_name = "Makanan & Minuman"
             if any(w in text_lower for w in ["bensin", "bbm", "pertamax", "pertalite", "tol", "parkir", "ojol", "grab", "gojek", "kereta"]):
                 cat_name = "Transportasi"
@@ -770,4 +777,6 @@ KALIMAT PENGGUNA YANG HARUS DIPROSES:
                 "description": text[:100],
                 "transaction_date": today_str
             })
+        else:
+            logger.info("Fallback AI tidak membuat draft karena jenis transaksi tidak jelas")
         return results

@@ -1,6 +1,10 @@
 import logging
+import csv
+import io
+from datetime import datetime
+from decimal import Decimal, InvalidOperation
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query, Request, UploadFile, File, HTTPException
 from app.core.security import get_current_user
 from app.schemas.common import DataResponse, BaseResponse
 from app.schemas.transaction import (
@@ -19,6 +23,138 @@ from app.services.finance_service import FinanceService
 logger = logging.getLogger("personal_finance.transactions")
 
 router = APIRouter(prefix="/transactions", tags=["Transactions"])
+
+
+@router.post("/import-csv", response_model=DataResponse[dict])
+async def import_transactions_csv(file: UploadFile = File(...), user: dict = Depends(get_current_user)):
+    """Impor CSV sebagai draft agar setiap baris tetap ditinjau sebelum masuk buku besar."""
+    if not (file.filename or "").lower().endswith(".csv"):
+        raise HTTPException(status_code=415, detail="Pilih berkas .csv.")
+    raw = await file.read(2_000_001)
+    if len(raw) > 2_000_000:
+        raise HTTPException(status_code=413, detail="Ukuran CSV maksimal 2 MB.")
+    try:
+        content = raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        raise HTTPException(status_code=400, detail="CSV harus menggunakan encoding UTF-8.")
+    try:
+        dialect = csv.Sniffer().sniff(content[:4096], delimiters=",;\t")
+    except csv.Error:
+        dialect = csv.excel
+    reader = csv.DictReader(io.StringIO(content), dialect=dialect)
+    if not reader.fieldnames:
+        raise HTTPException(status_code=400, detail="CSV kosong atau tidak memiliki header.")
+    normalized_headers = {str(h or "").strip().lower(): h for h in reader.fieldnames}
+    required = {"type", "amount"}
+    if not required.issubset(normalized_headers):
+        raise HTTPException(status_code=400, detail="Header wajib: type, amount. Header lain: date, account, source_account, destination_account, category, description, admin_fee.")
+
+    def cell(row, *names):
+        for name in names:
+            key = normalized_headers.get(name)
+            if key is not None:
+                return str(row.get(key) or "").strip()
+        return ""
+
+    accounts_res = FinanceService.get_accounts_with_balance(user["id"])
+    categories = FinanceService.get_categories(user["id"])
+    accounts_by_name = {a["name"].strip().casefold(): a for a in accounts_res if a.get("is_active")}
+    categories_by_key = {(c["type"], c["name"].strip().casefold()): c for c in categories if c.get("is_active")}
+    existing = TransactionService.list_transactions(user["id"], limit=500, offset=0)
+    known = set()
+    def normalized_amount(value):
+        try:
+            return format(Decimal(str(value)).normalize(), "f")
+        except (InvalidOperation, ValueError):
+            return str(value)
+
+    def parse_amount(value):
+        cleaned = str(value or "").replace("Rp", "").replace("rp", "").replace(" ", "").strip()
+        if "." in cleaned and "," in cleaned:
+            if cleaned.rfind(",") > cleaned.rfind("."):
+                cleaned = cleaned.replace(".", "").replace(",", ".")
+            else:
+                cleaned = cleaned.replace(",", "")
+        elif "," in cleaned:
+            cleaned = cleaned.replace(".", "").replace(",", ".")
+        elif "." in cleaned:
+            tail = cleaned.rsplit(".", 1)[-1]
+            if len(tail) == 3 and cleaned.count(".") == 1:
+                cleaned = cleaned.replace(".", "")
+        return Decimal(cleaned)
+
+    for tx in existing:
+        known.add((str(tx["transaction_date"]), tx["type"], normalized_amount(tx["amount"]), tx.get("source_account_id"), tx.get("destination_account_id"), (tx.get("description") or "").strip().casefold()))
+
+    draft_items = []
+    duplicate_rows = []
+    errors = []
+    seen_csv = set()
+    valid_duplicate_flags = []
+    for row_number, row in enumerate(reader, start=2):
+        if row_number > 1001:
+            errors.append({"row": row_number, "message": "Maksimal 1.000 baris per impor."})
+            break
+        try:
+            tx_type = cell(row, "type").upper()
+            if tx_type not in {"INCOME", "EXPENSE", "TRANSFER"}:
+                raise ValueError("type harus INCOME, EXPENSE, atau TRANSFER")
+            amount = parse_amount(cell(row, "amount"))
+            if not amount.is_finite() or amount <= 0:
+                raise ValueError("amount harus lebih besar dari 0")
+            date_text = cell(row, "date") or datetime.now().strftime("%Y-%m-%d")
+            tx_date = None
+            for fmt in ("%Y-%m-%d", "%d/%m/%Y"):
+                try:
+                    tx_date = datetime.strptime(date_text, fmt).date()
+                    break
+                except ValueError:
+                    continue
+            if tx_date is None:
+                raise ValueError("date gunakan YYYY-MM-DD atau DD/MM/YYYY")
+
+            account_name = cell(row, "account")
+            source_name = cell(row, "source_account") or (account_name if tx_type != "INCOME" else "")
+            destination_name = cell(row, "destination_account") or (account_name if tx_type == "INCOME" else "")
+            source = accounts_by_name.get(source_name.casefold()) if source_name else None
+            destination = accounts_by_name.get(destination_name.casefold()) if destination_name else None
+            if tx_type in {"EXPENSE", "TRANSFER"} and not source:
+                raise ValueError(f"rekening sumber '{source_name or '-'}' tidak ditemukan")
+            if tx_type in {"INCOME", "TRANSFER"} and not destination:
+                raise ValueError(f"rekening tujuan '{destination_name or '-'}' tidak ditemukan")
+            if tx_type == "TRANSFER" and source["id"] == destination["id"]:
+                raise ValueError("rekening sumber dan tujuan harus berbeda")
+            category_name = cell(row, "category")
+            category = categories_by_key.get((tx_type, category_name.casefold())) if category_name and tx_type != "TRANSFER" else None
+            if tx_type != "TRANSFER" and not category:
+                raise ValueError(f"kategori '{category_name or '-'}' untuk {tx_type} tidak ditemukan")
+            fee = parse_amount(cell(row, "admin_fee") or "0")
+            if not fee.is_finite() or fee < 0 or (fee > 0 and tx_type != "TRANSFER"):
+                raise ValueError("admin_fee hanya boleh bernilai positif untuk transaksi TRANSFER")
+            description = cell(row, "description")[:255] or "Impor CSV"
+            signature = (str(tx_date), tx_type, normalized_amount(amount), source["id"] if source else None, destination["id"] if destination else None, description.strip().casefold())
+            duplicate = signature in known or signature in seen_csv
+            if duplicate:
+                duplicate_rows.append(row_number)
+            seen_csv.add(signature)
+            valid_duplicate_flags.append(duplicate)
+            draft_items.append({
+                "type": tx_type, "amount": amount, "admin_fee": fee,
+                "source_account_id": source["id"] if source else None,
+                "destination_account_id": destination["id"] if destination else None,
+                "category_id": category["id"] if category else None,
+                "description": description, "transaction_date": tx_date,
+            })
+        except (ValueError, InvalidOperation) as exc:
+            errors.append({"row": row_number, "message": str(exc)})
+
+    if not draft_items:
+        return DataResponse(success=True, message="Tidak ada baris valid untuk diimpor.", data={"batch_id": None, "drafts": [], "errors": errors, "duplicate_rows": []})
+    batch_id = TransactionService.create_batch_drafts(user["id"], draft_items)
+    drafts = TransactionService.get_batch_drafts(user["id"], batch_id)
+    for idx, draft in enumerate(drafts):
+        draft["possible_duplicate"] = valid_duplicate_flags[idx]
+    return DataResponse(success=True, message=f"{len(drafts)} baris disiapkan sebagai draft.", data={"batch_id": batch_id, "drafts": drafts, "errors": errors, "duplicate_rows": duplicate_rows})
 
 def _get_client_ip(request: Request) -> str:
     """Ekstraksi IP Address asli klien dengan prioritas X-Forwarded-For."""

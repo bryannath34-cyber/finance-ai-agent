@@ -18,6 +18,9 @@ CREATE TABLE app_users (
     timezone VARCHAR(50) NOT NULL DEFAULT 'Asia/Jakarta',
     failed_login_attempts INT UNSIGNED NOT NULL DEFAULT 0,
     locked_until DATETIME NULL,
+    totp_secret_ciphertext VARCHAR(255) NULL,
+    totp_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    totp_last_counter BIGINT NULL,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_app_users_username UNIQUE (username)
@@ -38,6 +41,14 @@ CREATE TABLE web_sessions (
     CONSTRAINT fk_sessions_user FOREIGN KEY (user_id) REFERENCES app_users(id) ON DELETE CASCADE,
     CONSTRAINT uq_sessions_token UNIQUE (session_token_hash),
     INDEX idx_sessions_expiry (expires_at)
+) ENGINE=InnoDB;
+
+-- Preferensi antarmuka per pengguna (notifikasi dan tampilan).
+CREATE TABLE user_preferences (
+    user_id BIGINT UNSIGNED PRIMARY KEY,
+    preferences_json JSON NOT NULL,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_preferences_user FOREIGN KEY (user_id) REFERENCES app_users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- ============================================================================
