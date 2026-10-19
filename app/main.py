@@ -42,6 +42,9 @@ async def csrf_middleware(request: Request, call_next):
             content={"success": False, "message": exc.detail, "detail": exc.detail}
         )
     response = await call_next(request)
+    if request.url.path.startswith(f"{settings.APP_PREFIX}/api/auth/"):
+        response.headers["Cache-Control"] = "no-store, private"
+        response.headers["Pragma"] = "no-cache"
     return response
 
 # 2. CORS Middleware

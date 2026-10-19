@@ -77,6 +77,8 @@ class PurchaseAdviceResponse(BaseModel):
     financial_snapshot: Dict[str, Any]
     scenario_id: Optional[int] = None
     is_purchase: bool = True
+    advisor_mode: str = "RULES_FALLBACK"
+    advisor_notice: Optional[str] = None
 
 class PurchaseScenarioItem(BaseModel):
     id: int
@@ -97,6 +99,8 @@ class SpendingPatternResponse(BaseModel):
     percentage_change: float
     category_comparisons: List[Dict[str, Any]]
     ai_summary: str
+    analysis_mode: str = "RULES_FALLBACK"
+    analysis_notice: Optional[str] = None
 
 # ==========================================
 # 4. Laporan & Diagram Realtime (Analytics)

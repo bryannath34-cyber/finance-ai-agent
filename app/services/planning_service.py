@@ -376,6 +376,8 @@ Hanya balas dengan JSON."""
 
         # 5. Penalaran Analitis OCI GenAI (Cohere Command A Osaka)
         advice_text = ""
+        advisor_mode = "RULES_FALLBACK"
+        advisor_notice = "OCI GenAI belum bisa dihubungi; hasil ini memakai perhitungan sistem dan bukan jawaban model AI."
         if is_purchase and cost > 0:
             advice_prompt = f"""Kamu adalah Penasihat Keuangan Pribadi (Financial Copilot AI) yang cerdas, empatik, dan rasional.
 Pengguna berkonsultasi mengenai rencana pembelian barang:
@@ -426,12 +428,26 @@ Instruksi Analisis & Rekomendasi:
                 )
                 res = client.chat(chat_details)
                 advice_text = res.data.chat_response.text.strip()
+                if advice_text:
+                    advisor_mode = "OCI_GENAI"
+                    advisor_notice = None
             except Exception as e:
-                logger.error("Gagal mendapatkan saran AI: %s", e)
-                if is_purchase and cost > 0:
-                    advice_text = f"Pembelian {item_name} sebesar Rp {cost:,.0f} bernilai {verdict}. Sisa saldo rekening Anda akan menjadi Rp {bal_after:,.0f}."
-                else:
-                    advice_text = f"Berdasarkan evaluasi finansial, sisa pagu anggaran Anda saat ini Rp {rem_budget:,.0f}. Disarankan mengalokasikan 20-30% dari sisa anggaran ke rekening target tabungan secara konsisten."
+                logger.warning("Gagal mendapatkan saran OCI GenAI (%s)", type(e).__name__)
+
+        if not advice_text:
+            if is_purchase and cost > 0:
+                advice_text = (
+                    f"Perhitungan sistem menilai rencana {item_name} sebesar Rp {cost:,.0f} sebagai {verdict_badge}. "
+                    f"Jika diteruskan, saldo rekening terpilih diperkirakan menjadi Rp {bal_after:,.0f} dan sisa anggaran "
+                    f"menjadi Rp {budget_after:,.0f}. Periksa kembali kebutuhan pokok dan target tabungan sebelum memutuskan."
+                )
+            else:
+                advice_text = (
+                    f"Ringkasan perhitungan: saldo bersih tercatat Rp {snapshot['total_kekayaan_bersih']:,.0f}, "
+                    f"dengan sisa anggaran bulan ini Rp {rem_budget:,.0f}. Tinjau transaksi terbaru dan pastikan "
+                    "setoran rutin untuk target tabungan tetap sesuai kemampuan arus kas."
+                )
+            advisor_mode = "RULES_FALLBACK"
 
         # 6. Simpan Memori ke purchase_scenarios
         scenario_id = None
@@ -460,7 +476,9 @@ Instruksi Analisis & Rekomendasi:
             "advice": advice_text,
             "financial_snapshot": snapshot,
             "scenario_id": scenario_id,
-            "is_purchase": is_purchase
+            "is_purchase": is_purchase,
+            "advisor_mode": advisor_mode,
+            "advisor_notice": advisor_notice
         }
 
     @staticmethod
@@ -566,6 +584,8 @@ Rincian Kategori: {json.dumps(comparisons)}
 Berikan ringkasan cerdas dalam 2 paragraf: jelaskan kategori mana yang paling melonjak atau hemat, dan berikan evaluasi apakah pengeluaran pengguna terkontrol dengan baik."""
 
         ai_summary = ""
+        analysis_mode = "RULES_FALLBACK"
+        analysis_notice = "OCI GenAI belum bisa dihubungi; ringkasan ini dibuat dari perhitungan transaksi."
         client = get_genai_client()
         if client and settings.OCI_COMPARTMENT_OCID:
             try:
@@ -583,9 +603,18 @@ Berikan ringkasan cerdas dalam 2 paragraf: jelaskan kategori mana yang paling me
                 )
                 res = client.chat(chat_details)
                 ai_summary = res.data.chat_response.text.strip()
+                if ai_summary:
+                    analysis_mode = "OCI_GENAI"
+                    analysis_notice = None
             except Exception as e:
-                logger.error("Gagal analisa pola AI: %s", e)
-                ai_summary = f"Total pengeluaran bulan ini Rp {c_total:,.0f} ({pct_tot:+.1f}% dibanding bulan lalu Rp {p_total:,.0f})."
+                logger.warning("Gagal analisa pola dengan OCI GenAI (%s)", type(e).__name__)
+
+        if not ai_summary:
+            ai_summary = (
+                f"Ringkasan perhitungan: pengeluaran bulan ini Rp {c_total:,.0f}, "
+                f"berubah {pct_tot:+.1f}% dibanding bulan lalu Rp {p_total:,.0f}. "
+                "Tinjau kategori dengan kenaikan terbesar sebelum mengubah anggaran."
+            )
 
         return {
             "current_month_str": c_month_str,
@@ -595,7 +624,9 @@ Berikan ringkasan cerdas dalam 2 paragraf: jelaskan kategori mana yang paling me
             "diff_amount": diff_tot,
             "percentage_change": round(pct_tot, 1),
             "category_comparisons": comparisons,
-            "ai_summary": ai_summary or f"Total pengeluaran tercatat Rp {c_total:,.0f}."
+            "ai_summary": ai_summary,
+            "analysis_mode": analysis_mode,
+            "analysis_notice": analysis_notice
         }
 
     # =========================================================================

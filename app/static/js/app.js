@@ -5,7 +5,7 @@
  * Financial Planning, and AI Advisory Copilot.
  */
 
-import { api } from './api.js?v=2.6.9';
+import { api } from './api.js?v=2.7.0';
 import { AudioRecorder } from './audio_recorder.js';
 
 const Icons = {
@@ -70,6 +70,9 @@ class App {
     this.loginTotpGroup = document.getElementById('login-totp-group');
     this.loginTotpCode = document.getElementById('login-totp-code');
     this.loginError = document.getElementById('login-error');
+    this.sessionCheckPanel = document.getElementById('session-check-panel');
+    this.sessionCheckMessage = document.getElementById('session-check-message');
+    this.btnRetrySessionCheck = document.getElementById('btn-retry-session-check');
     this.btnToggleLoginPassword = document.getElementById('btn-toggle-login-password');
     this.btnGoogleLogin = document.getElementById('btn-google-login');
     this.loginRememberMe = document.getElementById('login-remember-me');
@@ -158,6 +161,7 @@ class App {
     // Ledger CRUD Modals & Form Elements
     this.btnOpenCreateTx = document.getElementById('btn-open-create-tx');
     this.btnOpenCreateTxDash = document.getElementById('btn-open-create-tx-dash');
+    this.btnMobileOpenCreateTx = document.getElementById('mobile-dashboard-create-tx');
     this.modalCreateTx = document.getElementById('modal-create-tx');
     this.formCreateTx = document.getElementById('form-create-tx');
     this.createTxType = document.getElementById('create-tx-type');
@@ -247,6 +251,7 @@ class App {
     this.copilotInput = document.getElementById('copilot-input');
     this.copilotAccountSelect = document.getElementById('copilot-account-select');
     this.btnConsultCopilot = document.getElementById('btn-consult-copilot');
+    this.copilotAiStatus = document.getElementById('copilot-ai-status');
     this.copilotVerdictCard = document.getElementById('copilot-verdict-card');
     this.copilotVerdictBadge = document.getElementById('copilot-verdict-badge');
     this.copilotItemCost = document.getElementById('copilot-item-cost');
@@ -467,6 +472,17 @@ class App {
     // Authentication
     if (this.loginForm) {
       this.loginForm.addEventListener('submit', (e) => this.handleLogin(e));
+    }
+    if (this.btnRetrySessionCheck) {
+      this.btnRetrySessionCheck.addEventListener('click', async () => {
+        this.btnRetrySessionCheck.disabled = true;
+        this.btnRetrySessionCheck.textContent = 'Memeriksa sesi…';
+        await this.checkSession();
+        if (this.btnRetrySessionCheck.isConnected) {
+          this.btnRetrySessionCheck.disabled = false;
+          this.btnRetrySessionCheck.textContent = 'Coba lagi';
+        }
+      });
     }
     
     const handleLogoutAction = (e) => {
@@ -719,6 +735,9 @@ class App {
     }
     if (this.btnOpenCreateTxDash) {
       this.btnOpenCreateTxDash.addEventListener('click', () => this.openCreateTxModal());
+    }
+    if (this.btnMobileOpenCreateTx) {
+      this.btnMobileOpenCreateTx.addEventListener('click', () => this.openCreateTxModal());
     }
     if (this.createTxTypeBtns) {
       this.createTxTypeBtns.forEach((btn) => {
@@ -978,6 +997,9 @@ class App {
     if (this.btnImportCsv && this.inputImportCsv) {
       this.btnImportCsv.addEventListener('click', () => this.inputImportCsv.click());
       this.inputImportCsv.addEventListener('change', () => this.handleCsvImport());
+      document.querySelectorAll('[data-open-csv-import]').forEach((button) => {
+        button.addEventListener('click', () => this.inputImportCsv.click());
+      });
     }
 
     // Form Edit Profile
@@ -1370,7 +1392,11 @@ class App {
 
   async checkSession() {
     // Jika ada penanda logout aktif di storage, jangan auto-login
-    if (sessionStorage.getItem('pf_logged_out') === '1' || localStorage.getItem('pf_logged_out') === '1') {
+    let explicitlyLoggedOut = false;
+    try {
+      explicitlyLoggedOut = sessionStorage.getItem('pf_logged_out') === '1' || localStorage.getItem('pf_logged_out') === '1';
+    } catch (_) {}
+    if (explicitlyLoggedOut) {
       this.showLogin();
       return;
     }
@@ -1382,9 +1408,35 @@ class App {
       } else {
         this.showLogin();
       }
-    } catch {
-      this.showLogin();
+    } catch (err) {
+      if (err.status === 401 || err.status === 403) {
+        try {
+          localStorage.removeItem('pf_token');
+          localStorage.removeItem('pf_csrf');
+          sessionStorage.removeItem('pf_csrf');
+        } catch (_) {}
+        this.showLogin();
+        return;
+      }
+      this.showSessionCheckError();
     }
+  }
+
+  showSessionCheckError() {
+    this.showAuthView('login');
+    if (this.appShell) this.appShell.style.setProperty('display', 'none', 'important');
+    if (this.authOverlay) {
+      this.authOverlay.style.setProperty('display', 'flex', 'important');
+      this.authOverlay.style.setProperty('visibility', 'visible', 'important');
+      this.authOverlay.style.opacity = '1';
+      this.authOverlay.style.setProperty('z-index', '999999', 'important');
+    }
+    if (this.loginForm) this.loginForm.style.display = 'none';
+    if (this.loginError) this.loginError.style.display = 'none';
+    if (this.sessionCheckMessage) {
+      this.sessionCheckMessage.textContent = 'Server belum bisa memverifikasi sesi karena koneksi sedang bermasalah. Sesi kamu tidak dihapus; coba periksa lagi.';
+    }
+    if (this.sessionCheckPanel) this.sessionCheckPanel.style.display = 'block';
   }
 
   showAuthView(viewName) {
@@ -1395,6 +1447,8 @@ class App {
 
   showLogin() {
     this.showAuthView('login');
+    if (this.loginForm) this.loginForm.style.removeProperty('display');
+    if (this.sessionCheckPanel) this.sessionCheckPanel.style.display = 'none';
     document.body.classList.add('user-logged-out');
     if (this.appShell) {
       this.appShell.style.setProperty('display', 'none', 'important');
@@ -1423,8 +1477,12 @@ class App {
   showDashboard() {
     // Bersihkan penanda logout saat dashboard berhasil ditampilkan
     document.body.classList.remove('user-logged-out');
-    sessionStorage.removeItem('pf_logged_out');
-    localStorage.removeItem('pf_logged_out');
+    try {
+      sessionStorage.removeItem('pf_logged_out');
+      localStorage.removeItem('pf_logged_out');
+    } catch (_) {}
+    if (this.loginForm) this.loginForm.style.removeProperty('display');
+    if (this.sessionCheckPanel) this.sessionCheckPanel.style.display = 'none';
 
     if (this.appShell) {
       this.appShell.style.removeProperty('display');
@@ -1432,8 +1490,10 @@ class App {
     if (this.authOverlay) {
       this.authOverlay.style.setProperty('display', 'none', 'important');
     }
+    let storedDisplayName = '';
+    try { storedDisplayName = localStorage.getItem('user_fullname') || ''; } catch (_) {}
     const displayName = (this.currentUser && (this.currentUser.full_name || this.currentUser.username))
-      || localStorage.getItem('user_fullname')
+      || storedDisplayName
       || 'Pengguna';
     if (this.usernameDisplay) this.usernameDisplay.textContent = displayName.split(' ')[0];
     if (this.desktopGreetingName) this.desktopGreetingName.textContent = displayName.split(' ')[0];
@@ -1465,8 +1525,23 @@ class App {
         verifiedProfile = verified?.data;
         if (!verifiedProfile?.id) throw new Error('Sesi login belum aktif di server.');
       } catch (verifyError) {
-        try { await api.auth.logout(); } catch (_) {}
-        throw new Error(`Login diterima, tetapi sesi tidak bisa diverifikasi: ${verifyError.message}`);
+        this.loginPassword.value = '';
+        if (this.loginTotpCode) this.loginTotpCode.value = '';
+        if (verifyError.status === 401 || verifyError.status === 403) {
+          try {
+            localStorage.removeItem('pf_token');
+            localStorage.removeItem('pf_csrf');
+            sessionStorage.removeItem('pf_csrf');
+          } catch (_) {}
+          this.showLogin();
+          this.loginError.textContent = 'Login diterima, tetapi server menolak sesi. Coba masuk sekali lagi.';
+          this.loginError.style.display = 'block';
+        } else {
+          // Do not revoke a valid login when the profile check hits a temporary
+          // network/proxy failure; let the user retry session restoration.
+          this.showSessionCheckError();
+        }
+        return;
       }
       sessionStorage.removeItem('pf_logged_out');
       localStorage.removeItem('pf_logged_out');
@@ -3931,26 +4006,39 @@ class App {
   }
 
   async handleConsultCopilot() {
-    const query = this.copilotInput.value.trim();
+    const query = this.copilotInput?.value?.trim() || '';
     if (!query) {
       this.showAlert('Ketikkan rencana pembelian Anda terlebih dahulu.', 'warning');
+      this.copilotInput?.focus();
       return;
     }
 
     const targetAccId = this.copilotAccountSelect.value ? parseInt(this.copilotAccountSelect.value) : null;
-    this.btnConsultCopilot.disabled = true;
-    this.btnConsultCopilot.innerHTML = `<span class="loading-spinner"></span> Menganalisis...`;
+    if (this.btnConsultCopilot) {
+      this.btnConsultCopilot.disabled = true;
+      this.btnConsultCopilot.innerHTML = `<span class="loading-spinner"></span> Menganalisis...`;
+    }
+    if (this.copilotAiStatus) {
+      this.copilotAiStatus.className = 'copilot-ai-status is-pending';
+      this.copilotAiStatus.textContent = 'Memeriksa data keuangan dan meminta analisis…';
+    }
 
     try {
       const res = await api.planning.consultPurchase(query, targetAccId);
       const d = res.data;
       this.renderCopilotAdvice(d);
-      this.showAlert('Analisis kelayakan pembelian berhasil disusun!', 'success');
+      this.showAlert(d?.advisor_mode === 'OCI_GENAI' ? 'Analisis OCI GenAI selesai.' : 'Perhitungan cadangan selesai; OCI GenAI belum tersedia.', d?.advisor_mode === 'OCI_GENAI' ? 'success' : 'warning');
     } catch (err) {
+      if (this.copilotAiStatus) {
+        this.copilotAiStatus.className = 'copilot-ai-status is-error';
+        this.copilotAiStatus.textContent = `Analisis gagal: ${err.message}. Pertanyaan belum tersimpan sebagai transaksi.`;
+      }
       this.showAlert(`Gagal analisis copilot: ${err.message}`, 'error');
     } finally {
-      this.btnConsultCopilot.disabled = false;
-      this.btnConsultCopilot.innerHTML = `<span>Minta Pertimbangan AI</span>`;
+      if (this.btnConsultCopilot) {
+        this.btnConsultCopilot.disabled = false;
+        this.btnConsultCopilot.innerHTML = `<span>Minta Pertimbangan AI</span>`;
+      }
     }
   }
 
@@ -3958,9 +4046,17 @@ class App {
     if (!data) return;
     this.lastCopilotData = data;
 
+    if (this.copilotAiStatus) {
+      const isGenAi = data.advisor_mode === 'OCI_GENAI';
+      this.copilotAiStatus.className = `copilot-ai-status ${isGenAi ? 'is-live' : 'is-fallback'}`;
+      this.copilotAiStatus.textContent = isGenAi
+        ? 'Dianalisis OCI GenAI dengan snapshot keuangan terbaru.'
+        : (data.advisor_notice || 'Menggunakan perhitungan sistem; OCI GenAI belum terkonfirmasi tersedia.');
+    }
+
     if (this.copilotVerdictBadge) {
       let dotClass = 'dot-green';
-      let badgeText = data.verdict_badge || 'Relatif Aman untuk Dibeli';
+      let badgeText = data.verdict_badge || 'Belum ada analisis';
       badgeText = badgeText.replace(/^[🟢🟡🔴⚠️💡]\s*/, '');
 
       if (data.verdict === 'PERLU_PERTIMBANGAN') {
@@ -3994,7 +4090,7 @@ class App {
       if (paragraphs.length > 0) {
         this.copilotAdviceText.textContent = paragraphs[0];
         if (this.copilotDetailText) {
-          this.copilotDetailText.textContent = paragraphs.slice(1).join('\n\n') || (data.is_purchase ? `Catatan: Pembelian akan menyerap sebagian dari sisa anggaran belanja. Sisa pagu setelah pembelian adalah ${this.formatIDR(data.financial_snapshot?.sisa_anggaran_setelah_beli || 1150000)}.` : `Saran: Alokasikan sebagian dari sisa pagu belanja Anda ke pos target tabungan yang masih aktif.`);
+          this.copilotDetailText.textContent = paragraphs.slice(1).join('\n\n') || (data.is_purchase ? `Catatan: Periksa kembali dampak pembelian pada sisa anggaran sebesar ${this.formatIDR(data.financial_snapshot?.sisa_anggaran_setelah_beli ?? 0)}.` : 'Saran: Alokasikan sebagian sisa anggaran ke target tabungan sesuai kemampuan arus kas.');
         }
       } else {
         this.copilotAdviceText.textContent = advice;
@@ -4003,19 +4099,19 @@ class App {
 
     // Snapshot Breakdown (6 Metrics)
     const snap = data.financial_snapshot || {};
-    if (this.snapAccName) this.snapAccName.textContent = snap.rekening_terpilih || 'Bank';
-    if (this.snapAccBal) this.snapAccBal.textContent = this.formatIDR(snap.saldo_saat_ini || 5250000);
+    if (this.snapAccName) this.snapAccName.textContent = snap.rekening_terpilih || '—';
+    if (this.snapAccBal) this.snapAccBal.textContent = snap.saldo_saat_ini !== undefined ? this.formatIDR(snap.saldo_saat_ini) : '—';
     if (this.snapAccAfter) {
-      this.snapAccAfter.textContent = this.formatIDR(snap.saldo_setelah_beli || 2400000);
+      this.snapAccAfter.textContent = snap.saldo_setelah_beli !== undefined ? this.formatIDR(snap.saldo_setelah_beli) : '—';
       this.snapAccAfter.style.color = (snap.saldo_setelah_beli || 0) < 0 ? 'var(--accent-rose)' : 'var(--text-primary)';
     }
-    if (this.snapBudgetRem) this.snapBudgetRem.textContent = this.formatIDR(snap.sisa_anggaran_bulan_ini || 2850000);
+    if (this.snapBudgetRem) this.snapBudgetRem.textContent = snap.sisa_anggaran_bulan_ini !== undefined ? this.formatIDR(snap.sisa_anggaran_bulan_ini) : '—';
     if (this.snapBudgetAfter) {
-      this.snapBudgetAfter.textContent = this.formatIDR(snap.sisa_anggaran_setelah_beli !== undefined ? snap.sisa_anggaran_setelah_beli : 1150000);
+      this.snapBudgetAfter.textContent = snap.sisa_anggaran_setelah_beli !== undefined ? this.formatIDR(snap.sisa_anggaran_setelah_beli) : '—';
       this.snapBudgetAfter.style.color = (snap.sisa_anggaran_setelah_beli || 0) < 0 ? 'var(--accent-rose)' : 'var(--text-primary)';
     }
     if (this.snapGoalsStatus) {
-      this.snapGoalsStatus.textContent = `${snap.target_tabungan_aktif || 2} sasaran aman`;
+      this.snapGoalsStatus.textContent = snap.target_tabungan_aktif !== undefined ? `${snap.target_tabungan_aktif} sasaran aktif` : '—';
     }
   }
 
@@ -4091,24 +4187,24 @@ class App {
       const res = await api.planning.getSpendingPatterns();
       const d = res.data;
       if (this.observationHeadline && d.ai_summary) {
-        this.observationHeadline.textContent = d.ai_summary.slice(0, 75) + '...';
+        this.observationHeadline.textContent = d.analysis_mode === 'OCI_GENAI' ? 'Analisis OCI GenAI selesai' : 'Ringkasan perhitungan transaksi';
       }
       if (this.observationBody && d.ai_summary) {
-        this.observationBody.textContent = d.ai_summary;
+        this.observationBody.textContent = d.analysis_notice ? `${d.ai_summary} ${d.analysis_notice}` : d.ai_summary;
       }
-
       if (this.patternTableBody) {
         this.patternTableBody.innerHTML = '';
-        const comps = (d.category_comparisons && d.category_comparisons.length > 0) ? d.category_comparisons : [
-          { category_name: 'Makanan & minuman', prev_spent: 920000, curr_spent: 850000, percentage_change: -7.6 },
-          { category_name: 'Belanja & hiburan', prev_spent: 450000, curr_spent: 680000, percentage_change: 51.1 },
-          { category_name: 'Transportasi', prev_spent: 480000, curr_spent: 420000, percentage_change: -12.5 },
-          { category_name: 'Tagihan & utilitas', prev_spent: 600000, curr_spent: 600000, percentage_change: 0.0 },
-          { category_name: 'Kebutuhan lainnya', prev_spent: 250000, curr_spent: 310000, percentage_change: 24.0 },
-        ];
+        const comps = Array.isArray(d.category_comparisons) ? d.category_comparisons : [];
+
+        if (!comps.length) {
+          const row = document.createElement('tr');
+          row.innerHTML = '<td colspan="4" class="pattern-empty-state">Belum ada cukup transaksi untuk dibandingkan.</td>';
+          this.patternTableBody.appendChild(row);
+        }
 
         comps.forEach((c) => {
           const tr = document.createElement('tr');
+          const categoryName = this.escapeHtml(c.category_name || 'Kategori');
           const isPositive = (c.percentage_change || 0) > 0;
           const isNeutral = (c.percentage_change || 0) === 0;
           const badgeClass = isNeutral ? '' : (isPositive ? 'trend-badge-rose' : 'trend-badge-green');
@@ -4116,7 +4212,7 @@ class App {
           const trendText = `${prefix}${c.percentage_change}%`;
 
           tr.innerHTML = `
-            <td><strong>${c.category_name}</strong></td>
+            <td><strong>${categoryName}</strong></td>
             <td style="color: var(--text-secondary);">${this.formatIDR(c.prev_spent)}</td>
             <td style="color: var(--text-secondary);">${this.formatIDR(c.curr_spent)}</td>
             <td><span class="${badgeClass}">${trendText}</span></td>
@@ -4125,40 +4221,11 @@ class App {
         });
       }
     } catch (err) {
-      console.warn('Fallback pola pengeluaran:', err);
+      console.warn('Gagal memuat pola pengeluaran:', err);
+      if (this.observationHeadline) this.observationHeadline.textContent = 'Analisis belum tersedia';
+      if (this.observationBody) this.observationBody.textContent = `Tidak berhasil memuat pola pengeluaran: ${err.message}`;
       if (this.patternTableBody) {
-        this.patternTableBody.innerHTML = `
-          <tr>
-            <td><strong>Makanan & minuman</strong></td>
-            <td style="color: var(--text-secondary);">${this.formatIDR(920000)}</td>
-            <td style="color: var(--text-secondary);">${this.formatIDR(850000)}</td>
-            <td><span class="trend-badge-green">-7.6%</span></td>
-          </tr>
-          <tr>
-            <td><strong>Belanja & hiburan</strong></td>
-            <td style="color: var(--text-secondary);">${this.formatIDR(450000)}</td>
-            <td style="color: var(--text-secondary);">${this.formatIDR(680000)}</td>
-            <td><span class="trend-badge-rose">+51.1%</span></td>
-          </tr>
-          <tr>
-            <td><strong>Transportasi</strong></td>
-            <td style="color: var(--text-secondary);">${this.formatIDR(480000)}</td>
-            <td style="color: var(--text-secondary);">${this.formatIDR(420000)}</td>
-            <td><span class="trend-badge-green">-12.5%</span></td>
-          </tr>
-          <tr>
-            <td><strong>Tagihan & utilitas</strong></td>
-            <td style="color: var(--text-secondary);">${this.formatIDR(600000)}</td>
-            <td style="color: var(--text-secondary);">${this.formatIDR(600000)}</td>
-            <td style="color: var(--text-secondary); font-size: 9px;">0.0%</td>
-          </tr>
-          <tr>
-            <td><strong>Kebutuhan lainnya</strong></td>
-            <td style="color: var(--text-secondary);">${this.formatIDR(250000)}</td>
-            <td style="color: var(--text-secondary);">${this.formatIDR(310000)}</td>
-            <td><span class="trend-badge-rose">+24.0%</span></td>
-          </tr>
-        `;
+        this.patternTableBody.innerHTML = '<tr><td colspan="4" class="pattern-empty-state">Pola pengeluaran gagal dimuat. Coba analisis ulang.</td></tr>';
       }
     } finally {
       if (this.btnAnalyzePatterns) {

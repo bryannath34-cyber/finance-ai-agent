@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=2.6.9">
+  <link rel="stylesheet" href="css/style.css?v=2.7.0">
   <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
   <link rel="shortcut icon" type="image/svg+xml" href="favicon.svg?v=3">
   <link rel="apple-touch-icon" href="favicon.svg?v=3">
@@ -525,9 +525,9 @@
         <div class="desktop-dashboard-view">
           <!-- Top Title Bar with Day/Month Switch (Matching Reference Header) -->
           <div class="dashboard-header-bar">
-          <div class="dashboard-title-group">
-            <h1 class="dashboard-header-title">Dashboard</h1>
-            <span class="dashboard-header-subtitle">Ringkasan finansial dan arus kas riil buku besar</span>
+            <div class="dashboard-title-group">
+            <h1 class="dashboard-header-title">Uangmu, lebih terarah.</h1>
+            <span class="dashboard-header-subtitle">Pantau arus kas dan ambil keputusan dengan lebih tenang.</span>
           </div>
           <div class="dashboard-period-toggle">
             <button type="button" class="dashboard-period-btn" id="btn-dash-period-day">Hari</button>
@@ -619,6 +619,12 @@
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
             <span>+ Catat Transaksi</span>
+          </button>
+          <button type="button" class="btn-dash-action dashboard-import-action" data-open-csv-import>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/>
+            </svg>
+            <span>Impor CSV</span>
           </button>
           <button type="button" class="btn-dash-action" id="btn-dash-open-ai">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -887,8 +893,13 @@
         <div class="mobile-dashboard-section">
           <!-- Mobile Greeting -->
           <div class="mobile-greeting-block">
-            <h1 class="mobile-greeting-h1">Halo, <span id="mobile-greeting-name">Bryan</span></h1>
-            <p class="mobile-greeting-sub">Ringkasan kondisi keuanganmu.</p>
+            <h1 class="mobile-greeting-h1">Uangmu, lebih terarah.</h1>
+            <p class="mobile-greeting-sub">Halo, <span id="mobile-greeting-name">Pengguna</span> · Ringkasan keuanganmu.</p>
+          </div>
+
+          <div class="mobile-dashboard-actions">
+            <button type="button" id="mobile-dashboard-create-tx" class="mobile-dashboard-action primary">+ Catat transaksi</button>
+            <button type="button" class="mobile-dashboard-action" data-open-csv-import>Impor CSV</button>
           </div>
 
           <!-- 1. Total kekayaan bersih Card -->
@@ -1271,7 +1282,7 @@
 
             <div class="advisor-query-box">
               <textarea id="copilot-input" class="advisor-textarea"
-                placeholder="Gue mau beli monitor eksternal 4K seharga Rp2.850.000 pake Bank, menurut lu aman gak buat cashflow bulan ini?"></textarea>
+                placeholder="Contoh: Aman nggak kalau saya beli laptop Rp8 juta? Atau bagaimana membagi uang untuk tabungan?"></textarea>
 
               <div class="advisor-sidebar-controls">
                 <span class="advisor-control-label">Rekening sumber</span>
@@ -1297,6 +1308,7 @@
                   <span>Minta Pertimbangan AI</span>
                 </button>
               </div>
+              <div id="copilot-ai-status" class="copilot-ai-status" role="status" aria-live="polite">Jawaban akan muncul setelah pertanyaan dianalisis.</div>
             </div>
           </div>
 
@@ -1319,22 +1331,19 @@
               <!-- Left side -->
               <div class="verdict-left-col">
                 <div class="verdict-badge-pill" id="copilot-verdict-badge">
-                  <span class="verdict-dot dot-green"></span> Relatif Aman untuk Dibeli
+                  <span class="verdict-dot dot-green"></span> Belum ada analisis
                 </div>
-                <div class="verdict-amount-label" id="copilot-item-cost-label">Estimasi Pengeluaran</div>
-                <div class="verdict-amount-num" id="copilot-item-cost">Rp 2.850.000</div>
+                <div class="verdict-amount-label" id="copilot-item-cost-label">Topik konsultasi</div>
+                <div class="verdict-amount-num" id="copilot-item-cost">—</div>
               </div>
 
               <!-- Right side -->
               <div class="verdict-right-col">
                 <div class="verdict-explanation-text" id="copilot-advice-text">
-                  Pembelian ini masih dalam batas aman arus kas Anda. Saldo Bank mencukupi dan pagu anggaran sisa masih
-                  mampu menyerap transaksi ini tanpa mengorbankan alokasi kebutuhan pokok.
+                  Ajukan pertanyaan untuk mendapatkan analisis berdasarkan saldo, anggaran, dan sasaran tabunganmu.
                 </div>
                 <div class="verdict-detail-text" id="copilot-detail-text">
-                  Catatan: Pembelian akan menyerap sekitar 57% dari sisa anggaran belanja bulan Oktober. Sisa pagu
-                  setelah pembelian adalah Rp1.150.000. Rekomendasi: Lanjutkan jika monitor mendukung produktivitas
-                  kerja.
+                  Hasil akan membedakan analisis OCI GenAI dari perhitungan cadangan agar sumber rekomendasinya jelas.
                 </div>
               </div>
             </div>
@@ -1360,37 +1369,37 @@
               <!-- 6 Metrics separated by 1px vertical dividers -->
               <div class="snapshot-metric-item">
                 <span class="snapshot-metric-label">Rekening terpilih</span>
-                <span class="snapshot-metric-value" id="snap-acc-name">Bank</span>
+                <span class="snapshot-metric-value" id="snap-acc-name">—</span>
               </div>
               <div class="snapshot-vertical-divider"></div>
 
               <div class="snapshot-metric-item">
                 <span class="snapshot-metric-label">Saldo saat ini</span>
-                <span class="snapshot-metric-value" id="snap-acc-bal">Rp 5.250.000</span>
+                <span class="snapshot-metric-value" id="snap-acc-bal">—</span>
               </div>
               <div class="snapshot-vertical-divider"></div>
 
               <div class="snapshot-metric-item">
                 <span class="snapshot-metric-label">Saldo setelah beli</span>
-                <span class="snapshot-metric-value" id="snap-acc-after">Rp 2.400.000</span>
+                <span class="snapshot-metric-value" id="snap-acc-after">—</span>
               </div>
               <div class="snapshot-vertical-divider"></div>
 
               <div class="snapshot-metric-item">
                 <span class="snapshot-metric-label">Sisa anggaran bulan ini</span>
-                <span class="snapshot-metric-value" id="snap-budget-rem">Rp 2.850.000</span>
+                <span class="snapshot-metric-value" id="snap-budget-rem">—</span>
               </div>
               <div class="snapshot-vertical-divider"></div>
 
               <div class="snapshot-metric-item">
                 <span class="snapshot-metric-label">Sisa pagu setelah beli</span>
-                <span class="snapshot-metric-value" id="snap-budget-after">Rp 1.150.000</span>
+                <span class="snapshot-metric-value" id="snap-budget-after">—</span>
               </div>
               <div class="snapshot-vertical-divider"></div>
 
               <div class="snapshot-metric-item">
                 <span class="snapshot-metric-label">Target tabungan aktif</span>
-                <span class="snapshot-metric-value" id="snap-goals-status">2 sasaran aman</span>
+                <span class="snapshot-metric-value" id="snap-goals-status">—</span>
               </div>
             </div>
           </div>
@@ -3434,6 +3443,12 @@
                 <h1 class="login-title-h1">Selamat datang kembali</h1>
                 <p class="login-intro-p">Masuk untuk melanjutkan pengelolaan keuanganmu.</p>
 
+                <div id="session-check-panel" class="session-check-panel" style="display:none;" role="status" aria-live="polite">
+                  <strong>Sesi masih tersimpan</strong>
+                  <p id="session-check-message">Server belum bisa memverifikasi sesi. Coba periksa lagi.</p>
+                  <button type="button" id="btn-retry-session-check" class="btn-login-submit">Coba lagi</button>
+                </div>
+
                 <form id="login-form">
                   <!-- Email / Username -->
                   <div class="login-field-group">
@@ -3777,7 +3792,7 @@
       </div>
     </div>
 
-    <script type="module" src="js/app.js?v=2.6.9"></script>
+  <script type="module" src="js/app.js?v=2.7.0"></script>
 </body>
 
 </html>

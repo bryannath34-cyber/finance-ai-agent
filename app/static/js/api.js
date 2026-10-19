@@ -58,6 +58,7 @@ async function request(endpoint, options = {}) {
     ...options,
     headers,
     signal: options.signal || controller.signal,
+    cache: options.cache || 'no-store', // Session and financial data must always be revalidated.
     credentials: 'include', // Include HttpOnly session cookie
   };
 

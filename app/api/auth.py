@@ -131,10 +131,8 @@ def login(login_data: LoginRequest, request: Request, response: Response):
     session_token, expires_at = create_user_session(user["id"], client_ip, user_agent)
     csrf_token = generate_secure_token(24)
 
-    is_https = (
-        request.url.scheme == "https" or 
-        request.headers.get("X-Forwarded-Proto") == "https"
-    )
+    forwarded_proto = request.headers.get("X-Forwarded-Proto", "").split(",", 1)[0].strip().lower()
+    is_https = request.url.scheme.lower() == "https" or forwarded_proto == "https"
 
     # Set Cookie Sesi (HttpOnly agar tidak bisa dicuri XSS)
     response.set_cookie(
