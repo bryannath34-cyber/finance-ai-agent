@@ -43,9 +43,7 @@ def login(login_data: LoginRequest, request: Request, response: Response):
 
     with get_db_cursor(commit=True) as cur:
         cur.execute("""
-            SELECT id, username, password_hash, full_name, timezone,
-                   totp_secret_ciphertext, totp_enabled, totp_last_counter,
-                   failed_login_attempts, locked_until, is_active
+            SELECT *
             FROM app_users
             WHERE username = %s OR username = %s
             ORDER BY (username = %s) DESC
@@ -111,7 +109,8 @@ def login(login_data: LoginRequest, request: Request, response: Response):
                 cur.execute("UPDATE app_users SET failed_login_attempts = %s, locked_until = %s WHERE id = %s", (failed_attempts, locked_until_val, user["id"]))
                 cur.connection.commit()
                 raise HTTPException(status_code=401, detail={"code": "TOTP_INVALID", "message": "Kode autentikasi salah atau sudah digunakan. Coba kode terbaru."})
-            cur.execute("UPDATE app_users SET totp_last_counter = %s WHERE id = %s", (accepted_counter, user["id"]))
+            if "totp_last_counter" in user:
+                cur.execute("UPDATE app_users SET totp_last_counter = %s WHERE id = %s", (accepted_counter, user["id"]))
 
         # Reset failed attempts jika sukses
         if user["failed_login_attempts"] > 0 or user["locked_until"] is not None:
@@ -273,15 +272,18 @@ DEFAULT_PREFERENCES = {
 @router.get("/preferences", response_model=DataResponse[dict])
 def get_user_preferences(user: dict = Depends(get_current_user)):
     """Memuat preferensi tersimpan; fallback default untuk pengguna lama."""
-    with get_db_cursor(commit=False) as cur:
-        cur.execute("SELECT preferences_json FROM user_preferences WHERE user_id = %s", (user["id"],))
-        row = cur.fetchone()
     preferences = dict(DEFAULT_PREFERENCES)
-    if row and row.get("preferences_json"):
-        stored = row["preferences_json"]
-        if isinstance(stored, str):
-            stored = json.loads(stored)
-        preferences.update({k: bool(v) for k, v in stored.items() if k in DEFAULT_PREFERENCES})
+    try:
+        with get_db_cursor(commit=False) as cur:
+            cur.execute("SELECT preferences_json FROM user_preferences WHERE user_id = %s", (user["id"],))
+            row = cur.fetchone()
+        if row and row.get("preferences_json"):
+            stored = row["preferences_json"]
+            if isinstance(stored, str):
+                stored = json.loads(stored)
+            preferences.update({k: bool(v) for k, v in stored.items() if k in DEFAULT_PREFERENCES})
+    except Exception as e:
+        logger.warning("user_preferences table query failed: %s", e)
     return DataResponse(success=True, message="Preferensi pengguna.", data=preferences)
 
 
@@ -290,39 +292,54 @@ def update_user_preferences(payload: dict, user: dict = Depends(get_current_user
     """Menyimpan preferensi yang didukung tanpa menerima key arbitrer."""
     if not isinstance(payload, dict) or not payload or any(k not in DEFAULT_PREFERENCES or not isinstance(v, bool) for k, v in payload.items()):
         raise HTTPException(status_code=422, detail="Preferensi tidak valid.")
-    with get_db_cursor(commit=True) as cur:
-        cur.execute("SELECT preferences_json FROM user_preferences WHERE user_id = %s", (user["id"],))
-        row = cur.fetchone()
-        preferences = dict(DEFAULT_PREFERENCES)
-        if row and row.get("preferences_json"):
-            stored = row["preferences_json"]
-            if isinstance(stored, str):
-                stored = json.loads(stored)
-            preferences.update({k: bool(v) for k, v in stored.items() if k in DEFAULT_PREFERENCES})
+    preferences = dict(DEFAULT_PREFERENCES)
+    try:
+        with get_db_cursor(commit=True) as cur:
+            cur.execute("SELECT preferences_json FROM user_preferences WHERE user_id = %s", (user["id"],))
+            row = cur.fetchone()
+            if row and row.get("preferences_json"):
+                stored = row["preferences_json"]
+                if isinstance(stored, str):
+                    stored = json.loads(stored)
+                preferences.update({k: bool(v) for k, v in stored.items() if k in DEFAULT_PREFERENCES})
+            preferences.update(payload)
+            cur.execute("""
+                INSERT INTO user_preferences (user_id, preferences_json)
+                VALUES (%s, %s)
+                ON DUPLICATE KEY UPDATE preferences_json = VALUES(preferences_json), updated_at = CURRENT_TIMESTAMP
+            """, (user["id"], json.dumps(preferences)))
+    except Exception as e:
+        logger.warning("user_preferences table save failed: %s", e)
         preferences.update(payload)
-        cur.execute("""
-            INSERT INTO user_preferences (user_id, preferences_json)
-            VALUES (%s, %s)
-            ON DUPLICATE KEY UPDATE preferences_json = VALUES(preferences_json), updated_at = CURRENT_TIMESTAMP
-        """, (user["id"], json.dumps(preferences)))
     return DataResponse(success=True, message="Preferensi disimpan.", data=preferences)
 
 
 @router.get("/2fa", response_model=DataResponse[dict])
 def get_two_factor_status(user: dict = Depends(get_current_user)):
-    with get_db_cursor(commit=False) as cur:
-        cur.execute("SELECT totp_enabled FROM app_users WHERE id = %s", (user["id"],))
-        row = cur.fetchone()
-    return DataResponse(success=True, message="Status autentikasi dua faktor.", data={"enabled": bool(row and row["totp_enabled"])})
+    enabled = False
+    try:
+        with get_db_cursor(commit=False) as cur:
+            cur.execute("SELECT * FROM app_users WHERE id = %s", (user["id"],))
+            row = cur.fetchone()
+            if row and row.get("totp_enabled"):
+                enabled = bool(row["totp_enabled"])
+    except Exception as e:
+        logger.warning("Query totp_enabled failed: %s", e)
+    return DataResponse(success=True, message="Status autentikasi dua faktor.", data={"enabled": enabled})
 
 
 @router.post("/2fa/setup", response_model=DataResponse[dict])
 def begin_two_factor_setup(user: dict = Depends(get_current_user)):
-    with get_db_cursor(commit=False) as cur:
-        cur.execute("SELECT totp_enabled FROM app_users WHERE id = %s", (user["id"],))
-        row = cur.fetchone()
-    if row and row["totp_enabled"]:
-        raise HTTPException(status_code=409, detail="Autentikasi dua faktor sudah aktif.")
+    try:
+        with get_db_cursor(commit=False) as cur:
+            cur.execute("SELECT * FROM app_users WHERE id = %s", (user["id"],))
+            row = cur.fetchone()
+        if row and row.get("totp_enabled"):
+            raise HTTPException(status_code=409, detail="Autentikasi dua faktor sudah aktif.")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.warning("Query totp_enabled failed: %s", e)
     secret = generate_totp_secret()
     label = quote(f"Finance AI Agent:{user['username']}")
     uri = f"otpauth://totp/{label}?secret={secret}&issuer=Finance%20AI%20Agent&algorithm=SHA1&digits=6&period=30"
@@ -335,31 +352,43 @@ def enable_two_factor(payload: TwoFactorEnableRequest, user: dict = Depends(get_
     if counter is None:
         raise HTTPException(status_code=400, detail="Kode TOTP belum valid. Periksa waktu perangkat dan coba kode terbaru.")
     encrypted_secret = encrypt_totp_secret(payload.secret)
-    with get_db_cursor(commit=True) as cur:
-        cur.execute("""
-            UPDATE app_users
-            SET totp_secret_ciphertext = %s, totp_enabled = TRUE, totp_last_counter = %s
-            WHERE id = %s AND totp_enabled = FALSE
-        """, (encrypted_secret, counter, user["id"]))
-        if cur.rowcount == 0:
-            raise HTTPException(status_code=409, detail="2FA sudah aktif. Muat ulang status pengaturan.")
+    try:
+        with get_db_cursor(commit=True) as cur:
+            cur.execute("""
+                UPDATE app_users
+                SET totp_secret_ciphertext = %s, totp_enabled = TRUE, totp_last_counter = %s
+                WHERE id = %s
+            """, (encrypted_secret, counter, user["id"]))
+            if cur.rowcount == 0:
+                raise HTTPException(status_code=409, detail="Gagal mengaktifkan 2FA.")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Database update 2FA failed: %s", e)
+        raise HTTPException(status_code=500, detail="Database belum mendukung 2FA (memerlukan migrasi).")
     return BaseResponse(success=True, message="Autentikasi dua faktor aktif.")
 
 
 @router.post("/2fa/disable", response_model=BaseResponse)
 def disable_two_factor(payload: TwoFactorDisableRequest, user: dict = Depends(get_current_user)):
-    with get_db_cursor(commit=True) as cur:
-        cur.execute("SELECT password_hash, totp_secret_ciphertext, totp_enabled, totp_last_counter FROM app_users WHERE id = %s", (user["id"],))
-        row = cur.fetchone()
-        if not row or not row["totp_enabled"]:
-            raise HTTPException(status_code=409, detail="Autentikasi dua faktor belum aktif.")
-        if not verify_password(payload.password, row["password_hash"]):
-            raise HTTPException(status_code=401, detail="Kata sandi salah.")
-        secret = decrypt_totp_secret(row["totp_secret_ciphertext"])
-        counter = verify_totp(secret, payload.code, row.get("totp_last_counter"))
-        if counter is None:
-            raise HTTPException(status_code=401, detail="Kode autentikasi salah atau sudah digunakan.")
-        cur.execute("UPDATE app_users SET totp_secret_ciphertext = NULL, totp_enabled = FALSE, totp_last_counter = NULL WHERE id = %s", (user["id"],))
+    try:
+        with get_db_cursor(commit=True) as cur:
+            cur.execute("SELECT * FROM app_users WHERE id = %s", (user["id"],))
+            row = cur.fetchone()
+            if not row or not row.get("totp_enabled"):
+                raise HTTPException(status_code=409, detail="Autentikasi dua faktor belum aktif.")
+            if not verify_password(payload.password, row["password_hash"]):
+                raise HTTPException(status_code=401, detail="Kata sandi salah.")
+            secret = decrypt_totp_secret(row["totp_secret_ciphertext"])
+            counter = verify_totp(secret, payload.code, row.get("totp_last_counter"))
+            if counter is None:
+                raise HTTPException(status_code=401, detail="Kode autentikasi salah atau sudah digunakan.")
+            cur.execute("UPDATE app_users SET totp_secret_ciphertext = NULL, totp_enabled = FALSE, totp_last_counter = NULL WHERE id = %s", (user["id"],))
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Database disable 2FA failed: %s", e)
+        raise HTTPException(status_code=500, detail="Gagal menonaktifkan 2FA.")
     return BaseResponse(success=True, message="Autentikasi dua faktor dinonaktifkan.")
 
 

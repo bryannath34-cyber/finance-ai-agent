@@ -217,6 +217,22 @@ def test_config_requires_secrets():
     assert "FinAppSecret2026!#Oci" not in config
     print(" [PASS] Test 8: deployment signing key and DB password have no code defaults")
 
+# Test 9: Auth backward compatibility & login resilience
+def test_auth_backward_compatibility():
+    with open("app/api/auth.py", "r", encoding="utf-8") as f:
+        auth_py = f.read()
+    assert "SELECT *" in auth_py and "FROM app_users" in auth_py, "auth.py login must use SELECT * to remain backward compatible with unmigrated DB"
+    assert "totp_secret_ciphertext" not in auth_py.split("SELECT *")[1].split("FROM app_users")[0], "auth.py login query must not require totp columns in SELECT list"
+
+    with open("app/static/js/app.js", "r", encoding="utf-8") as f:
+        app_js = f.read()
+    # Check that checkSession doesn't hide login form
+    check_session_start = app_js.index("async checkSession()")
+    check_session_end = app_js.index("showSessionCheckError()", check_session_start)
+    assert "this.showLogin();" in app_js[check_session_start:check_session_end], "checkSession must call showLogin on failure"
+    assert "this.currentUser = verifiedProfile || userProfile" in app_js, "handleLogin must fall back to userProfile if getMe stutters"
+    print(" [PASS] Test 9: Auth backward compatibility and login form resilience verified")
+
 if __name__ == "__main__":
     print("\n================== RUNNING UNIT & INTEGRATION TESTS ==================")
     test_auth_schema()
@@ -227,4 +243,6 @@ if __name__ == "__main__":
     test_app_js_logic()
     test_api_js_logic()
     test_config_requires_secrets()
-    print("================== ALL 8 TEST SUITES PASSED (100% GREEN) ==================\n")
+    test_auth_backward_compatibility()
+    print("================== ALL 9 TEST SUITES PASSED (100% GREEN) ==================\n")
+

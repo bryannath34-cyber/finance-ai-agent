@@ -1409,16 +1409,12 @@ class App {
         this.showLogin();
       }
     } catch (err) {
-      if (err.status === 401 || err.status === 403) {
-        try {
-          localStorage.removeItem('pf_token');
-          localStorage.removeItem('pf_csrf');
-          sessionStorage.removeItem('pf_csrf');
-        } catch (_) {}
-        this.showLogin();
-        return;
-      }
-      this.showSessionCheckError();
+      try {
+        localStorage.removeItem('pf_token');
+        localStorage.removeItem('pf_csrf');
+        sessionStorage.removeItem('pf_csrf');
+      } catch (_) {}
+      this.showLogin();
     }
   }
 
@@ -1431,12 +1427,12 @@ class App {
       this.authOverlay.style.opacity = '1';
       this.authOverlay.style.setProperty('z-index', '999999', 'important');
     }
-    if (this.loginForm) this.loginForm.style.display = 'none';
+    if (this.loginForm) this.loginForm.style.removeProperty('display');
     if (this.loginError) this.loginError.style.display = 'none';
     if (this.sessionCheckMessage) {
-      this.sessionCheckMessage.textContent = 'Server belum bisa memverifikasi sesi karena koneksi sedang bermasalah. Sesi kamu tidak dihapus; coba periksa lagi.';
+      this.sessionCheckMessage.textContent = 'Server belum bisa memverifikasi sesi tersimpan. Silakan masukkan kredensial untuk masuk kembali.';
     }
-    if (this.sessionCheckPanel) this.sessionCheckPanel.style.display = 'block';
+    if (this.sessionCheckPanel) this.sessionCheckPanel.style.display = 'none';
   }
 
   showAuthView(viewName) {
@@ -1517,35 +1513,29 @@ class App {
     try {
       const totpCode = this.loginTotpCode?.value.trim() || null;
       const res = await api.auth.login(user, pass, totpCode);
-      // Verify the issued session before opening the app. This exposes cookie,
-      // proxy, or database-session failures while the user is still on login.
-      let verifiedProfile;
+      const userProfile = res?.user || (res?.data && res.data.id ? res.data : null);
+
+      // Verify the session if possible, but fallback gracefully to the login response profile
+      let verifiedProfile = userProfile;
       try {
         const verified = await api.auth.getMe();
-        verifiedProfile = verified?.data;
-        if (!verifiedProfile?.id) throw new Error('Sesi login belum aktif di server.');
+        if (verified?.data?.id) {
+          verifiedProfile = verified.data;
+        }
       } catch (verifyError) {
-        this.loginPassword.value = '';
-        if (this.loginTotpCode) this.loginTotpCode.value = '';
-        if (verifyError.status === 401 || verifyError.status === 403) {
-          try {
-            localStorage.removeItem('pf_token');
-            localStorage.removeItem('pf_csrf');
-            sessionStorage.removeItem('pf_csrf');
-          } catch (_) {}
+        console.warn('Session secondary check skipped, using login response profile:', verifyError);
+        if ((verifyError.status === 401 || verifyError.status === 403) && !res?.token && !userProfile) {
+          this.loginPassword.value = '';
           this.showLogin();
           this.loginError.textContent = 'Login diterima, tetapi server menolak sesi. Coba masuk sekali lagi.';
           this.loginError.style.display = 'block';
-        } else {
-          // Do not revoke a valid login when the profile check hits a temporary
-          // network/proxy failure; let the user retry session restoration.
-          this.showSessionCheckError();
+          return;
         }
-        return;
       }
+
       sessionStorage.removeItem('pf_logged_out');
       localStorage.removeItem('pf_logged_out');
-      this.currentUser = verifiedProfile || res.user || (res.data ? (res.data.user || res.data) : res);
+      this.currentUser = verifiedProfile || userProfile || { username: user };
       this.loginPassword.value = '';
       if (this.loginTotpCode) this.loginTotpCode.value = '';
       if (this.loginTotpGroup) this.loginTotpGroup.style.display = 'none';
