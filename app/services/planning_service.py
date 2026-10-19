@@ -449,24 +449,25 @@ Instruksi Analisis & Rekomendasi:
                 )
             advisor_mode = "RULES_FALLBACK"
 
-        # 6. Simpan Memori ke purchase_scenarios
+        # 6. Simpan Memori ke purchase_scenarios (hanya jika ada biaya dan rekening terpilih)
         scenario_id = None
-        try:
-            with get_db_cursor(commit=True) as cur:
-                cur.execute("""
-                    INSERT INTO purchase_scenarios (
-                        user_id, item_name, estimated_cost, target_account_id,
-                        ai_summary_advice, financial_snapshot, user_decision
-                    ) VALUES (%s, %s, %s, %s, %s, %s, 'CONSIDERING')
-                """, (
-                    user_id, item_name, cost,
-                    target_acc["id"] if target_acc else None,
-                    advice_text,
-                    json.dumps(snapshot)
-                ))
-                scenario_id = cur.lastrowid
-        except Exception as e:
-            logger.error("Gagal menyimpan purchase scenario: %s", e)
+        if cost > 0 and target_acc and target_acc.get("id"):
+            try:
+                with get_db_cursor(commit=True) as cur:
+                    cur.execute("""
+                        INSERT INTO purchase_scenarios (
+                            user_id, item_name, estimated_cost, target_account_id,
+                            ai_summary_advice, financial_snapshot, user_decision
+                        ) VALUES (%s, %s, %s, %s, %s, %s, 'CONSIDERING')
+                    """, (
+                        user_id, item_name, cost,
+                        target_acc["id"],
+                        advice_text,
+                        json.dumps(snapshot)
+                    ))
+                    scenario_id = cur.lastrowid
+            except Exception as e:
+                logger.error("Gagal menyimpan purchase scenario: %s", e)
 
         return {
             "item_name": item_name,

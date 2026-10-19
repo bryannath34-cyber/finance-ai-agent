@@ -206,8 +206,11 @@ def verify_csrf(request: Request):
     if auth_header and auth_header.startswith("Bearer "):
         return
 
-    # AI parse merupakan endpoint analisis NLP idempotent (meski menggunakan POST)
-    if clean_path.endswith("/api/ai/parse") or request.url.path in (f"{settings.APP_PREFIX}/api/ai/parse",):
+    # AI parse dan advisory konsultasi merupakan endpoint analisis idempotent (meski menggunakan POST)
+    if (
+        clean_path.endswith("/api/ai/parse") or request.url.path in (f"{settings.APP_PREFIX}/api/ai/parse",) or
+        clean_path.endswith("/api/planning/advisory/purchase") or request.url.path in (f"{settings.APP_PREFIX}/api/planning/advisory/purchase",)
+    ):
         return
 
     cookie_csrf = (

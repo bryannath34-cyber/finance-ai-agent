@@ -779,7 +779,8 @@ class App {
     }
     if (this.copilotInput) {
       this.copilotInput.addEventListener('keydown', (e) => {
-        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        if ((e.key === 'Enter' && !e.shiftKey) || ((e.ctrlKey || e.metaKey) && e.key === 'Enter')) {
+          e.preventDefault();
           this.handleConsultCopilot();
         }
       });
@@ -4016,6 +4017,9 @@ class App {
   // TAB 4: PENASIHAT KEUANGAN AI & COPILOT (SCREEN 04)
   // ==========================================
   async loadCopilotData() {
+    if (!this.accounts || this.accounts.length === 0) {
+      await this.loadAccounts();
+    }
     this.populateCopilotAccSelect();
     await this.handleAnalyzePatterns();
   }
@@ -4024,7 +4028,7 @@ class App {
     if (!this.copilotAccountSelect) return;
     this.copilotAccountSelect.innerHTML = '';
     if (!this.accounts || this.accounts.length === 0) {
-      this.copilotAccountSelect.innerHTML = '<option value="">Bank — Rp 5.250.000</option>';
+      this.copilotAccountSelect.innerHTML = '<option value="">Pilih Rekening (Otomatis)</option>';
       return;
     }
     this.accounts.forEach((a) => {
@@ -4038,12 +4042,15 @@ class App {
   async handleConsultCopilot() {
     const query = this.copilotInput?.value?.trim() || '';
     if (!query) {
-      this.showAlert('Ketikkan rencana pembelian Anda terlebih dahulu.', 'warning');
+      this.showAlert('Ketikkan rencana pembelian atau pertanyaan finansial Anda terlebih dahulu.', 'warning');
       this.copilotInput?.focus();
       return;
     }
 
-    const targetAccId = this.copilotAccountSelect.value ? parseInt(this.copilotAccountSelect.value) : null;
+    const rawAccVal = this.copilotAccountSelect?.value;
+    const parsedAccId = rawAccVal ? parseInt(rawAccVal, 10) : null;
+    const targetAccId = (!isNaN(parsedAccId) && parsedAccId > 0) ? parsedAccId : null;
+
     if (this.btnConsultCopilot) {
       this.btnConsultCopilot.disabled = true;
       this.btnConsultCopilot.innerHTML = `<span class="loading-spinner"></span> Menganalisis...`;

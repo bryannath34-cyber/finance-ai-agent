@@ -164,29 +164,41 @@ class AIService:
                 "drafts": []
             }
 
-        # 2. KONSULTASI KELAYAKAN BELANJA (PURCHASE ADVISORY)
+        # 2. KONSULTASI KELAYAKAN BELANJA & PENASIHAT FINANSIAL (ADVISORY)
         advisory_triggers = (
-            "bisa beli", "aman gak", "boleh beli", "layak beli", "saran beli",
-            "mampu beli", "pengen beli", "mau beli", "kira kira aman gak", "konsultasi beli"
+            "bisa beli", "aman gak", "aman ga", "boleh beli", "layak beli", "saran beli",
+            "mampu beli", "pengen beli", "mau beli", "kira kira aman", "konsultasi",
+            "penasehat", "penasihat", "advisory", "rekomendasi belanja", "rekomendasi tabungan",
+            "apakah aman", "apakah bisa beli", "bisa gak beli", "bisa ga beli"
         )
         if any(adv in t_lower for adv in advisory_triggers):
             try:
                 from app.services.planning_service import PlanningService
                 adv_res = PlanningService.analyze_purchase_decision(user_id, raw_text)
-                scenario = adv_res.get("scenario", {})
-                badge = adv_res.get("verdict_badge", "Pertimbangan AI")
-                reason = adv_res.get("reason", "Evaluasi kelayakan anggaran dan saldo akun.")
-                cost = Decimal(str(scenario.get("item_cost", 0)))
-                after_bal = Decimal(str(scenario.get("balance_after", 0)))
-                rem_budget = Decimal(str(scenario.get("budget_remaining_after", 0)))
+                badge = adv_res.get("verdict_badge", "💡 Pertimbangan Finansial")
+                advice = adv_res.get("advice", "Evaluasi kelayakan anggaran dan saldo akun.")
+                cost = Decimal(str(adv_res.get("estimated_cost", 0)))
+                snap = adv_res.get("financial_snapshot", {})
+                after_bal = Decimal(str(snap.get("saldo_setelah_beli", snap.get("saldo_saat_ini", 0))))
+                rem_budget = Decimal(str(snap.get("sisa_anggaran_setelah_beli", snap.get("sisa_anggaran_bulan_ini", 0))))
+                is_purchase = adv_res.get("is_purchase", cost > 0)
 
-                ai_msg = (
-                    f"Pertimbangan Finansial: **{badge}**.\n\n"
-                    f"{reason}\n\n"
-                    f"• Estimasi Biaya: **{_idr(cost)}**\n"
-                    f"• Saldo Rekening Setelah Beli: **{_idr(after_bal)}**\n"
-                    f"• Sisa Pagu Anggaran Bulanan: **{_idr(rem_budget)}**"
-                )
+                if is_purchase and cost > 0:
+                    ai_msg = (
+                        f"Pertimbangan Finansial: **{badge}**\n\n"
+                        f"{advice}\n\n"
+                        f"• Estimasi Biaya: **{_idr(cost)}**\n"
+                        f"• Saldo Rekening Setelah Beli: **{_idr(after_bal)}**\n"
+                        f"• Sisa Pagu Anggaran: **{_idr(rem_budget)}**"
+                    )
+                else:
+                    ai_msg = (
+                        f"Penasihat Finansial AI: **{badge}**\n\n"
+                        f"{advice}\n\n"
+                        f"• Total Kekayaan Bersih: **{_idr(Decimal(str(snap.get('total_kekayaan_bersih', 0))))}**\n"
+                        f"• Sisa Anggaran Bulan Ini: **{_idr(Decimal(str(snap.get('sisa_anggaran_bulan_ini', 0))))}**"
+                    )
+
                 return {
                     "intent": "PURCHASE_ADVISORY",
                     "ai_response": ai_msg,
@@ -408,8 +420,6 @@ ATURAN DETEKSI INTENT BAHASA INDONESIA:
    - JANGAN PERNAH mengategorikan pernyataan saldo/ada uang sebagai EXPENSE atau "Makanan & Minuman"!
 2. BAHASA SEHARI-HARI & GAUL:
    Pahami kata gaul Indonesia: "gua", "gw", "gue", "duit", "uang", "saat ini ada", "sekarang ada", "ada jumlah", "jumlah nya", "tf", "cair", "ngopi", "beli", "jajan".
-3. KATEGORI MAKANAN:
-   Kata seperti "nasgor", "nasi goreng", "bakso", "mie ayam", "kopi", dan "jajan" untuk transaksi beli makanan/minuman harus masuk kategori pengeluaran Makanan & Minuman, bukan Belanja Kebutuhan.
 
 CONTOH LENGKAP:
 Input: "di rekening bca gua ada jumlah nya 8,637,518.23"

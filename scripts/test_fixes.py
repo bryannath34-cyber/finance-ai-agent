@@ -233,6 +233,35 @@ def test_auth_backward_compatibility():
     assert "this.currentUser = verifiedProfile || userProfile" in app_js, "handleLogin must fall back to userProfile if getMe stutters"
     print(" [PASS] Test 9: Auth backward compatibility and login form resilience verified")
 
+# Test 10: AI Financial Copilot and Advisory Resilience
+def test_advisory_copilot():
+    from app.core.security import verify_csrf
+    from app.schemas.planning import PurchaseAdviceRequest
+    
+    # 1. verify_csrf allows /api/planning/advisory/purchase without CSRF token
+    req = MagicMock()
+    req.method = "POST"
+    req.url.path = "/api/planning/advisory/purchase"
+    req.headers = {}
+    req.cookies = {}
+    verify_csrf(req)
+
+    # 2. Schema accepts short and long queries
+    req_schema = PurchaseAdviceRequest(query="beli hp")
+    assert req_schema.query == "beli hp"
+
+    # 3. ai_service triggers advisory intent on consulting queries
+    with open("app/services/ai_service.py", "r", encoding="utf-8") as f:
+        ai_py = f.read()
+    assert "penasehat" in ai_py and "aman ga" in ai_py, "ai_service.py must include extended advisory triggers"
+    assert "adv_res.get(\"financial_snapshot\"" in ai_py, "ai_service.py must read real financial_snapshot from planning_service"
+
+    # 4. planning_service checks cost > 0 before inserting to purchase_scenarios
+    with open("app/services/planning_service.py", "r", encoding="utf-8") as f:
+        plan_py = f.read()
+    assert "if cost > 0 and target_acc" in plan_py, "planning_service must check cost > 0 and target_acc to avoid DB check constraint violation"
+    print(" [PASS] Test 10: AI Financial Copilot and Advisory resilience verified")
+
 if __name__ == "__main__":
     print("\n================== RUNNING UNIT & INTEGRATION TESTS ==================")
     test_auth_schema()
@@ -244,5 +273,7 @@ if __name__ == "__main__":
     test_api_js_logic()
     test_config_requires_secrets()
     test_auth_backward_compatibility()
-    print("================== ALL 9 TEST SUITES PASSED (100% GREEN) ==================\n")
+    test_advisory_copilot()
+    print("================== ALL 10 TEST SUITES PASSED (100% GREEN) ==================\n")
+
 
