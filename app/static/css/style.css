@@ -4586,6 +4586,323 @@ body.user-logged-out #auth-overlay.desktop-login-overlay {
   text-decoration: underline;
 }
 
+/* ========================================================================
+   WARM EDITORIAL FINTECH REFRESH
+   Keep the existing layouts and interactions, while adding a warmer canvas,
+   clearer emphasis, and a more distinctive forest / citrus brand character.
+   ======================================================================== */
+:root {
+  --bg-canvas: #F3F3ED;
+  --bg-sidebar: #FBFBF7;
+  --bg-card: #FFFEFC;
+  --bg-input: #F7F8F2;
+  --bg-hover: #E9EFE5;
+  --bg-pill-tab: #ECEFE8;
+  --border-main: #E1E5DA;
+  --border-subtle: #D4DCCF;
+  --border-dark: #1E382F;
+  --text-primary: #1E2A25;
+  --text-secondary: #68756D;
+  --text-muted: #929D94;
+  --brand-dark: #1B4034;
+  --brand-dark-hover: #285746;
+  --accent-green: #347553;
+  --accent-green-bg: #E9F3E9;
+  --accent-green-border: #D2E5D3;
+  --accent-green-bar: #6D9C70;
+  --accent-green-dark: #24573B;
+  --accent-blue: #4D718D;
+  --accent-blue-bg: #EDF3F6;
+  --accent-amber: #9B7132;
+  --accent-amber-bg: #F7F0E2;
+  --accent-rose: #A45E58;
+  --accent-rose-bg: #F8EFEC;
+  --radius-card: 19px;
+  --shadow-card: 0 2px 5px rgba(32, 48, 38, 0.035), 0 12px 28px rgba(32, 48, 38, 0.045);
+  --shadow-modal: 0 20px 55px rgba(24, 48, 37, 0.2);
+}
+
+body {
+  background-color: var(--bg-canvas);
+  background-image:
+    radial-gradient(ellipse at 86% 0%, rgba(214, 231, 195, 0.34), transparent 34rem),
+    radial-gradient(ellipse at 8% 44%, rgba(233, 224, 195, 0.18), transparent 28rem);
+}
+
+.sidebar {
+  background: rgba(251, 251, 247, 0.94);
+  border-right-color: rgba(211, 219, 207, 0.82);
+  box-shadow: 8px 0 30px rgba(33, 52, 40, 0.025);
+}
+
+.brand-icon-tile {
+  background: linear-gradient(145deg, #2A624C, #173A30 72%);
+  box-shadow: 0 5px 12px rgba(27, 64, 52, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.sidebar-nav-btn {
+  border-radius: 11px;
+  transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease, transform 180ms ease;
+}
+
+.sidebar-nav-btn:hover {
+  transform: translateX(2px);
+}
+
+.sidebar-nav-btn.active {
+  background: linear-gradient(100deg, #E6EFE3, #EFF3E9);
+  border-color: #D7E3D3;
+  color: #214C3B;
+  box-shadow: inset 3px 0 0 #6D9C70;
+}
+
+.main-area {
+  padding-top: 30px;
+}
+
+.dashboard-title-group::before {
+  content: "✦  RINGKASAN KEUANGAN";
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 6px;
+  color: #66816C;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+}
+
+.dashboard-header-title {
+  font-size: clamp(24px, 2.1vw, 31px);
+  letter-spacing: -0.045em;
+}
+
+.dashboard-header-subtitle {
+  margin-top: 3px;
+  font-size: 12px;
+}
+
+.dashboard-period-toggle {
+  background: rgba(232, 237, 226, 0.78);
+  border-color: #DDE4D8;
+  padding: 4px;
+}
+
+.dashboard-period-btn {
+  padding: 6px 16px;
+}
+
+.dashboard-period-btn.active {
+  color: #214C3B;
+  box-shadow: 0 2px 7px rgba(32, 48, 38, 0.1);
+}
+
+.kpi-stat-card,
+.side-kpi-card {
+  border-color: rgba(216, 224, 212, 0.9);
+  border-radius: 18px;
+  box-shadow: var(--shadow-card);
+}
+
+.kpi-stat-card {
+  overflow: hidden;
+  padding-top: 18px;
+  position: relative;
+}
+
+.kpi-stat-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: #8FAF79;
+}
+
+.kpi-stat-card:nth-child(2)::before { background: #D79B82; }
+.kpi-stat-card:nth-child(3)::before { background: #83A8BE; }
+.kpi-stat-card:nth-child(4)::before { background: #B1BD75; }
+
+.kpi-stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(32, 48, 38, 0.09);
+}
+
+.kpi-card-label {
+  color: #68776D;
+  font-size: 12px;
+}
+
+.kpi-card-amount {
+  letter-spacing: -0.045em;
+}
+
+.figma-card {
+  border-color: rgba(216, 224, 212, 0.92);
+  box-shadow: var(--shadow-card);
+}
+
+.cashflow-chart-card {
+  background:
+    radial-gradient(ellipse at 100% 0%, rgba(230, 239, 218, 0.52), transparent 20rem),
+    var(--bg-card);
+}
+
+.card-header-icon {
+  color: #3B6C50;
+}
+
+.card-section-title {
+  letter-spacing: -0.018em;
+}
+
+.card-action-link,
+.period-select-pill {
+  border-color: #DCE4D8;
+  background: #F4F6F0;
+  border-radius: 8px;
+  transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.card-action-link:hover,
+.period-select-pill:hover {
+  background: #EAF1E7;
+  border-color: #C9DAC8;
+  color: #214C3B;
+}
+
+.btn-dash-action,
+.btn-primary-dark,
+.btn-process,
+.btn-confirm-all-pill,
+.btn-login-submit {
+  background: linear-gradient(135deg, #285B45, #193D32);
+  border-color: #1B4034;
+  box-shadow: 0 4px 10px rgba(27, 64, 52, 0.12);
+  transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
+}
+
+.btn-dash-action:hover,
+.btn-primary-dark:hover,
+.btn-process:hover,
+.btn-confirm-all-pill:hover,
+.btn-login-submit:hover {
+  background: linear-gradient(135deg, #326B51, #214A3B);
+  box-shadow: 0 7px 16px rgba(27, 64, 52, 0.18);
+  transform: translateY(-1px);
+}
+
+.btn-dash-action:active,
+.btn-primary-dark:active,
+.btn-process:active,
+.btn-confirm-all-pill:active,
+.btn-login-submit:active {
+  transform: translateY(0);
+}
+
+.ai-textarea,
+.mobile-ai-textarea,
+.ledger-search-input,
+input,
+select,
+textarea {
+  accent-color: #347553;
+}
+
+.ai-textarea:focus,
+.mobile-ai-textarea:focus,
+.ledger-search-input:focus,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgba(117, 159, 105, 0.2);
+  outline-offset: 1px;
+  border-color: #82A77A;
+}
+
+.mobile-nav-btn.active {
+  color: #285B45;
+}
+
+.mobile-nav-btn.active .mobile-nav-icon {
+  background: #E9F1E5;
+  border-radius: 10px;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid rgba(117, 159, 105, 0.42);
+  outline-offset: 2px;
+}
+
+@media (max-width: 768px) {
+  body {
+    background-color: #F3F3ED !important;
+    background-image: radial-gradient(ellipse at 94% 0%, rgba(214, 231, 195, 0.38), transparent 24rem) !important;
+  }
+
+  .mobile-top-bar {
+    background: rgba(251, 251, 247, 0.94);
+    border-bottom-color: #E1E5DA;
+    box-shadow: 0 3px 14px rgba(33, 52, 40, 0.055);
+    backdrop-filter: blur(16px);
+  }
+
+  .mobile-bottom-nav {
+    background: rgba(255, 254, 252, 0.96);
+    border-top-color: #E1E5DA;
+    box-shadow: 0 -5px 20px rgba(33, 52, 40, 0.07);
+    backdrop-filter: blur(16px);
+  }
+
+  .mobile-net-worth-card {
+    background:
+      radial-gradient(circle at 94% 5%, rgba(188, 221, 145, 0.2), transparent 10rem),
+      linear-gradient(145deg, #214A3B, #15372E 76%);
+    border-color: rgba(145, 184, 137, 0.36);
+    box-shadow: 0 12px 26px rgba(27, 64, 52, 0.19);
+    color: #fff;
+  }
+
+  .mobile-net-worth-card .mobile-fcard-label,
+  .mobile-net-worth-card .mobile-net-worth-sub {
+    color: #C0D6C4;
+  }
+
+  .mobile-net-worth-card .mobile-net-worth-amount {
+    color: #fff;
+    letter-spacing: -0.045em;
+  }
+
+  .mobile-net-worth-card .mobile-delta-badge {
+    color: #D5F0A4;
+  }
+
+  .mobile-net-worth-card .mobile-btn-toggle-eye {
+    color: #D6E6D5;
+  }
+
+  .mobile-fcard {
+    border-color: #E1E5DA;
+    border-radius: 18px;
+    box-shadow: 0 4px 14px rgba(33, 52, 40, 0.045);
+  }
+
+  .mobile-greeting-h1 {
+    letter-spacing: -0.045em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 @media (max-width: 768px) {
   /* 1. Canvas & App Shell Layout */
   body {
@@ -6017,6 +6334,64 @@ body.user-logged-out #auth-overlay.desktop-login-overlay {
 
   .mobile-only-inline {
     display: inline !important;
+  }
+}
+
+/* Final responsive overrides for the warm editorial refresh. */
+@media (max-width: 768px) {
+  body {
+    background: #F3F3ED !important;
+    background-image: radial-gradient(ellipse at 94% 0%, rgba(214, 231, 195, 0.38), transparent 24rem) !important;
+  }
+
+  .mobile-top-bar {
+    background: rgba(251, 251, 247, 0.94) !important;
+    border-bottom-color: #E1E5DA !important;
+    box-shadow: 0 3px 14px rgba(33, 52, 40, 0.055) !important;
+    backdrop-filter: blur(16px);
+  }
+
+  .mobile-bottom-nav {
+    background: rgba(255, 254, 252, 0.96) !important;
+    border-top-color: #E1E5DA !important;
+    box-shadow: 0 -5px 20px rgba(33, 52, 40, 0.07) !important;
+    backdrop-filter: blur(16px);
+  }
+
+  .mobile-nav-btn.active { color: #285B45 !important; }
+  .mobile-nav-btn.active .mobile-nav-icon { background: #E9F1E5; border-radius: 10px; }
+
+  .mobile-net-worth-card {
+    background: radial-gradient(circle at 94% 5%, rgba(188, 221, 145, 0.2), transparent 10rem), linear-gradient(145deg, #214A3B, #15372E 76%) !important;
+    border-color: rgba(145, 184, 137, 0.36) !important;
+    box-shadow: 0 12px 26px rgba(27, 64, 52, 0.19) !important;
+    color: #fff;
+  }
+
+  .mobile-net-worth-card .mobile-fcard-label,
+  .mobile-net-worth-card .mobile-net-worth-sub { color: #C0D6C4 !important; }
+  .mobile-net-worth-card .mobile-net-worth-amount { color: #fff !important; letter-spacing: -0.045em; }
+  .mobile-net-worth-card .mobile-delta-badge { color: #D5F0A4 !important; }
+  .mobile-net-worth-card .mobile-btn-toggle-eye { color: #D6E6D5 !important; }
+
+  .mobile-fcard {
+    background-color: #FFFEFC !important;
+    border-color: #E1E5DA !important;
+    border-radius: 18px !important;
+    box-shadow: 0 4px 14px rgba(33, 52, 40, 0.045) !important;
+  }
+
+  .mobile-greeting-h1 { letter-spacing: -0.045em; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
