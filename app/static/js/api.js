@@ -110,7 +110,7 @@ export const api = {
     },
     logout: async () => {
       try {
-        return await request('/auth/logout', { method: 'POST' });
+        return await request('/auth/logout', { method: 'POST', timeout: 8000 });
       } finally {
         memoryCsrfToken = null;
         try {

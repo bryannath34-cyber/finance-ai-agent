@@ -1,5 +1,7 @@
 import os
 import sys
+import json
+from types import SimpleNamespace
 sys.path.insert(0, os.path.abspath("."))
 from unittest.mock import MagicMock
 from decimal import Decimal
@@ -134,6 +136,34 @@ def test_ai_service_commands():
         assert res_cap["intent"] == "CAPABILITY"
         print(" [PASS] Test 4c: AI Capability help message")
 
+        # Test 4d: successful OCI-style model response is parsed and saved as draft
+        import app.services.ai_service as ai_module
+        llm_payload = [{
+            "type": "EXPENSE", "amount": 35000, "admin_fee": 0,
+            "source_account_name": "GoPay", "destination_account_name": None,
+            "category_name": "Makanan & Minuman", "description": "Makan siang",
+            "transaction_date": "2026-10-19"
+        }]
+        fake_models = SimpleNamespace(
+            BaseChatRequest=SimpleNamespace(API_FORMAT_COHERE="COHERE"),
+            CohereChatRequest=lambda **kwargs: SimpleNamespace(**kwargs),
+            ChatDetails=lambda **kwargs: SimpleNamespace(**kwargs),
+            OnDemandServingMode=lambda **kwargs: SimpleNamespace(**kwargs),
+        )
+        fake_oci = SimpleNamespace(generative_ai_inference=SimpleNamespace(models=fake_models))
+        fake_client = SimpleNamespace(chat=lambda details: SimpleNamespace(
+            data=SimpleNamespace(chat_response=SimpleNamespace(text=json.dumps(llm_payload)))
+        ))
+        with patch.object(ai_module, "oci", fake_oci), \
+             patch.object(ai_module, "get_genai_client", return_value=fake_client), \
+             patch.object(ai_module.settings, "OCI_COMPARTMENT_OCID", "test-compartment"), \
+             patch.object(TransactionService, "create_batch_drafts", return_value="oci-mock-batch"), \
+             patch.object(TransactionService, "get_batch_drafts", return_value=[{"id": 44, **llm_payload[0]}]):
+            res_llm = AIService.parse_finance_text(1, "beli makan 35rb pake gopay")
+        assert res_llm["batch_id"] == "oci-mock-batch"
+        assert res_llm["drafts"][0]["amount"] == Decimal("35000")
+        print(" [PASS] Test 4d: OCI-style LLM response becomes a validated transaction draft")
+
 # Test 5: index.html DOM structure check
 def test_index_html_dom():
     with open("app/static/index.html", "r", encoding="utf-8") as f:
@@ -154,6 +184,16 @@ def test_app_js_logic():
     assert "this.switchTab('tab-dashboard');" in js, "showDashboard must call this.switchTab('tab-dashboard')"
     assert "mobile-btn-report-view-all" in js, "mobile-btn-report-view-all must be wired"
     assert ".user-profile-badge" in js, "user-profile-badge must be wired"
+    assert "e.target.closest('#btn-parse')" in js, "AI submit must be delegated early during app initialization"
+    assert "const verified = await api.auth.getMe();" in js, "Login must verify its newly issued session"
+    logout_start = js.index("async handleLogout()")
+    logout_end = js.index("async loadInitialData()", logout_start)
+    logout_handler = js[logout_start:logout_end]
+    assert "if (this.logoutInProgress) return;" in logout_handler, "logout must be idempotent"
+    assert logout_handler.index("await api.auth.logout()") < logout_handler.index("this.showLogin();"), "wait for server logout cookie response before showing login"
+    assert "this.btnLogout.addEventListener('click'" not in js, "logout buttons must not be double-bound"
+    assert "berhasil didaftarkan!" not in js, "unimplemented signup must not claim success"
+    assert "Instruksi pemulihan telah dikirim" not in js, "unimplemented password reset must not claim success"
     print(" [PASS] Test 6: app.js showDashboard routing and button listeners verification")
 
 # Test 7: api.js dual-channel bearer token

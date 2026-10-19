@@ -5,7 +5,7 @@
  * Financial Planning, and AI Advisory Copilot.
  */
 
-import { api } from './api.js?v=2.6.8';
+import { api } from './api.js?v=2.6.9';
 import { AudioRecorder } from './audio_recorder.js';
 
 const Icons = {
@@ -31,6 +31,7 @@ const Icons = {
 class App {
   constructor() {
     this.currentUser = null;
+    this.logoutInProgress = false;
     this.accounts = [];
     this.categories = [];
     this.currentBatch = null; // { batch_id, drafts }
@@ -476,26 +477,37 @@ class App {
       this.handleLogout();
     };
 
-    if (this.btnLogout) {
-      this.btnLogout.addEventListener('click', handleLogoutAction);
-    }
-    if (this.btnSidebarLogout) {
-      this.btnSidebarLogout.addEventListener('click', handleLogoutAction);
-    }
-    if (this.btnSettingsLogout) {
-      this.btnSettingsLogout.addEventListener('click', handleLogoutAction);
-    }
-    if (this.btnSettingsSecurityLogout) {
-      this.btnSettingsSecurityLogout.addEventListener('click', handleLogoutAction);
-    }
-
-    // Delegated click handler fallback agar tombol logout dijamin selalu berfungsi
+    // One delegated listener handles all logout buttons. Binding each button too
+    // creates two concurrent logout requests; a late cookie-deletion response
+    // can otherwise erase the cookie from a login that just followed logout.
     document.addEventListener('click', (e) => {
       const logoutBtn = e.target.closest('#btn-logout, #btn-sidebar-logout, #btn-settings-logout, #btn-settings-security-logout');
       if (logoutBtn) {
         e.preventDefault();
         e.stopPropagation();
         this.handleLogout();
+        return;
+      }
+
+      // Bind the primary AI actions before optional page controls. A missing
+      // control elsewhere in a future layout must not silently disable AI.
+      const aiParseButton = e.target.closest('#btn-parse');
+      if (aiParseButton) {
+        e.preventDefault();
+        this.handleAIParse();
+        return;
+      }
+      const mobileAiParseButton = e.target.closest('#mobile-dash-btn-parse');
+      if (mobileAiParseButton) {
+        e.preventDefault();
+        const text = (this.mobileDashAiInput?.value || '').trim();
+        if (!text) {
+          this.showAlert('Masukkan kalimat mutasi atau pertanyaan terlebih dahulu.', 'warning');
+          return;
+        }
+        if (this.aiInput) this.aiInput.value = text;
+        this.switchTab('tab-mutasi');
+        this.handleAIParse(text);
         return;
       }
 
@@ -607,7 +619,6 @@ class App {
     }
 
     // Tab 1 Events (AI Parse & Voice)
-    this.btnParse.addEventListener('click', () => this.handleAIParse());
     if (this.btnRetryAi) this.btnRetryAi.addEventListener('click', () => {
       if (this.retryMode === 'speech' && this.lastAudioBlob) this.submitSpeechTranscription(this.lastAudioBlob);
       else this.handleAIParse(this.lastAIInput);
@@ -1044,7 +1055,7 @@ class App {
             });
             if (error) throw error;
           } else {
-            this.showAlert('Menghubungkan ke Supabase Google OAuth... Pastikan Google Provider sudah diaktifkan di konsol Supabase Auth.', 'info');
+            this.showAlert('Login Google belum dikonfigurasi. Gunakan username dan kata sandi.', 'warning');
           }
         } catch (err) {
           this.showAlert(`Google OAuth: ${err.message || err}`, 'error');
@@ -1085,9 +1096,7 @@ class App {
     if (this.formMobileSignup) {
       this.formMobileSignup.addEventListener('submit', (e) => {
         e.preventDefault();
-        const name = document.getElementById('mobile-signup-name')?.value.trim();
-        const email = document.getElementById('mobile-signup-email')?.value.trim();
-        const pwd = document.getElementById('mobile-signup-password')?.value;
+        const pwd = document.getElementById('mobile-signup-password')?.value || '';
         const confirm = document.getElementById('mobile-signup-confirm')?.value;
         if (pwd !== confirm) {
           this.showAlert('Konfirmasi kata sandi tidak cocok.', 'error');
@@ -1097,7 +1106,7 @@ class App {
           this.showAlert('Kata sandi minimal 8 karakter.', 'error');
           return;
         }
-        this.showAlert(`Akun untuk ${name} (${email}) berhasil didaftarkan! Silakan masuk.`, 'success');
+        this.showAlert('Pendaftaran akun belum diaktifkan. Hubungi administrator untuk mendapatkan akses.', 'warning');
         this.formMobileSignup.reset();
         this.showAuthView('login');
       });
@@ -1105,8 +1114,7 @@ class App {
     if (this.formMobileReset) {
       this.formMobileReset.addEventListener('submit', (e) => {
         e.preventDefault();
-        const email = document.getElementById('mobile-reset-email')?.value.trim();
-        this.showAlert(`Instruksi pemulihan telah dikirim ke ${email}.`, 'success');
+        this.showAlert('Pemulihan kata sandi belum terhubung. Hubungi administrator untuk mengatur ulang akses.', 'warning');
         this.formMobileReset.reset();
         this.showAuthView('login');
       });
@@ -1115,8 +1123,6 @@ class App {
     if (this.formTabSignup) {
       this.formTabSignup.addEventListener('submit', (e) => {
         e.preventDefault();
-        const name = this.signupFullname.value.trim();
-        const email = this.signupEmail.value.trim();
         const pwd = this.signupPassword.value;
         const confirm = this.signupConfirm.value;
 
@@ -1129,7 +1135,7 @@ class App {
           return;
         }
 
-        this.showAlert(`Akun untuk ${name} (${email}) berhasil didaftarkan!`, 'success');
+        this.showAlert('Pendaftaran akun belum diaktifkan. Hubungi administrator untuk mendapatkan akses.', 'warning');
         this.formTabSignup.reset();
       });
     }
@@ -1137,8 +1143,7 @@ class App {
     if (this.formTabReset) {
       this.formTabReset.addEventListener('submit', (e) => {
         e.preventDefault();
-        const email = this.resetEmail.value.trim();
-        this.showAlert(`Instruksi pemulihan kata sandi telah dikirim ke ${email}.`, 'success');
+        this.showAlert('Pemulihan kata sandi belum terhubung. Hubungi administrator untuk mengatur ulang akses.', 'warning');
         this.formTabReset.reset();
       });
     }
@@ -1196,19 +1201,6 @@ class App {
     if (this.mobileBtnDashJumpLedger) {
       this.mobileBtnDashJumpLedger.addEventListener('click', () => {
         this.switchTab('tab-mutasi');
-      });
-    }
-
-    if (this.mobileDashBtnParse) {
-      this.mobileDashBtnParse.addEventListener('click', () => {
-        const text = (this.mobileDashAiInput?.value || '').trim();
-        if (!text) {
-          this.showAlert('Masukkan kalimat mutasi atau pertanyaan terlebih dahulu.', 'warning');
-          return;
-        }
-        if (this.aiInput) this.aiInput.value = text;
-        this.switchTab('tab-mutasi');
-        this.handleAIParse();
       });
     }
 
@@ -1465,9 +1457,20 @@ class App {
     try {
       const totpCode = this.loginTotpCode?.value.trim() || null;
       const res = await api.auth.login(user, pass, totpCode);
+      // Verify the issued session before opening the app. This exposes cookie,
+      // proxy, or database-session failures while the user is still on login.
+      let verifiedProfile;
+      try {
+        const verified = await api.auth.getMe();
+        verifiedProfile = verified?.data;
+        if (!verifiedProfile?.id) throw new Error('Sesi login belum aktif di server.');
+      } catch (verifyError) {
+        try { await api.auth.logout(); } catch (_) {}
+        throw new Error(`Login diterima, tetapi sesi tidak bisa diverifikasi: ${verifyError.message}`);
+      }
       sessionStorage.removeItem('pf_logged_out');
       localStorage.removeItem('pf_logged_out');
-      this.currentUser = res.user || (res.data ? (res.data.user || res.data) : res);
+      this.currentUser = verifiedProfile || res.user || (res.data ? (res.data.user || res.data) : res);
       this.loginPassword.value = '';
       if (this.loginTotpCode) this.loginTotpCode.value = '';
       if (this.loginTotpGroup) this.loginTotpGroup.style.display = 'none';
@@ -1487,14 +1490,27 @@ class App {
   }
 
   async handleLogout() {
-    // 1. Simpan penanda logout agar refresh atau auto-check tidak mengembalikan ke dashboard
+    if (this.logoutInProgress) return;
+    this.logoutInProgress = true;
+
+    // Prevent an in-flight logout response from clearing a newly issued login cookie.
     sessionStorage.setItem('pf_logged_out', '1');
     localStorage.setItem('pf_logged_out', '1');
 
-    // 2. Langsung tampilkan layar login Figma 1:1 secara instan (0ms delay)
+    const logoutButtons = [this.btnLogout, this.btnSidebarLogout, this.btnSettingsLogout, this.btnSettingsSecurityLogout].filter(Boolean);
+    logoutButtons.forEach((button) => { button.disabled = true; });
+    let logoutError = null;
+    try {
+      await api.auth.logout();
+    } catch (err) {
+      logoutError = err;
+      console.warn('Logout notice:', err);
+    }
+
+    // Clear the UI only after the server has finished its cookie/session response.
     this.showLogin();
 
-    // 3. Bersihkan seluruh state pengguna, rekening, dan data di memori klien
+    // Clear all user state from the client.
     this.currentUser = null;
     if (this.usernameDisplay) this.usernameDisplay.textContent = '-';
     if (this.desktopGreetingName) this.desktopGreetingName.textContent = 'Pengguna';
@@ -1533,12 +1549,12 @@ class App {
       document.cookie = 'pf_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/finance;';
     } catch (_) {}
 
-    // 4. Batalkan sesi di backend OCI secara asinkron
-    try {
-      await api.auth.logout();
-    } catch (e) {
-      console.warn('Logout notice:', e);
+    if (logoutError && this.loginError) {
+      this.loginError.textContent = 'Server belum mengonfirmasi logout. Coba muat ulang halaman sebelum masuk kembali.';
+      this.loginError.style.display = 'block';
     }
+    logoutButtons.forEach((button) => { button.disabled = false; });
+    this.logoutInProgress = false;
   }
 
   async loadInitialData() {
@@ -2743,6 +2759,9 @@ class App {
       const aiResponse = data.ai_response;
       const drafts = data.drafts || [];
       const intent = data.intent || 'TRANSACTION_DRAFT';
+      if (!aiResponse && drafts.length === 0) {
+        throw new Error('Asisten tidak mengembalikan jawaban atau draft. Coba lagi sebentar.');
+      }
 
       if (aiResponse) {
         const formatted = this.formatAiMarkdown(aiResponse);

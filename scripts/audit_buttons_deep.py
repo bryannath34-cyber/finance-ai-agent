@@ -1,4 +1,5 @@
 import re
+import sys
 
 with open('app/static/index.html', 'r', encoding='utf-8') as f:
     html = f.read()
@@ -8,6 +9,16 @@ with open('app/static/js/app.js', 'r', encoding='utf-8') as f:
 
 elements = re.findall(r'<(button|a)\s+([^>]+)>', html)
 print(f'Total <button> and <a> elements in index.html: {len(elements)}')
+
+nav_targets = {
+    match.group(1)
+    for match in re.finditer(r'<button\b[^>]*\bdata-tab=["\']([^"\']+)["\']', html)
+}
+page_ids = set(re.findall(r'<(?:div|section)\b[^>]*\bid=["\']([^"\']+)["\']', html))
+missing_targets = sorted(target for target in nav_targets if target not in page_ids)
+print(f'Navigation targets: {len(nav_targets)}; missing target pages: {len(missing_targets)}')
+for target in missing_targets:
+    print(f'  Missing page: {target}')
 
 unwired = []
 for tag, attrs in elements:
@@ -31,11 +42,14 @@ for tag, attrs in elements:
     # Check if this id or class has an event listener or modal bind in app.js
     is_wired = False
     if b_id:
+        if re.search(rf"\.target\.closest\(['\"`][^'\"`]*#{re.escape(b_id)}(?:[,'\"`])", js):
+            is_wired = True
         # Check direct mentions in app.js
-        for line in js.splitlines():
-            if b_id in line and any(kw in line for kw in ['addEventListener', 'bindOpenModal', 'onclick', 'openModal', 'switchTab']):
-                is_wired = True
-                break
+        if not is_wired:
+            for line in js.splitlines():
+                if b_id in line and any(kw in line for kw in ['addEventListener', 'bindOpenModal', 'onclick', 'openModal', 'switchTab']):
+                    is_wired = True
+                    break
         # Also check if camelCase version has addEventListener
         parts = b_id.split('-')
         camel = parts[0] + ''.join(p.capitalize() for p in parts[1:])
@@ -68,3 +82,6 @@ for tag, attrs in elements:
 print(f'\nFound {len(unwired)} unwired buttons/links:')
 for u in unwired:
     print(f'  <{u[0]}> ID: {u[1]} | Class: {u[2]} | Raw: {u[3]}')
+
+if unwired or missing_targets:
+    sys.exit(1)

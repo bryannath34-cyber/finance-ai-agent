@@ -4903,6 +4903,164 @@ a:focus-visible {
   }
 }
 
+/* Product usability pass: give the finance workspace room to breathe and
+   make controls and supporting text readable at normal viewing distance. */
+:root {
+  --bg-canvas: #F4F3EC;
+  --bg-sidebar: #FBFAF6;
+  --bg-card: #FFFEFC;
+  --bg-input: #F8F8F2;
+  --text-primary: #1D2D25;
+  --text-secondary: #596A60;
+  --text-muted: #77857C;
+  --brand-dark: #1C4A37;
+  --brand-dark-hover: #285D45;
+  --accent-green: #347553;
+  --border-main: #DDE3D8;
+  --radius-card: 20px;
+  --shadow-card: 0 3px 8px rgba(27, 48, 35, 0.045), 0 14px 34px rgba(27, 48, 35, 0.045);
+}
+
+body {
+  font-size: 14px;
+  line-height: 1.55;
+  background-image:
+    radial-gradient(ellipse at 90% -8%, rgba(211, 228, 190, 0.38), transparent 34rem),
+    radial-gradient(ellipse at 0% 48%, rgba(229, 215, 187, 0.18), transparent 27rem);
+}
+
+.sidebar {
+  width: 244px;
+  min-width: 244px;
+  padding: 26px 18px 22px;
+  background: rgba(251, 250, 246, 0.97);
+  border-right-color: #DCE3D9;
+}
+
+.brand-name { font-size: 14px; line-height: 19px; }
+.brand-subtitle { font-size: 10px; line-height: 14px; }
+.sidebar-nav { gap: 8px; }
+.sidebar-nav-btn { min-height: 44px; height: auto; font-size: 12px; line-height: 17px; }
+.sidebar-nav-btn.active { background: #E7F0E6; border-color: #D3E3D2; }
+
+.main-area {
+  width: min(100%, 1680px);
+  margin: 0 auto;
+  padding: 34px clamp(22px, 3.2vw, 52px) 52px;
+}
+
+.top-header { margin-bottom: 26px; }
+.page-title { font-size: clamp(26px, 2.4vw, 34px); line-height: 1.15; letter-spacing: -0.04em; }
+.page-intro { max-width: 720px; font-size: 14px; line-height: 1.55; }
+.dashboard-header-title { font-size: clamp(28px, 2.5vw, 36px); }
+.dashboard-header-subtitle { font-size: 14px; line-height: 1.55; }
+.dashboard-main-grid { gap: 24px; }
+.dashboard-major-col { gap: 24px; }
+.dashboard-side-col { gap: 20px; }
+
+.figma-card,
+.kpi-stat-card,
+.side-kpi-card {
+  border-radius: 20px;
+  border-color: #DDE3D8;
+  box-shadow: var(--shadow-card);
+}
+
+.figma-card { padding: 22px 24px; }
+.card-header-row { margin-bottom: 15px; }
+.card-section-title { font-size: 16px; line-height: 1.35; }
+.card-subtitle-text { font-size: 13px; line-height: 1.55; color: #66756A; }
+.kpi-card-label { font-size: 13px; }
+.kpi-card-amount { font-size: clamp(21px, 1.8vw, 28px); }
+.side-card-title { font-size: 14px; }
+
+.card-action-link,
+.period-select-pill,
+.btn-dash-action,
+.btn-voice,
+.btn-process,
+.btn-confirm-all-pill,
+.btn-primary-dark,
+.mobile-btn-process,
+.mobile-btn-voice {
+  min-height: 42px;
+  font-size: 13px;
+}
+
+.ai-textarea,
+.mobile-ai-textarea,
+input,
+select,
+textarea {
+  font-size: 14px;
+}
+
+.ai-textarea { min-height: 112px; padding: 16px 18px; line-height: 1.6; }
+.ai-action-buttons-row { margin-top: 14px; gap: 14px; }
+.ai-process-status { border-radius: 14px; padding: 13px 16px; }
+.ai-response-box { border-radius: 16px; padding: 17px 19px; }
+.figma-table th { font-size: 11px; }
+.figma-table td { font-size: 13px; }
+
+#tab-mutasi > .figma-card:nth-child(2) {
+  background:
+    radial-gradient(ellipse at 100% 0%, rgba(218, 236, 200, 0.58), transparent 25rem),
+    #FFFEFC;
+  border-top: 3px solid #6F9C69;
+}
+
+#tab-mutasi .ai-textarea {
+  min-height: 122px;
+  background: rgba(249, 250, 244, 0.92);
+  border-color: #D6E0D2;
+  border-radius: 15px;
+}
+
+.ai-online-badge {
+  padding: 6px 11px;
+  border-radius: 999px;
+  background: #E8F1E3;
+  color: #315E3C;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+.btn-process:hover,
+.btn-primary-dark:hover,
+.btn-dash-action:hover,
+.btn-confirm-all-pill:hover { filter: saturate(1.12); }
+
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+  cursor: not-allowed !important;
+  opacity: 0.62;
+}
+
+@media (max-width: 1100px) and (min-width: 769px) {
+  .sidebar { width: 218px; min-width: 218px; padding-inline: 14px; }
+  .main-area { padding-inline: 22px; }
+  .figma-card { padding: 20px; }
+}
+
+@media (max-width: 768px) {
+  body { font-size: 14px; }
+  .main-area { padding: 74px 16px 90px !important; }
+  .figma-card { padding: 18px !important; border-radius: 18px; }
+  .card-section-title { font-size: 15px; }
+  .card-subtitle-text { font-size: 12.5px; }
+  .mobile-fcard { padding: 17px; }
+  .mobile-fcard-title { font-size: 15px; }
+  .mobile-fcard-desc { font-size: 13px; line-height: 1.55; }
+  .mobile-ai-textarea { min-height: 108px; font-size: 14px; }
+  .mobile-btn-process,
+  .mobile-btn-voice { min-height: 44px; font-size: 13px; }
+  .mobile-bottom-nav { height: 68px; padding-bottom: max(6px, env(safe-area-inset-bottom)); }
+  .mobile-nav-btn { min-width: 58px; min-height: 48px; font-size: 10px; }
+}
+
 .two-factor-modal-content { max-width: 440px; }
 .two-factor-title { margin: 0 0 6px; color: var(--text-primary); font-size: 17px; letter-spacing: -0.025em; }
 .two-factor-help { margin: 0 0 16px; color: var(--text-secondary); font-size: 11px; line-height: 1.55; }
