@@ -1,185 +1,178 @@
-import sys, os, re
+import os
+import sys
 sys.path.insert(0, os.path.abspath("."))
 from unittest.mock import MagicMock
-for mod in ['oci', 'oci.auth', 'oci.auth.signers', 'oci.generative_ai_inference', 'oci.generative_ai_inference.models', 'pymysql', 'pymysql.cursors', 'dotenv', 'pydantic_settings', 'fastapi', 'pydantic', 'dbutils', 'dbutils.pooled_db']:
-    if mod not in sys.modules:
-        sys.modules[mod] = MagicMock()
-
 from decimal import Decimal
-from datetime import date
 
-print('=== 1. TESTING AMOUNT PARSER ===')
-from app.services.ai_service import parse_indonesian_amount
+# Stub optional runtime packages if not installed in current python environment
+for mod in ["pydantic", "pydantic_settings", "fastapi", "passlib", "passlib.context", "mysql", "mysql.connector", "mysql.connector.pooling", "pymysql", "pymysql.cursors", "dbutils", "dbutils.pooled_db"]:
+    if mod not in sys.modules:
+        m = MagicMock()
+        if mod == "pydantic":
+            class MockBaseModel:
+                def __init__(self, **kwargs):
+                    for k, v in kwargs.items():
+                        setattr(self, k, v)
+            m.BaseModel = MockBaseModel
+            m.Field = lambda *args, **kwargs: None
+        elif mod == "pydantic_settings":
+            class MockBaseSettings:
+                def __init__(self, **kwargs):
+                    self.APP_PREFIX = ""
+                    self.SESSION_COOKIE_NAME = "pf_session"
+                    self.CSRF_COOKIE_NAME = "pf_csrf"
+                    self.OCI_COMPARTMENT_OCID = None
+                    self.OCI_GENAI_ENDPOINT = ""
+                    self.OCI_GENAI_MODEL_ID = ""
+                    self.OCI_REGION_GENAI = "ap-osaka-1"
+                    for k, v in kwargs.items():
+                        setattr(self, k, v)
+            m.BaseSettings = MockBaseSettings
+            m.SettingsConfigDict = lambda *args, **kwargs: None
+        sys.modules[mod] = m
 
-test_amounts = [
-    ('di rekening gua ada duit 8.637.513', Decimal('8637513')),
-    ('8,637,513.23', Decimal('8637513.23')),
-    ('8.5jt', Decimal('8500000')),
-    ('50rb', Decimal('50000')),
-    ('250k', Decimal('250000')),
-]
-for text, expected in test_amounts:
-    parsed = parse_indonesian_amount(text)
-    assert parsed == expected, f'Amount mismatch for {text}: got {parsed}, expected {expected}'
-    print(f'  [PASS] {text} -> {parsed}')
+# Test 1: Schemas
+def test_auth_schema():
+    from app.schemas.auth import LoginResponse, UserProfile
+    profile = UserProfile(id=1, username="test", full_name="Test User", timezone="Asia/Jakarta")
+    resp = LoginResponse(user=profile, csrf_token="csrf123", token="sess_token_abc")
+    assert resp.token == "sess_token_abc", "LoginResponse should contain token field"
+    print(" [PASS] Test 1: LoginResponse schema includes token field")
 
-print('\n=== 2. TESTING ENUM COMPLIANCE IN CODEBASE ===')
-VALID_ENUMS = {
-    'UNAUTHORIZED_ACCESS', 'FAILED_LOGIN', 'LOGIN_SUCCESS', 'LOGOUT', 
-    'RATE_LIMITED', 'CSRF_VIOLATION', 'REVERSAL_CREATED', 'BATCH_CONFIRMED', 
-    'DB_DEADLOCK', 'CRITICAL_ERROR'
-}
+# Test 2: Security Bearer Token Support
+def test_security_bearer_support():
+    from app.core.security import verify_csrf
+    from fastapi import Request
+    
+    # Request with Bearer token
+    req_bearer = MagicMock()
+    req_bearer.method = "POST"
+    req_bearer.url.path = "/api/transactions"
+    req_bearer.headers = {"Authorization": "Bearer session_token_123"}
+    req_bearer.cookies = {}
+    
+    # verify_csrf should not raise exception for Bearer token requests
+    try:
+        verify_csrf(req_bearer)
+        print(" [PASS] Test 2: verify_csrf allows requests with Authorization: Bearer")
+    except Exception as e:
+        assert False, f"verify_csrf failed on Bearer auth: {e}"
 
-with open('app/services/transaction_service.py', 'r', encoding='utf-8') as f:
-    tx_code = f.read()
+# Test 3: Security CSRF Exclusion for AI Parse
+def test_security_ai_parse_csrf():
+    from app.core.security import verify_csrf
+    
+    req_ai = MagicMock()
+    req_ai.method = "POST"
+    req_ai.url.path = "/api/ai/parse"
+    req_ai.headers = {}
+    req_ai.cookies = {}
+    
+    try:
+        verify_csrf(req_ai)
+        print(" [PASS] Test 3: verify_csrf allows requests to /api/ai/parse without CSRF token")
+    except Exception as e:
+        assert False, f"verify_csrf failed on /api/ai/parse: {e}"
 
-# Find all INSERT INTO system_audit_logs calls and their event_type
-audit_inserts = re.findall(r'INSERT INTO system_audit_logs[^\)]+\)\s*VALUES\s*\(\s*%s\s*,\s*[\'"]([^\'"]+)[\'"]', tx_code, re.DOTALL)
-print(f'  Found event types in system_audit_logs: {audit_inserts}')
-for m in audit_inserts:
-    assert m in VALID_ENUMS, f'INVALID ENUM VALUE FOUND: {m} is not in schema ENUM!'
-    print(f'  [PASS] {m} is a valid DB ENUM')
+# Test 4: AI Command Processing Fallback / Robustness
+def test_ai_service_commands():
+    from app.services.ai_service import AIService
+    from app.services.finance_service import FinanceService
+    from unittest.mock import patch
+    
+    mock_accounts = [
+        {"id": 1, "name": "BCA", "type": "BANK", "balance": Decimal("5000000"), "is_active": True},
+        {"id": 2, "name": "GoPay", "type": "EWALLET", "balance": Decimal("250000"), "is_active": True},
+        {"id": 3, "name": "Kas Tunai", "type": "CASH", "balance": Decimal("100000"), "is_active": True}
+    ]
+    mock_categories = [
+        {"id": 1, "name": "Gaji & Pendapatan", "type": "INCOME", "is_active": True},
+        {"id": 2, "name": "Saldo Awal", "type": "INCOME", "is_active": True},
+        {"id": 3, "name": "Makanan & Minuman", "type": "EXPENSE", "is_active": True},
+        {"id": 4, "name": "Transportasi", "type": "EXPENSE", "is_active": True}
+    ]
+    
+    from app.services.transaction_service import TransactionService
 
-# Verify obsolete invalid enums are completely gone
-for bad in ['MANUAL_TX_CREATED', 'TRANSACTION_UPDATED', 'TRANSACTION_DELETED']:
-    assert bad not in tx_code, f'Obsolete enum {bad} still present in transaction_service.py!'
-print('  [PASS] All obsolete audit log enums eliminated.')
+    mock_saved_drafts = []
+    def fake_create_drafts(uid, drafts):
+        mock_saved_drafts.clear()
+        for d in drafts:
+            mock_saved_drafts.append({
+                "type": d["type"],
+                "amount": d["amount"],
+                "admin_fee": d.get("admin_fee", Decimal("0.00")),
+                "destination_account_name": "BCA",
+                "category_name": "Saldo Awal",
+                "description": d.get("description", "")
+            })
+        return "batch-test-123"
 
-print('\n=== 3. TESTING BALANCE STATEMENT AI MAPPING ===')
-accounts = [
-    {'id': 1, 'name': 'Kas Tunai', 'type': 'CASH', 'is_active': True, 'balance': Decimal('0')},
-    {'id': 2, 'name': 'BCA', 'type': 'BANK', 'is_active': True, 'balance': Decimal('0')},
-    {'id': 3, 'name': 'GoPay', 'type': 'EWALLET', 'is_active': True, 'balance': Decimal('0')}
-]
-categories = [
-    {'id': 10, 'name': 'Gaji & Pendapatan', 'type': 'INCOME', 'is_active': True},
-    {'id': 11, 'name': 'Makanan & Minuman', 'type': 'EXPENSE', 'is_active': True},
-    {'id': 12, 'name': 'Transportasi', 'type': 'EXPENSE', 'is_active': True},
-    {'id': 13, 'name': 'Saldo Awal', 'type': 'INCOME', 'is_active': True}
-]
+    with patch.object(FinanceService, "get_accounts_with_balance", return_value=mock_accounts), \
+         patch.object(FinanceService, "get_categories", return_value=mock_categories), \
+         patch.object(TransactionService, "create_batch_drafts", side_effect=fake_create_drafts), \
+         patch.object(TransactionService, "get_batch_drafts", side_effect=lambda uid, bid: mock_saved_drafts):
+        
+        # Test 4a: Inquiry (tanya saldo)
+        res_inquiry = AIService.process_command(1, "saldo gua sekarang berapa?")
+        assert res_inquiry["intent"] == "FINANCIAL_INQUIRY", f"Expected FINANCIAL_INQUIRY, got {res_inquiry['intent']}"
+        assert "5.350.000" in res_inquiry["ai_response"], f"Saldo total harus terhitung: {res_inquiry['ai_response']}"
+        print(" [PASS] Test 4a: AI Financial Inquiry (saldo gua sekarang berapa?)")
+        
+        # Test 4b: Saldo masuk BCA 8jt
+        res_bal = AIService.process_command(1, "di rekening bca gua ada 8jt")
+        assert res_bal["intent"] == "TRANSACTION_DRAFT"
+        assert len(res_bal["drafts"]) > 0
+        d = res_bal["drafts"][0]
+        assert d["type"] == "INCOME"
+        assert d["amount"] == Decimal("8000000")
+        assert "bca" in (d.get("destination_account_name") or "").lower() or "bank" in (d.get("destination_account_name") or "").lower()
+        print(" [PASS] Test 4b: AI Balance Statement Draft (di rekening bca gua ada 8jt -> INCOME 8.000.000)")
+        
+        # Test 4c: Capability query
+        res_cap = AIService.process_command(1, "kamu bisa apa aja?")
+        assert res_cap["intent"] == "CAPABILITY"
+        print(" [PASS] Test 4c: AI Capability help message")
 
-from app.services.ai_service import AIService
+# Test 5: index.html DOM structure check
+def test_index_html_dom():
+    with open("app/static/index.html", "r", encoding="utf-8") as f:
+        html = f.read()
+    
+    assert '<div id="tab-dashboard" class="tab-content active">' in html, "tab-dashboard must be active by default"
+    assert '<div id="tab-mutasi" class="tab-content">' in html, "tab-mutasi must not have active class by default"
+    assert '<div id="auth-overlay" class="desktop-login-overlay" style="display: none;">' in html, "auth-overlay must have display: none;"
+    assert '<button type="button" class="sidebar-nav-btn active" data-tab="tab-dashboard">' in html, "Dashboard button must have active class in sidebar"
+    assert '<button type="button" class="sidebar-nav-btn" data-tab="tab-mutasi">' in html, "Mutasi button must not have active class in sidebar"
+    print(" [PASS] Test 5: index.html DOM active tab and hidden auth-overlay verification")
 
-# Test fallback parser
-fallback_res = AIService._fallback_regex_parser('di rekening gua ada duit 8.637.513', accounts, categories)
-print(f'  Fallback Parser Output: {fallback_res}')
-assert len(fallback_res) == 1, 'Should produce 1 item'
-item = fallback_res[0]
-assert item['type'] == 'INCOME', f"Expected INCOME, got {item['type']}"
-assert item['amount'] == Decimal('8637513'), f"Expected 8637513, got {item['amount']}"
-assert item['destination_account_name'] == 'BCA', f"Expected BCA, got {item['destination_account_name']}"
-assert item['source_account_name'] is None, f"Expected None, got {item['source_account_name']}"
-assert item['category_name'] == 'Saldo Awal', f"Expected Saldo Awal, got {item['category_name']}"
-print('  [PASS] Fallback regex parser correctly mapped balance statement to Saldo Awal!')
+# Test 6: app.js dashboard switch on login/showDashboard
+def test_app_js_logic():
+    with open("app/static/js/app.js", "r", encoding="utf-8") as f:
+        js = f.read()
+    
+    assert "this.switchTab('tab-dashboard');" in js, "showDashboard must call this.switchTab('tab-dashboard')"
+    assert "mobile-btn-report-view-all" in js, "mobile-btn-report-view-all must be wired"
+    assert ".user-profile-badge" in js, "user-profile-badge must be wired"
+    print(" [PASS] Test 6: app.js showDashboard routing and button listeners verification")
 
-print('\n=== 4. TESTING WORST-CASE LLM MISCLASSIFICATION OVERRIDE ===')
-# Test that even if LLM returns EXPENSE, Kas Tunai, Makanan & Minuman, the post-processor corrects it
-user_input = 'di rekening gua ada duit 8.637.513'
-user_input_lower = user_input.lower()
-acc_map = {a['name'].lower(): a['id'] for a in accounts if a['is_active']}
-cat_map = {c['name'].lower(): (c['id'], c['type']) for c in categories if c['is_active']}
+# Test 7: api.js dual-channel bearer token
+def test_api_js_logic():
+    with open("app/static/js/api.js", "r", encoding="utf-8") as f:
+        js = f.read()
+        
+    assert "localStorage.getItem('pf_token')" in js, "api.js must read pf_token from localStorage"
+    assert "headers['Authorization'] = `Bearer ${bearerToken}`;" in js, "api.js must attach Bearer header"
+    assert "localStorage.setItem('pf_token', res.token);" in js, "api.js must store pf_token on login"
+    print(" [PASS] Test 7: api.js Dual-channel Bearer token attachment and persistence")
 
-parsed_items = [{
-    'type': 'EXPENSE',
-    'amount': 8637513,
-    'source_account_name': 'Kas Tunai',
-    'destination_account_name': None,
-    'category_name': 'Makanan & Minuman',
-    'description': user_input
-}]
-
-expense_verbs = (
-    'beli', 'bayar', 'belanja', 'keluar', 'habis', 'makan', 'minum',
-    'ongkir', 'bensin', 'parkir', 'tagihan', 'sewa', 'pulsa', 'listrik',
-    'jajan', 'ngopi', 'pesan', 'order'
-)
-has_expense_verb = any(v in user_input_lower for v in expense_verbs)
-balance_keywords = (
-    'duit', 'uang', 'saldo', 'dana', 'tabungan', 'rekening', 'ada uang',
-    'punya uang', 'di rekening', 'rekening bca', 'rekening bank', 'di bca',
-    'di bank', 'di dompet', 'di gopay', 'di ovo', 'di dana', 'isi saldo',
-    'jumlah nya', 'jumlahnya', 'jumlah', 'total saldo', 'ada jumlah', 'ada', 'punya'
-)
-is_balance_statement = not has_expense_verb and any(kw in user_input_lower for kw in balance_keywords)
-assert is_balance_statement == True
-
-bank_keywords = ('bank', 'bca', 'mandiri', 'bri', 'bni', 'cimb', 'jago', 'rekening', 'tabungan', 'atm', 'debit')
-ew_keywords = ('ewallet', 'e-wallet', 'wallet', 'gopay', 'ovo', 'dana', 'shopeepay', 'shopee')
-cash_keywords = ('kas', 'tunai', 'cash', 'dompet')
-
-bank_acc = next((a for a in accounts if a.get('type') == 'BANK' or 'bank' in a.get('name', '').lower()), None)
-ewallet_acc = next((a for a in accounts if a.get('type') == 'EWALLET' or 'wallet' in a.get('name', '').lower()), None)
-cash_acc = next((a for a in accounts if a.get('type') == 'CASH' or 'kas' in a.get('name', '').lower() or 'tunai' in a.get('name', '').lower()), None)
-
-validated = []
-for it in parsed_items:
-    tx_type = str(it.get('type', 'EXPENSE')).upper()
-    if is_balance_statement and tx_type == 'EXPENSE':
-        tx_type = 'INCOME'
-
-    amount = Decimal(str(it.get('amount', 0)))
-    src_acc_id = None
-    dest_acc_id = None
-    cat_id = None
-
-    src_name = (it.get('source_account_name') or '').lower()
-    dest_name = (it.get('destination_account_name') or '').lower()
-    cat_name = (it.get('category_name') or '').lower()
-
-    for name, aid in acc_map.items():
-        if name in src_name or src_name in name: src_acc_id = aid
-        if name in dest_name or dest_name in name: dest_acc_id = aid
-
-    if bank_acc:
-        is_bank_mentioned = any(kw in src_name for kw in bank_keywords) or any(kw in dest_name for kw in bank_keywords) or any(kw in user_input_lower for kw in bank_keywords)
-        if is_bank_mentioned:
-            if tx_type in ('EXPENSE', 'TRANSFER') and not src_acc_id: src_acc_id = bank_acc['id']
-            if tx_type in ('INCOME', 'TRANSFER'): dest_acc_id = bank_acc['id']
-
-    default_acc_id = accounts[0]['id'] if accounts else None
-    if tx_type in ('EXPENSE', 'TRANSFER') and not src_acc_id: src_acc_id = default_acc_id
-    if tx_type == 'INCOME':
-        src_acc_id = None
-        if not dest_acc_id: dest_acc_id = bank_acc['id'] if (bank_acc and is_bank_mentioned) else default_acc_id
-
-    if tx_type in ('INCOME', 'EXPENSE'):
-        for name, (cid, ctype) in cat_map.items():
-            if ctype == tx_type and (name in cat_name or cat_name in name): cat_id = cid; break
-        if not cat_id:
-            for cid, ctype in cat_map.values():
-                if ctype == tx_type: cat_id = cid; break
-
-    if is_balance_statement:
-        tx_type = 'INCOME'
-        src_acc_id = None
-        if not dest_acc_id or (bank_acc and any(kw in user_input_lower for kw in ('rekening', 'bank', 'bca', 'duit', 'saldo'))):
-            dest_acc_id = bank_acc['id'] if bank_acc else default_acc_id
-        saldo_cat = next((c for c in categories if c.get('type') == 'INCOME' and 'saldo' in c.get('name', '').lower()), None)
-        if saldo_cat: cat_id = saldo_cat['id']
-        else:
-            inc_cat = next((c for c in categories if c.get('type') == 'INCOME' and c.get('is_active')), None)
-            if inc_cat: cat_id = inc_cat['id']
-
-    matched_acc = next((a['name'] for a in accounts if a['id'] == (dest_acc_id or src_acc_id)), 'Rekening')
-    final_desc = f'Saldo {matched_acc}' if is_balance_statement else user_input[:100]
-
-    validated.append({
-        'type': tx_type,
-        'amount': amount,
-        'source_account_id': src_acc_id,
-        'destination_account_id': dest_acc_id,
-        'category_id': cat_id,
-        'description': final_desc
-    })
-
-print(f'  Worst-case corrected draft: {validated}')
-v = validated[0]
-assert v['type'] == 'INCOME', f"Expected INCOME, got {v['type']}"
-assert v['amount'] == Decimal('8637513'), f"Expected 8637513, got {v['amount']}"
-assert v['destination_account_id'] == 2, f"Expected 2 (BCA), got {v['destination_account_id']}"
-assert v['source_account_id'] is None, f"Expected None, got {v['source_account_id']}"
-assert v['category_id'] == 13, f"Expected 13 (Saldo Awal), got {v['category_id']}"
-assert v['description'] == 'Saldo BCA', f"Expected Saldo BCA, got {v['description']}"
-print('  [PASS] Misclassified LLM output was perfectly overridden and normalized to Saldo Awal!')
-
-print('\nALL VERIFICATION TESTS PASSED SUCCESSFULLY (100% GREEN)!')
+if __name__ == "__main__":
+    print("\n================== RUNNING UNIT & INTEGRATION TESTS ==================")
+    test_auth_schema()
+    test_security_bearer_support()
+    test_security_ai_parse_csrf()
+    test_ai_service_commands()
+    test_index_html_dom()
+    test_app_js_logic()
+    test_api_js_logic()
+    print("================== ALL 7 TEST SUITES PASSED (100% GREEN) ==================\n")

@@ -467,6 +467,13 @@ class App {
         e.preventDefault();
         e.stopPropagation();
         this.handleLogout();
+        return;
+      }
+
+      // Navigasi cepat ke Pengaturan saat klik badge profil user
+      const profileBadge = e.target.closest('.user-profile-badge');
+      if (profileBadge && !e.target.closest('#btn-logout')) {
+        this.switchTab('tab-settings');
       }
     });
 
@@ -723,6 +730,10 @@ class App {
     }
     if (this.btnReportSelectMonth) {
       this.btnReportSelectMonth.addEventListener('click', () => this.openMonthPicker('reports'));
+    }
+    const mobileBtnReportViewAll = document.getElementById('mobile-btn-report-view-all');
+    if (mobileBtnReportViewAll) {
+      mobileBtnReportViewAll.addEventListener('click', () => this.openMonthPicker('reports'));
     }
     if (this.pickerPrevYear) {
       this.pickerPrevYear.addEventListener('click', () => {
@@ -1372,6 +1383,10 @@ class App {
     if (this.desktopGreetingName) this.desktopGreetingName.textContent = displayName.split(' ')[0];
     if (this.mobileGreetingName) this.mobileGreetingName.textContent = displayName.split(' ')[0];
     if (this.userAvatarInitial) this.userAvatarInitial.textContent = displayName.charAt(0).toUpperCase();
+
+    // Default ke Dashboard sesuai permintaan pengguna
+    this.switchTab('tab-dashboard');
+
     this.loadInitialData();
   }
 

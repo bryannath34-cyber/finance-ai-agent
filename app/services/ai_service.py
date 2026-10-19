@@ -4,7 +4,11 @@ import logging
 from typing import List, Dict, Any, Optional
 from datetime import date, datetime
 from decimal import Decimal
-import oci
+try:
+    import oci
+except ImportError:
+    oci = None
+
 from app.core.config import settings
 from app.services.finance_service import FinanceService
 from app.services.transaction_service import TransactionService
@@ -17,6 +21,8 @@ _signer = None
 
 def get_genai_client():
     global _genai_client, _signer
+    if oci is None:
+        return None
     if _genai_client is None:
         try:
             _signer = oci.auth.signers.InstancePrincipalsSecurityTokenSigner()
@@ -426,7 +432,7 @@ KALIMAT PENGGUNA YANG HARUS DIPROSES:
         client = get_genai_client()
         parsed_items = []
 
-        if client and settings.OCI_COMPARTMENT_OCID:
+        if client and settings.OCI_COMPARTMENT_OCID and oci is not None:
             try:
                 chat_models = oci.generative_ai_inference.models
                 chat_req = chat_models.CohereChatRequest(
@@ -618,9 +624,33 @@ KALIMAT PENGGUNA YANG HARUS DIPROSES:
                 "transaction_date": item.get("transaction_date", today_str)
             })
 
-        # Simpan ke tabel transaction_drafts
-        batch_id = TransactionService.create_batch_drafts(user_id, validated_drafts)
-        drafts = TransactionService.get_batch_drafts(user_id, batch_id)
+        # Simpan ke tabel transaction_drafts dengan fallback tangguh
+        batch_id = None
+        drafts = []
+        try:
+            batch_id = TransactionService.create_batch_drafts(user_id, validated_drafts)
+            drafts = TransactionService.get_batch_drafts(user_id, batch_id)
+        except Exception as e_draft:
+            logger.warning("Gagal menyimpan draft ke database: %s. Menggunakan in-memory drafts fallback.", e_draft)
+            for vd in validated_drafts:
+                src_acc = next((a["name"] for a in accounts if a["id"] == vd.get("source_account_id")), None)
+                dest_acc = next((a["name"] for a in accounts if a["id"] == vd.get("destination_account_id")), None)
+                cat = next((c["name"] for c in categories if c["id"] == vd.get("category_id")), None)
+                drafts.append({
+                    "id": 0,
+                    "type": vd["type"],
+                    "amount": vd["amount"],
+                    "admin_fee": vd["admin_fee"],
+                    "source_account_id": vd["source_account_id"],
+                    "source_account_name": src_acc,
+                    "destination_account_id": vd["destination_account_id"],
+                    "destination_account_name": dest_acc,
+                    "category_id": vd["category_id"],
+                    "category_name": cat,
+                    "description": vd["description"],
+                    "transaction_date": vd["transaction_date"],
+                    "status": "PENDING"
+                })
 
         return {
             "batch_id": batch_id,

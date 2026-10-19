@@ -15,12 +15,26 @@ function getCookie(name) {
 }
 
 function getCsrfToken() {
-  return getCookie('pf_csrf') || getCookie('csrf_token') || memoryCsrfToken || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('pf_csrf') : null);
+  return (
+    getCookie('pf_csrf') ||
+    getCookie('csrf_token') ||
+    memoryCsrfToken ||
+    (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('pf_csrf') : null) ||
+    (typeof localStorage !== 'undefined' ? localStorage.getItem('pf_csrf') : null)
+  );
 }
 
 async function request(endpoint, options = {}) {
   const url = `${API_BASE}${endpoint}`;
   const headers = options.headers || {};
+
+  // Dual-channel Auth: Attach Authorization Bearer token if present in localStorage
+  try {
+    const bearerToken = typeof localStorage !== 'undefined' ? localStorage.getItem('pf_token') : null;
+    if (bearerToken && !headers['Authorization']) {
+      headers['Authorization'] = `Bearer ${bearerToken}`;
+    }
+  } catch (_) {}
 
   // Attach CSRF Token for mutation methods
   const method = (options.method || 'GET').toUpperCase();
@@ -82,7 +96,15 @@ export const api = {
       });
       if (res && res.csrf_token) {
         memoryCsrfToken = res.csrf_token;
-        sessionStorage.setItem('pf_csrf', res.csrf_token);
+        try {
+          sessionStorage.setItem('pf_csrf', res.csrf_token);
+          localStorage.setItem('pf_csrf', res.csrf_token);
+        } catch (_) {}
+      }
+      if (res && res.token) {
+        try {
+          localStorage.setItem('pf_token', res.token);
+        } catch (_) {}
       }
       return res;
     },
@@ -91,9 +113,15 @@ export const api = {
         return await request('/auth/logout', { method: 'POST' });
       } finally {
         memoryCsrfToken = null;
-        if (typeof sessionStorage !== 'undefined') {
-          sessionStorage.removeItem('pf_csrf');
-        }
+        try {
+          if (typeof sessionStorage !== 'undefined') {
+            sessionStorage.removeItem('pf_csrf');
+          }
+          if (typeof localStorage !== 'undefined') {
+            localStorage.removeItem('pf_csrf');
+            localStorage.removeItem('pf_token');
+          }
+        } catch (_) {}
       }
     },
     getMe: () => request('/auth/me'),

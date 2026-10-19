@@ -144,7 +144,8 @@ def login(login_data: LoginRequest, request: Request, response: Response):
         message="Login berhasil.",
         user=user_profile,
         data=user_profile,
-        csrf_token=csrf_token
+        csrf_token=csrf_token,
+        token=session_token
     )
 
 @router.post("/logout", response_model=BaseResponse)
@@ -169,8 +170,13 @@ def logout(request: Request, response: Response):
                 secure=sec
             )
 
-    # 2. Hapus sesi server-side dari database secara aman
+    # 2. Hapus sesi server-side dari database secara aman (dukung cookie dan header Bearer)
     session_token = request.cookies.get(settings.SESSION_COOKIE_NAME)
+    if not session_token:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            session_token = auth_header.split(" ", 1)[1].strip()
+
     if session_token:
         try:
             invalidate_user_session(session_token)

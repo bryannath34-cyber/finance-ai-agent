@@ -17,3 +17,4 @@ class LoginResponse(BaseModel):
     user: UserProfile
     data: Optional[UserProfile] = None
     csrf_token: str
+    token: Optional[str] = None
