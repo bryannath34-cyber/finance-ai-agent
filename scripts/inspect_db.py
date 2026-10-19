@@ -17,7 +17,7 @@ load_dotenv(env_path)
 DB_HOST = os.getenv("DB_HOST", "10.10.2.202")
 DB_PORT = int(os.getenv("DB_PORT", "3306"))
 DB_USER = os.getenv("DB_USER", "fin_bot_app")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "FinAppSecret2026!#Oci")
+DB_PASSWORD = os.environ["DB_PASSWORD"]
 DB_NAME = os.getenv("DB_NAME", "personal_finance")
 
 def format_idr(amount):

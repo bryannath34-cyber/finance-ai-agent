@@ -81,9 +81,9 @@ def test_ai_service_commands():
     from unittest.mock import patch
     
     mock_accounts = [
-        {"id": 1, "name": "BCA", "type": "BANK", "balance": Decimal("5000000"), "is_active": True},
-        {"id": 2, "name": "GoPay", "type": "EWALLET", "balance": Decimal("250000"), "is_active": True},
-        {"id": 3, "name": "Kas Tunai", "type": "CASH", "balance": Decimal("100000"), "is_active": True}
+        {"id": 1, "name": "BCA", "type": "BANK", "current_balance": Decimal("5000000"), "is_active": True},
+        {"id": 2, "name": "GoPay", "type": "EWALLET", "current_balance": Decimal("250000"), "is_active": True},
+        {"id": 3, "name": "Kas Tunai", "type": "CASH", "current_balance": Decimal("100000"), "is_active": True}
     ]
     mock_categories = [
         {"id": 1, "name": "Gaji & Pendapatan", "type": "INCOME", "is_active": True},
@@ -166,6 +166,17 @@ def test_api_js_logic():
     assert "localStorage.setItem('pf_token', res.token);" in js, "api.js must store pf_token on login"
     print(" [PASS] Test 7: api.js Dual-channel Bearer token attachment and persistence")
 
+# Test 8: required deployment secrets are never supplied as source defaults
+def test_config_requires_secrets():
+    with open("app/core/config.py", "r", encoding="utf-8") as f:
+        config = f.read()
+
+    assert "SECRET_KEY: str\n" in config, "SECRET_KEY must be required from deployment environment"
+    assert "DB_PASSWORD: str\n" in config, "DB_PASSWORD must be required from deployment environment"
+    assert "ChangeThisToARandom32CharSecretKey1234567890!" not in config
+    assert "FinAppSecret2026!#Oci" not in config
+    print(" [PASS] Test 8: deployment signing key and DB password have no code defaults")
+
 if __name__ == "__main__":
     print("\n================== RUNNING UNIT & INTEGRATION TESTS ==================")
     test_auth_schema()
@@ -175,4 +186,5 @@ if __name__ == "__main__":
     test_index_html_dom()
     test_app_js_logic()
     test_api_js_logic()
-    print("================== ALL 7 TEST SUITES PASSED (100% GREEN) ==================\n")
+    test_config_requires_secrets()
+    print("================== ALL 8 TEST SUITES PASSED (100% GREEN) ==================\n")

@@ -51,6 +51,17 @@ for tag, attrs in elements:
             is_wired = True
             break
 
+    # Include classes bound through querySelectorAll(...).forEach(...addEventListener).
+    # In particular, preference controls exist in both desktop and mobile layouts.
+    if not is_wired:
+        for c in classes:
+            selector_match = re.search(
+                rf"querySelectorAll\(['\"`][^'\"`]*\.{re.escape(c)}(?:\b|\[)", js
+            )
+            if selector_match and re.search(r"\.forEach\([\s\S]{0,500}?addEventListener\(", js[selector_match.start():]):
+                is_wired = True
+                break
+
     if not is_wired:
         unwired.append((tag, b_id, b_class, attrs.strip()[:90]))
 

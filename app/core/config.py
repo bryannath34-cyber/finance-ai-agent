@@ -6,14 +6,16 @@ class Settings(BaseSettings):
     # Aplikasi & Prefix
     APP_ENV: str = "production"
     APP_PREFIX: str = "/finance"
-    SECRET_KEY: str = "ChangeThisToARandom32CharSecretKey1234567890!"
+    # Keep signing keys out of source control. Startup should fail if deployment
+    # secrets are missing instead of silently using a known fallback.
+    SECRET_KEY: str
     DEBUG: bool = False
 
     # Database MySQL DB System
     DB_HOST: str = "10.10.2.202"
     DB_PORT: int = 3306
     DB_USER: str = "fin_bot_app"
-    DB_PASSWORD: str = "FinAppSecret2026!#Oci"
+    DB_PASSWORD: str
     DB_NAME: str = "personal_finance"
     DB_POOL_MIN: int = 2
     DB_POOL_MAX: int = 10
