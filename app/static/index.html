@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=2.7.1">
+  <link rel="stylesheet" href="css/style.css?v=2.7.2">
   <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
   <link rel="shortcut icon" type="image/svg+xml" href="favicon.svg?v=3">
   <link rel="apple-touch-icon" href="favicon.svg?v=3">
@@ -535,6 +535,30 @@
           </div>
         </div>
 
+        <section class="dashboard-ai-entry" aria-labelledby="dashboard-ai-entry-title">
+          <div class="dashboard-ai-entry-heading">
+            <div class="dashboard-ai-entry-title-group">
+              <span class="dashboard-ai-entry-icon" aria-hidden="true">✦</span>
+              <div>
+                <h2 id="dashboard-ai-entry-title">Catat transaksi pakai bahasa sehari-hari</h2>
+                <p>Contoh: “Baru beli nasgor Rp25.000 hari ini.”</p>
+              </div>
+            </div>
+            <span class="dashboard-ai-entry-badge">Draft dulu · kamu tetap cek</span>
+          </div>
+          <div class="dashboard-ai-entry-compose">
+            <textarea id="dashboard-ai-input" rows="2" aria-label="Tulis transaksi untuk dicatat dengan AI"
+              placeholder="Tulis transaksi, misalnya: Baru beli nasgor 25rb hari ini"></textarea>
+            <button type="button" id="dashboard-ai-process" class="dashboard-ai-entry-submit">
+              <span aria-hidden="true">✦</span> Buat draft
+            </button>
+          </div>
+          <div class="dashboard-ai-entry-footer">
+            <span>Draft belum mengubah saldo. Periksa rekening dan detailnya, lalu konfirmasi untuk mencatat.</span>
+            <button type="button" class="dashboard-ai-example" data-ai-example="Baru beli nasgor 25rb hari ini" data-ai-target="dashboard-ai-input">Isi contoh</button>
+          </div>
+        </section>
+
         <!-- 4 KPI Metrics Top Row (Matching Reference 4-Card Grid) -->
         <div class="dashboard-kpi-row">
           <!-- 1. Revenue / Pemasukan -->
@@ -633,7 +657,7 @@
               <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
               <line x1="12" y1="19" x2="12" y2="22" />
             </svg>
-            <span>Input Suara / AI</span>
+            <span>Rekam suara</span>
           </button>
           <button type="button" class="btn-dash-action" id="btn-dash-view-reports">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -943,8 +967,9 @@
               </div>
               <button type="button" class="mobile-fcard-link" id="mobile-btn-dash-jump-mutasi">Buka</button>
             </div>
-            <div class="mobile-fcard-desc">Catat pengeluaran atau tanya saldo dengan teks atau suara.</div>
-            <textarea id="mobile-dash-ai-input" class="mobile-ai-textarea" placeholder="Ketik mutasi atau pertanyaan (misal: 'di rekening ada 8jt', 'saldo berapa?')..."></textarea>
+            <div class="mobile-fcard-desc">Tulis seperti biasa. AI menyiapkan draft untuk kamu periksa sebelum dicatat.</div>
+            <textarea id="mobile-dash-ai-input" class="mobile-ai-textarea" placeholder="Contoh: Baru beli nasgor 25rb hari ini"></textarea>
+            <button type="button" class="mobile-ai-example" data-ai-example="Baru beli nasgor 25rb hari ini" data-ai-target="mobile-dash-ai-input">Isi contoh transaksi</button>
             <div class="mobile-ai-actions-row">
               <button type="button" id="mobile-dash-btn-record" class="mobile-btn-voice">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -3792,7 +3817,7 @@
       </div>
     </div>
 
-  <script type="module" src="js/app.js?v=2.7.1"></script>
+  <script type="module" src="js/app.js?v=2.7.2"></script>
 </body>
 
 </html>

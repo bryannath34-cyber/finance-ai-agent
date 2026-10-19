@@ -5,7 +5,7 @@
  * Financial Planning, and AI Advisory Copilot.
  */
 
-import { api } from './api.js?v=2.7.0';
+import { api } from './api.js?v=2.7.2';
 import { AudioRecorder } from './audio_recorder.js';
 
 const Icons = {
@@ -124,6 +124,8 @@ class App {
 
     // AI Command Center
     this.aiInput = document.getElementById('ai-input');
+    this.dashboardAiInput = document.getElementById('dashboard-ai-input');
+    this.dashboardAiButton = document.getElementById('dashboard-ai-process');
     this.btnParse = document.getElementById('btn-parse');
     this.aiProcessStatus = document.getElementById('ai-process-status');
     this.aiProcessTitle = document.getElementById('ai-process-title');
@@ -516,14 +518,24 @@ class App {
       const mobileAiParseButton = e.target.closest('#mobile-dash-btn-parse');
       if (mobileAiParseButton) {
         e.preventDefault();
-        const text = (this.mobileDashAiInput?.value || '').trim();
-        if (!text) {
-          this.showAlert('Masukkan kalimat mutasi atau pertanyaan terlebih dahulu.', 'warning');
-          return;
+        this.submitDashboardAI(this.mobileDashAiInput);
+        return;
+      }
+      const dashboardAiParseButton = e.target.closest('#dashboard-ai-process');
+      if (dashboardAiParseButton) {
+        e.preventDefault();
+        this.submitDashboardAI(this.dashboardAiInput);
+        return;
+      }
+      const aiExampleButton = e.target.closest('[data-ai-example][data-ai-target]');
+      if (aiExampleButton) {
+        e.preventDefault();
+        const input = document.getElementById(aiExampleButton.dataset.aiTarget);
+        if (input) {
+          input.value = aiExampleButton.dataset.aiExample || '';
+          input.focus();
+          input.setSelectionRange(input.value.length, input.value.length);
         }
-        if (this.aiInput) this.aiInput.value = text;
-        this.switchTab('tab-mutasi');
-        this.handleAIParse(text);
         return;
       }
 
@@ -556,11 +568,7 @@ class App {
     if (this.btnDashOpenAi) {
       this.btnDashOpenAi.addEventListener('click', () => {
         this.switchTab('tab-mutasi');
-        if (this.aiInput) {
-          setTimeout(() => {
-            this.aiInput.focus();
-          }, 150);
-        }
+        this.startVoiceRecording();
       });
     }
     if (this.btnDashViewReports) {
@@ -1234,6 +1242,17 @@ class App {
         }
       });
     }
+
+    const bindAiShortcut = (input) => {
+      input?.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          e.preventDefault();
+          this.submitDashboardAI(input);
+        }
+      });
+    };
+    bindAiShortcut(this.dashboardAiInput);
+    bindAiShortcut(this.mobileDashAiInput);
 
     if (this.mobileBtnGotoReports) {
       this.mobileBtnGotoReports.addEventListener('click', () => {
@@ -2805,6 +2824,7 @@ class App {
     this.lastAIInput = text;
     const originalButton = this.btnParse?.innerHTML;
     const originalMobileButton = this.mobileDashBtnParse?.innerHTML;
+    const originalDashboardButton = this.dashboardAiButton?.innerHTML;
     this.setAIProcessState('Menyiapkan analisis…', 'Mengirim teks ke asisten keuangan.', 'loading');
     if (this.btnParse) {
       this.btnParse.disabled = true;
@@ -2813,6 +2833,10 @@ class App {
     if (this.mobileDashBtnParse) {
       this.mobileDashBtnParse.disabled = true;
       this.mobileDashBtnParse.innerHTML = `<span class="loading-spinner"></span> Memproses…`;
+    }
+    if (this.dashboardAiButton) {
+      this.dashboardAiButton.disabled = true;
+      this.dashboardAiButton.innerHTML = `<span class="loading-spinner"></span> Memproses…`;
     }
     const stageTimer = setTimeout(() => this.setAIProcessState(
       'AI sedang membaca transaksi…', 'Memeriksa jenis, nominal, tanggal, rekening, dan kategori.', 'loading'
@@ -2875,7 +2899,23 @@ class App {
         this.mobileDashBtnParse.disabled = false;
         this.mobileDashBtnParse.innerHTML = originalMobileButton || `<span>Proses AI</span>`;
       }
+      if (this.dashboardAiButton) {
+        this.dashboardAiButton.disabled = false;
+        this.dashboardAiButton.innerHTML = originalDashboardButton || `<span aria-hidden="true">✦</span> Buat draft`;
+      }
     }
+  }
+
+  submitDashboardAI(input) {
+    const text = String(input?.value || '').trim();
+    if (!text) {
+      this.showAlert('Tulis transaksi atau pertanyaan dulu, misalnya “Baru beli nasgor 25rb hari ini”.', 'warning');
+      input?.focus();
+      return;
+    }
+    if (this.aiInput) this.aiInput.value = text;
+    this.switchTab('tab-mutasi');
+    this.handleAIParse(text);
   }
 
   async handleCsvImport() {

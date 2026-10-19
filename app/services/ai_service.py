@@ -2,8 +2,9 @@ import re
 import json
 import logging
 from typing import List, Dict, Any, Optional
-from datetime import date, datetime
+from datetime import datetime
 from decimal import Decimal
+from zoneinfo import ZoneInfo
 try:
     import oci
 except ImportError:
@@ -374,7 +375,7 @@ class AIService:
         inc_cats_str = ", ".join([f"'{c['name']}'" for c in categories if c["type"] == "INCOME" and c["is_active"]])
         exp_cats_str = ", ".join([f"'{c['name']}'" for c in categories if c["type"] == "EXPENSE" and c["is_active"]])
 
-        today_str = date.today().strftime("%Y-%m-%d")
+        today_str = datetime.now(ZoneInfo("Asia/Jakarta")).date().isoformat()
 
         prompt = f"""Kamu adalah asisten pencatatan keuangan pribadi berbahasa Indonesia yang sangat teliti dan cerdas.
 Tugasmu adalah menganalisis kalimat mutasi keuangan dari pengguna dan mengubahnya menjadi format JSON murni.
@@ -407,6 +408,8 @@ ATURAN DETEKSI INTENT BAHASA INDONESIA:
    - JANGAN PERNAH mengategorikan pernyataan saldo/ada uang sebagai EXPENSE atau "Makanan & Minuman"!
 2. BAHASA SEHARI-HARI & GAUL:
    Pahami kata gaul Indonesia: "gua", "gw", "gue", "duit", "uang", "saat ini ada", "sekarang ada", "ada jumlah", "jumlah nya", "tf", "cair", "ngopi", "beli", "jajan".
+3. KATEGORI MAKANAN:
+   Kata seperti "nasgor", "nasi goreng", "bakso", "mie ayam", "kopi", dan "jajan" untuk transaksi beli makanan/minuman harus masuk kategori pengeluaran Makanan & Minuman, bukan Belanja Kebutuhan.
 
 CONTOH LENGKAP:
 Input: "di rekening bca gua ada jumlah nya 8,637,518.23"
@@ -663,7 +666,7 @@ KALIMAT PENGGUNA YANG HARUS DIPROSES:
     def _fallback_regex_parser(text: str, accounts: list, categories: list) -> List[Dict[str, Any]]:
         """Parser fallback deterministik cerdas jika koneksi LLM gagal/offline."""
         results = []
-        today_str = date.today().strftime("%Y-%m-%d")
+        today_str = datetime.now(ZoneInfo("Asia/Jakarta")).date().isoformat()
         text_lower = text.lower()
 
         # 1. Deteksi Rekening Cerdas dari Teks
@@ -701,7 +704,8 @@ KALIMAT PENGGUNA YANG HARUS DIPROSES:
         is_transfer = any(w in text_lower for w in ["transfer", "tf ", " tf", "pindah dana", "kirim uang"])
         expense_terms = (
             "beli", "bayar", "belanja", "pengeluaran", "makan", "minum", "ongkir",
-            "bensin", "parkir", "tagihan", "sewa", "pulsa", "listrik", "jajan", "ngopi"
+            "nasgor", "nasi goreng", "bakso", "mie ayam", "mi ayam", "bensin", "parkir",
+            "tagihan", "sewa", "pulsa", "listrik", "jajan", "ngopi"
         )
         income_terms = (
             "gaji", "terima", "dapat", "bonus", "pendapatan", "setor", "simpan",
@@ -758,10 +762,12 @@ KALIMAT PENGGUNA YANG HARUS DIPROSES:
                 cat_name = "Transportasi"
             elif any(w in text_lower for w in ["listrik", "pln", "air", "pdam", "wifi", "internet", "pulsa", "sewa", "kontrakan"]):
                 cat_name = "Tagihan & Utilitas"
-            elif any(w in text_lower for w in ["beli", "belanja", "shopee", "tokped", "baju", "sepatu"]):
-                cat_name = "Belanja Kebutuhan"
             elif any(w in text_lower for w in ["obat", "dokter", "apotek", "rs", "klinik"]):
                 cat_name = "Kesehatan"
+            elif any(w in text_lower for w in ["nasgor", "nasi goreng", "makan", "minum", "bakso", "mie", "mi ayam", "soto", "kopi", "teh", "roti", "gorengan", "cemilan", "jajanan"]):
+                cat_name = "Makanan & Minuman"
+            elif any(w in text_lower for w in ["beli", "belanja", "shopee", "tokped", "baju", "sepatu"]):
+                cat_name = "Belanja Kebutuhan"
 
             exp_cats = [c["name"] for c in categories if c.get("type") == "EXPENSE" and c.get("is_active")]
             if cat_name not in exp_cats and exp_cats:
