@@ -531,6 +531,12 @@ class App {
         this.submitDashboardAI(this.dashboardAiInput);
         return;
       }
+      const monthlyBudgetButton = e.target.closest('#btn-set-budget-month-pill, #btn-edit-budget-pagu');
+      if (monthlyBudgetButton) {
+        e.preventDefault();
+        this.openMonthlyBudgetModal();
+        return;
+      }
       const aiExampleButton = e.target.closest('[data-ai-example][data-ai-target]');
       if (aiExampleButton) {
         e.preventDefault();
@@ -681,8 +687,6 @@ class App {
       }
     }
 
-    bindOpenModal(this.btnEditBudgetPagu, this.modalSetBudget);
-    bindOpenModal(this.btnSetBudgetMonthPill, this.modalSetBudget);
     bindOpenModal(this.btnAddCategoryBudget, this.modalSetCatBudget, () => this.populateCatSelect());
     bindOpenModal(this.btnAddSavingsGoal, this.modalCreateGoal, () => this.populateGoalAccSelect());
     bindOpenModal(this.btnOpenCreateGoalMini, this.modalCreateGoal, () => this.populateGoalAccSelect());
@@ -1350,6 +1354,15 @@ class App {
 
   openModal(modal) {
     if (modal) modal.style.display = 'flex';
+  }
+
+  openMonthlyBudgetModal() {
+    const currentLimit = Number(this.budgetData?.total_limit) || 0;
+    if (this.inputBudgetLimit) {
+      this.inputBudgetLimit.value = currentLimit > 0 ? String(currentLimit) : '';
+    }
+    this.openModal(this.modalSetBudget);
+    this.inputBudgetLimit?.focus();
   }
 
   closeModals() {

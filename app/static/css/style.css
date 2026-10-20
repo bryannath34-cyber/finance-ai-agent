@@ -2294,6 +2294,18 @@ a:hover {
   margin-bottom: 8px;
 }
 
+.budget-limit-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.budget-limit-label-row .card-action-link {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 .stat-card-val {
   font-size: 19px;
   font-weight: 700;

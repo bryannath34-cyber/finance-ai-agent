@@ -1066,7 +1066,10 @@
         <div class="planning-stat-cards">
           <!-- Card 1: Batas pengeluaran bulanan -->
           <div class="planning-stat-card">
-            <div class="stat-card-label">Batas pengeluaran bulanan</div>
+            <div class="stat-card-label budget-limit-label-row">
+              <span>Batas pengeluaran bulanan</span>
+              <button type="button" class="card-action-link" id="btn-edit-budget-pagu">Ubah batas</button>
+            </div>
             <div class="stat-card-val" id="stat-pagu-bulanan">Rp 5.000.000</div>
             <div class="stat-card-badge green" id="stat-pagu-status">Batas anggaran aktif</div>
           </div>
@@ -1112,7 +1115,6 @@
                   </span>
                   <span class="card-section-title">Anggaran per kategori</span>
                 </div>
-                <button type="button" class="card-action-link" id="btn-edit-budget-pagu">Ubah batas</button>
               </div>
               <div class="card-subtitle-text">
                 Bandingkan batas tiap kategori dengan pengeluaran dan sisanya.
@@ -1181,7 +1183,7 @@
 
               <div style="margin-top: 16px;">
                 <button type="button" id="btn-set-budget-month-pill" class="btn-pill-dark">
-                  <span>Atur anggaran bulan</span>
+                  <span>Atur batas bulanan</span>
                 </button>
               </div>
             </div>
@@ -3830,7 +3832,7 @@
       </div>
     </div>
 
-  <script type="module" src="js/app.js?v=2.7.8"></script>
+  <script type="module" src="js/app.js?v=2.7.9"></script>
 </body>
 
 </html>
