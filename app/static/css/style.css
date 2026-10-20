@@ -3792,12 +3792,6 @@ body.auth-pending #auth-overlay.desktop-login-overlay {
   z-index: 999999 !important;
 }
 
-body.auth-pending #auth-view-login .login-title-h1,
-body.auth-pending #auth-view-login .login-intro-p,
-body.auth-pending #login-form {
-  display: none !important;
-}
-
 body.auth-pending #session-check-panel {
   display: block !important;
 }

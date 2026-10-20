@@ -125,7 +125,7 @@ export const api = {
         } catch (_) {}
       }
     },
-    getMe: () => request('/auth/me'),
+    getMe: (options = {}) => request('/auth/me', { timeout: 8000, ...options }),
     getSessions: () => request('/auth/sessions'),
     revokeSession: (sessionId) => request(`/auth/sessions/${sessionId}`, { method: 'DELETE' }),
     getPreferences: () => request('/auth/preferences'),

@@ -5,7 +5,7 @@
  * Financial Planning, and AI Advisory Copilot.
  */
 
-import { api } from './api.js?v=2.7.2';
+import { api } from './api.js?v=2.7.3';
 import { AudioRecorder } from './audio_recorder.js';
 
 const Icons = {
@@ -32,6 +32,7 @@ class App {
   constructor() {
     this.currentUser = null;
     this.logoutInProgress = false;
+    this.sessionCheckRun = 0;
     this.accounts = [];
     this.categories = [];
     this.currentBatch = null; // { batch_id, drafts }
@@ -1411,6 +1412,7 @@ class App {
   }
 
   async checkSession() {
+    const checkRun = ++this.sessionCheckRun;
     // Jika ada penanda logout aktif di storage, jangan auto-login
     let explicitlyLoggedOut = false;
     try {
@@ -1427,13 +1429,14 @@ class App {
     if (this.appShell) this.appShell.style.setProperty('display', 'none', 'important');
     if (this.authOverlay) this.authOverlay.style.setProperty('display', 'flex', 'important');
     this.showAuthView('login');
-    if (this.loginForm) this.loginForm.style.setProperty('display', 'none', 'important');
+    if (this.loginForm) this.loginForm.style.removeProperty('display');
     if (this.sessionCheckPanel) this.sessionCheckPanel.style.removeProperty('display');
     if (this.sessionCheckMessage) {
       this.sessionCheckMessage.textContent = 'Mohon tunggu sebentar. Kami memastikan sesi akun sebelum membuka halaman keuangan.';
     }
     try {
-      const res = await api.auth.getMe();
+      const res = await api.auth.getMe({ timeout: 8000 });
+      if (checkRun !== this.sessionCheckRun) return;
       if (res && res.data && res.data.id) {
         this.currentUser = res.data;
         this.showDashboard();
@@ -1441,6 +1444,7 @@ class App {
         this.showLogin();
       }
     } catch (err) {
+      if (checkRun !== this.sessionCheckRun) return;
       if (err.status === 401 || err.status === 403) {
         // Only discard legacy client tokens when the server explicitly rejects the session.
         try {
@@ -1466,7 +1470,7 @@ class App {
       this.authOverlay.style.opacity = '1';
       this.authOverlay.style.setProperty('z-index', '999999', 'important');
     }
-    if (this.loginForm) this.loginForm.style.setProperty('display', 'none', 'important');
+    if (this.loginForm) this.loginForm.style.removeProperty('display');
     if (this.loginError) this.loginError.style.display = 'none';
     if (this.sessionCheckMessage) {
       this.sessionCheckMessage.textContent = 'Server belum dapat memverifikasi sesi. Coba lagi; status login dan data akun tidak dihapus.';
@@ -1482,6 +1486,7 @@ class App {
   }
 
   showLogin() {
+    this.sessionCheckRun += 1;
     this.showAuthView('login');
     document.body.classList.remove('auth-pending');
     if (this.loginForm) this.loginForm.style.removeProperty('display');
@@ -1513,6 +1518,7 @@ class App {
 
   showDashboard() {
     // Bersihkan penanda logout saat dashboard berhasil ditampilkan
+    this.sessionCheckRun += 1;
     document.body.classList.remove('auth-pending');
     document.body.classList.remove('user-logged-out');
     try {
@@ -1546,6 +1552,9 @@ class App {
 
   async handleLogin(e) {
     e.preventDefault();
+    // Ignore a delayed startup session check once the user begins a fresh login.
+    this.sessionCheckRun += 1;
+    if (this.sessionCheckPanel) this.sessionCheckPanel.style.display = 'none';
     this.loginError.style.display = 'none';
     const user = this.loginUsername.value.trim();
     const pass = this.loginPassword.value;
