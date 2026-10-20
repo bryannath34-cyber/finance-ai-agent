@@ -1,6 +1,7 @@
 import logging
 import csv
 import io
+import re
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from typing import List, Optional
@@ -44,10 +45,41 @@ async def import_transactions_csv(file: UploadFile = File(...), user: dict = Dep
     reader = csv.DictReader(io.StringIO(content), dialect=dialect)
     if not reader.fieldnames:
         raise HTTPException(status_code=400, detail="CSV kosong atau tidak memiliki header.")
-    normalized_headers = {str(h or "").strip().lower(): h for h in reader.fieldnames}
+    def normalize_header(value):
+        value = str(value or "").replace("\ufeff", "").strip().lower()
+        return re.sub(r"[^a-z0-9]+", "_", value).strip("_")
+
+    header_aliases = {
+        "type": {"type", "tipe", "jenis", "transaction_type", "tipe_transaksi", "jenis_transaksi"},
+        "amount": {"amount", "nominal", "jumlah", "nilai", "amount_idr", "nominal_idr", "jumlah_idr"},
+        "date": {"date", "tanggal", "transaction_date", "tanggal_transaksi"},
+        "account": {"account", "akun", "rekening", "account_name", "nama_rekening"},
+        "source_account": {"source_account", "rekening_sumber", "akun_sumber", "from_account"},
+        "destination_account": {"destination_account", "rekening_tujuan", "akun_tujuan", "to_account"},
+        "category": {"category", "kategori", "category_name", "nama_kategori"},
+        "description": {"description", "deskripsi", "keterangan", "catatan", "memo"},
+        "admin_fee": {"admin_fee", "biaya_admin", "biaya_administrasi", "fee"},
+    }
+    aliases_to_canonical = {
+        alias: canonical
+        for canonical, aliases in header_aliases.items()
+        for alias in aliases
+    }
+    normalized_headers = {}
+    for original_header in reader.fieldnames:
+        normalized = normalize_header(original_header)
+        canonical = aliases_to_canonical.get(normalized)
+        if canonical and canonical not in normalized_headers:
+            normalized_headers[canonical] = original_header
     required = {"type", "amount"}
     if not required.issubset(normalized_headers):
-        raise HTTPException(status_code=400, detail="Header wajib: type, amount. Header lain: date, account, source_account, destination_account, category, description, admin_fee.")
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Kolom wajib transaksi belum ditemukan: jenis/tipe (contoh: EXPENSE) dan nominal/amount. "
+                "Kolom opsional: tanggal, rekening, rekening_sumber, rekening_tujuan, kategori, deskripsi, biaya_admin."
+            ),
+        )
 
     def cell(row, *names):
         for name in names:
@@ -96,7 +128,12 @@ async def import_transactions_csv(file: UploadFile = File(...), user: dict = Dep
             errors.append({"row": row_number, "message": "Maksimal 1.000 baris per impor."})
             break
         try:
-            tx_type = cell(row, "type").upper()
+            tx_type_value = normalize_header(cell(row, "type"))
+            tx_type = {
+                "pemasukan": "INCOME", "income": "INCOME", "masuk": "INCOME",
+                "pengeluaran": "EXPENSE", "expense": "EXPENSE", "keluar": "EXPENSE",
+                "transfer": "TRANSFER",
+            }.get(tx_type_value, cell(row, "type").upper())
             if tx_type not in {"INCOME", "EXPENSE", "TRANSFER"}:
                 raise ValueError("type harus INCOME, EXPENSE, atau TRANSFER")
             amount = parse_amount(cell(row, "amount"))
