@@ -83,7 +83,10 @@ def analyze_purchase_decision(payload: PurchaseAdviceRequest, user: dict = Depen
     - Tersimpan otomatis ke memori purchase_scenarios.
     """
     res = PlanningService.analyze_purchase_decision(
-        user["id"], payload.query, payload.target_account_id
+        user["id"],
+        payload.query,
+        payload.target_account_id,
+        [turn.model_dump() for turn in payload.conversation_history],
     )
     return DataResponse(success=True, message="Analisis keputusan pembelian selesai.", data=res)
 

@@ -301,10 +301,14 @@ export const api = {
         method: 'PATCH',
         body: JSON.stringify({ status }),
       }),
-    consultPurchase: (query, targetAccountId = null) =>
+    consultPurchase: (query, targetAccountId = null, conversationHistory = []) =>
       request('/planning/advisory/purchase', {
         method: 'POST',
-        body: JSON.stringify({ query, target_account_id: targetAccountId }),
+        body: JSON.stringify({
+          query,
+          target_account_id: targetAccountId,
+          conversation_history: conversationHistory,
+        }),
       }),
     getScenarios: (limit = 10) =>
       request(`/planning/advisory/scenarios?limit=${limit}`),

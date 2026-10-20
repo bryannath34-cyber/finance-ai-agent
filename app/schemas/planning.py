@@ -1,4 +1,4 @@
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Literal
 from decimal import Decimal
 from datetime import date, datetime
 from pydantic import BaseModel, Field
@@ -64,9 +64,14 @@ class UpdateGoalStatusRequest(BaseModel):
 # ==========================================
 # 3. AI Financial Copilot & Advisory
 # ==========================================
+class AdvisorConversationMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(..., min_length=1, max_length=1200)
+
 class PurchaseAdviceRequest(BaseModel):
     query: str = Field(..., min_length=2, max_length=1000, description="Pertanyaan konsultasi atau pembelian, misal: 'Gue mau beli keyboard Rp760rb pake Bank, aman gak?'")
     target_account_id: Optional[int] = None
+    conversation_history: List[AdvisorConversationMessage] = Field(default_factory=list, max_length=6)
 
 class PurchaseAdviceResponse(BaseModel):
     item_name: str

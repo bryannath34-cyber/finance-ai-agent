@@ -5,7 +5,7 @@
  * Financial Planning, and AI Advisory Copilot.
  */
 
-import { api } from './api.js?v=2.7.3';
+import { api } from './api.js?v=2.7.4';
 import { AudioRecorder } from './audio_recorder.js';
 
 const Icons = {
@@ -255,32 +255,13 @@ class App {
 
     // Tab 4: Copilot & Advisory (Screen 04)
     this.copilotInput = document.getElementById('copilot-input');
+    this.copilotChatFeed = document.getElementById('copilot-chat-feed');
+    this.copilotNewChatButton = document.getElementById('btn-copilot-new-chat');
+    this.copilotConversation = [];
+    this.copilotWelcomeMarkup = this.copilotChatFeed?.querySelector('.copilot-welcome-message')?.outerHTML || '';
     this.copilotAccountSelect = document.getElementById('copilot-account-select');
     this.btnConsultCopilot = document.getElementById('btn-consult-copilot');
     this.copilotAiStatus = document.getElementById('copilot-ai-status');
-    this.copilotVerdictCard = document.getElementById('copilot-verdict-card');
-    this.copilotVerdictBadge = document.getElementById('copilot-verdict-badge');
-    this.copilotItemCost = document.getElementById('copilot-item-cost');
-    this.copilotItemCostLabel = document.getElementById('copilot-item-cost-label');
-    this.copilotAdviceText = document.getElementById('copilot-advice-text');
-    this.copilotDetailText = document.getElementById('copilot-detail-text');
-
-    // Modal: Detail Evaluasi Finansial
-    this.modalEvaluationDetail = document.getElementById('modal-evaluation-detail');
-    this.modalEvalQuery = document.getElementById('modal-eval-query');
-    this.modalEvalAccount = document.getElementById('modal-eval-account');
-    this.modalEvalAccountSub = document.getElementById('modal-eval-account-sub');
-    this.modalEvalBudget = document.getElementById('modal-eval-budget');
-    this.modalEvalBudgetSub = document.getElementById('modal-eval-budget-sub');
-    this.modalEvalCost = document.getElementById('modal-eval-cost');
-    this.modalEvalCostSub = document.getElementById('modal-eval-cost-sub');
-    this.modalEvalGoals = document.getElementById('modal-eval-goals');
-    this.modalEvalGoalsSub = document.getElementById('modal-eval-goals-sub');
-    this.modalEvalBadge = document.getElementById('modal-eval-badge');
-    this.modalEvalAdviceText = document.getElementById('modal-eval-advice-text');
-    this.btnCloseModalEval = document.getElementById('btn-close-modal-eval');
-    this.btnEvalGotoPlanning = document.getElementById('btn-eval-goto-planning');
-    this.lastCopilotData = null;
 
     this.snapAccName = document.getElementById('snap-acc-name');
     this.snapAccBal = document.getElementById('snap-acc-bal');
@@ -291,9 +272,6 @@ class App {
 
     this.btnAnalyzePatterns = document.getElementById('btn-analyze-patterns');
     this.patternTableBody = document.getElementById('pattern-table-body');
-    this.observationHeadline = document.getElementById('observation-headline');
-    this.observationBody = document.getElementById('observation-body');
-    this.btnObservationFollowup = document.getElementById('btn-observation-followup');
 
     // Modals
     this.modalSetBudget = document.getElementById('modal-set-budget');
@@ -708,17 +686,6 @@ class App {
       });
     }
 
-    if (this.btnObservationFollowup) {
-      this.btnObservationFollowup.addEventListener('click', () => {
-        if (this.copilotInput) {
-          this.copilotInput.value = 'Bagaimana cara menyeimbangkan alokasi belanja bulan ini dengan target tabungan?';
-          this.copilotInput.focus();
-          this.copilotInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          this.handleConsultCopilot();
-        }
-      });
-    }
-
     // Modal Close
     document.querySelectorAll('.btn-close-modal').forEach((btn) => {
       btn.addEventListener('click', () => this.closeModals());
@@ -793,6 +760,18 @@ class App {
         }
       });
     }
+    if (this.copilotChatFeed) {
+      this.copilotChatFeed.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-copilot-prompt]');
+        if (!button) return;
+        if (!this.copilotInput) return;
+        this.copilotInput.value = button.getAttribute('data-copilot-prompt') || '';
+        this.copilotInput.focus();
+      });
+    }
+    if (this.copilotNewChatButton) {
+      this.copilotNewChatButton.addEventListener('click', () => this.resetCopilotConversation());
+    }
     if (this.btnAnalyzePatterns) {
       this.btnAnalyzePatterns.addEventListener('click', () => this.handleAnalyzePatterns());
     }
@@ -841,24 +820,6 @@ class App {
       btnViewAllBudgetHistory.addEventListener('click', () => {
         this.openMonthPicker('planning');
         this.showAlert('Pilih periode bulan untuk melihat rincian anggaran historis.', 'info');
-      });
-    }
-
-    const btnSaveScenarioHistory = document.getElementById('btn-save-scenario-history');
-    if (btnSaveScenarioHistory) {
-      btnSaveScenarioHistory.addEventListener('click', () => {
-        this.openEvaluationDetailModal();
-      });
-    }
-
-    if (this.btnCloseModalEval) {
-      this.btnCloseModalEval.addEventListener('click', () => this.closeModals());
-    }
-
-    if (this.btnEvalGotoPlanning) {
-      this.btnEvalGotoPlanning.addEventListener('click', () => {
-        this.closeModals();
-        this.switchTab('tab-planning');
       });
     }
 
@@ -1293,7 +1254,7 @@ class App {
       'tab-dashboard': null, // Dihapus sesuai permintaan pengguna agar tidak duplikasi dengan judul Dashboard di bawahnya
       'tab-mutasi': { title: 'Mutasi & Suara AI', intro: 'Catat transaksi lewat teks atau suara, periksa draft, lalu konfirmasi ke buku besar.' },
       'tab-planning': { title: 'Anggaran & Tabungan', intro: 'Atur batas pengeluaran bulanan dan pantau progres tujuan tabungan.' },
-      'tab-copilot': { title: 'Penasihat Finansial AI', intro: 'Tanyakan rencana pembelian, evaluasi kelayakan anggaran, dan pantau pola pengeluaran berbasis AI.' },
+      'tab-copilot': { title: 'Penasihat Finansial AI', intro: 'Ngobrol soal rencana belanja, anggaran, dan tabungan dengan konteks keuangan terbarumu.' },
       'tab-reports': { title: 'Laporan Keuangan', intro: (window.innerWidth <= 768 ? 'Pantau arus kas dari bulan ke bulan.' : 'Tinjau arus kas, komposisi pengeluaran, dan perubahan dari bulan ke bulan.') },
       'tab-settings': { title: (window.innerWidth <= 768 ? 'Pengaturan' : 'Pengaturan & Profil'), intro: (window.innerWidth <= 768 ? 'Kelola akun dan preferensi aplikasi.' : 'Kelola profil, rekening, keamanan, dan preferensi aplikasi.') },
       'tab-auth': { title: 'Akun pengguna', intro: 'Rancangan layar daftar akun dan reset kata sandi.' }
@@ -4109,7 +4070,10 @@ class App {
   async handleConsultCopilot() {
     const query = this.copilotInput?.value?.trim() || '';
     if (!query) {
-      this.showAlert('Ketikkan rencana pembelian atau pertanyaan finansial Anda terlebih dahulu.', 'warning');
+      if (this.copilotAiStatus) {
+        this.copilotAiStatus.className = 'copilot-ai-status is-error';
+        this.copilotAiStatus.textContent = 'Tulis pertanyaan dulu sebelum mengirim.';
+      }
       this.copilotInput?.focus();
       return;
     }
@@ -4117,38 +4081,219 @@ class App {
     const rawAccVal = this.copilotAccountSelect?.value;
     const parsedAccId = rawAccVal ? parseInt(rawAccVal, 10) : null;
     const targetAccId = (!isNaN(parsedAccId) && parsedAccId > 0) ? parsedAccId : null;
+    this.appendCopilotUserMessage(query);
+    const answerMessage = this.appendCopilotPendingMessage();
 
     if (this.btnConsultCopilot) {
       this.btnConsultCopilot.disabled = true;
-      this.btnConsultCopilot.innerHTML = `<span class="loading-spinner"></span> Menganalisis...`;
+      this.btnConsultCopilot.innerHTML = '<span class="loading-spinner" aria-hidden="true"></span>';
     }
+    if (this.copilotInput) this.copilotInput.disabled = true;
+    if (this.copilotAccountSelect) this.copilotAccountSelect.disabled = true;
+    if (this.copilotNewChatButton) this.copilotNewChatButton.disabled = true;
     if (this.copilotAiStatus) {
       this.copilotAiStatus.className = 'copilot-ai-status is-pending';
-      this.copilotAiStatus.textContent = 'Memeriksa data keuangan dan meminta analisis…';
+      this.copilotAiStatus.textContent = 'Sedang membaca pertanyaan dan ringkasan keuanganmu…';
     }
+    const promptList = this.copilotChatFeed?.querySelector('.copilot-prompt-list');
+    if (promptList) promptList.hidden = true;
 
     try {
-      const res = await api.planning.consultPurchase(query, targetAccId);
+      const history = this.copilotConversation.slice(-6).map((turn) => ({
+        role: turn.role,
+        content: String(turn.content || '').slice(0, 1200),
+      }));
+      const res = await api.planning.consultPurchase(query, targetAccId, history);
       const d = res.data;
-      this.renderCopilotAdvice(d);
-      this.showAlert(d?.advisor_mode === 'OCI_GENAI' ? 'Analisis OCI GenAI selesai.' : 'Perhitungan cadangan selesai; OCI GenAI belum tersedia.', d?.advisor_mode === 'OCI_GENAI' ? 'success' : 'warning');
+      this.renderCopilotAdvice(d, answerMessage);
+      this.copilotConversation.push(
+        { role: 'user', content: query },
+        { role: 'assistant', content: String(d?.advice || '') },
+      );
+      this.copilotConversation = this.copilotConversation.slice(-6);
+      if (this.copilotInput) {
+        this.copilotInput.value = '';
+        this.copilotInput.style.height = '';
+      }
     } catch (err) {
       if (this.copilotAiStatus) {
         this.copilotAiStatus.className = 'copilot-ai-status is-error';
-        this.copilotAiStatus.textContent = `Analisis gagal: ${err.message}. Pertanyaan belum tersimpan sebagai transaksi.`;
+        this.copilotAiStatus.textContent = 'Analisis gagal. Pertanyaan masih ada di kolom tulis; kamu bisa mencoba lagi.';
       }
-      this.showAlert(`Gagal analisis copilot: ${err.message}`, 'error');
+      this.renderCopilotChatError(answerMessage);
     } finally {
       if (this.btnConsultCopilot) {
         this.btnConsultCopilot.disabled = false;
-        this.btnConsultCopilot.innerHTML = `<span>Minta Pertimbangan AI</span>`;
+        this.btnConsultCopilot.innerHTML = '<svg class="ui-icon" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5" /><path d="m5 12 7-7 7 7" /></svg>';
       }
+      if (this.copilotInput) this.copilotInput.disabled = false;
+      if (this.copilotAccountSelect) this.copilotAccountSelect.disabled = false;
+      if (this.copilotNewChatButton) this.copilotNewChatButton.disabled = false;
     }
   }
 
-  renderCopilotAdvice(data) {
+  appendCopilotUserMessage(query) {
+    if (!this.copilotChatFeed) return null;
+    const message = document.createElement('article');
+    message.className = 'copilot-message copilot-message-user';
+    const bubble = document.createElement('div');
+    bubble.className = 'copilot-user-bubble';
+    const label = document.createElement('span');
+    label.className = 'copilot-user-label';
+    label.textContent = 'Kamu';
+    const text = document.createElement('p');
+    text.textContent = query;
+    bubble.append(label, text);
+    message.appendChild(bubble);
+    this.copilotChatFeed.appendChild(message);
+    this.scrollCopilotFeedToBottom();
+    return message;
+  }
+
+  appendCopilotPendingMessage() {
+    if (!this.copilotChatFeed) return null;
+    const message = document.createElement('article');
+    message.className = 'copilot-message copilot-message-assistant is-pending';
+    message.setAttribute('aria-label', 'Finance AI sedang menyusun jawaban');
+    const avatar = document.createElement('span');
+    avatar.className = 'copilot-message-avatar';
+    avatar.setAttribute('aria-hidden', 'true');
+    avatar.innerHTML = '<svg class="ui-icon ui-icon-spark" width="15" height="15" viewBox="0 0 24 24"><path d="M12 2C12 7.5 7.5 12 2 12C7.5 12 12 16.5 12 22C16.5 22 22 16.5 22 12C16.5 12 12 7.5 12 2Z" /></svg>';
+    const bubble = document.createElement('div');
+    bubble.className = 'copilot-message-bubble';
+    const meta = document.createElement('div');
+    meta.className = 'copilot-message-meta';
+    const name = document.createElement('strong');
+    name.textContent = 'Finance AI';
+    const state = document.createElement('span');
+    state.textContent = 'Sedang berpikir';
+    meta.append(name, state);
+    const typing = document.createElement('div');
+    typing.className = 'copilot-typing-indicator';
+    typing.setAttribute('aria-label', 'Sedang menyusun jawaban');
+    typing.innerHTML = '<span></span><span></span><span></span>';
+    bubble.append(meta, typing);
+    message.append(avatar, bubble);
+    this.copilotChatFeed.appendChild(message);
+    this.scrollCopilotFeedToBottom();
+    return message;
+  }
+
+  renderCopilotChatError(message) {
+    if (!message) return;
+    message.classList.remove('is-pending');
+    message.classList.add('is-error');
+    const bubble = message.querySelector('.copilot-message-bubble');
+    if (!bubble) return;
+    bubble.replaceChildren();
+    const meta = document.createElement('div');
+    meta.className = 'copilot-message-meta';
+    const name = document.createElement('strong');
+    name.textContent = 'Finance AI';
+    const state = document.createElement('span');
+    state.textContent = 'Belum terkirim';
+    meta.append(name, state);
+    const copy = document.createElement('p');
+    copy.textContent = 'Aku belum bisa menganalisis pertanyaan ini. Coba kirim lagi; teks pertanyaanmu masih ada di kolom tulis.';
+    bubble.append(meta, copy);
+    message.removeAttribute('aria-label');
+    this.scrollCopilotFeedToBottom();
+  }
+
+  renderCopilotChatAnswer(message, data) {
+    if (!message) return;
+    message.classList.remove('is-pending', 'is-error');
+    message.removeAttribute('aria-label');
+    const bubble = message.querySelector('.copilot-message-bubble');
+    if (!bubble) return;
+    bubble.replaceChildren();
+
+    const meta = document.createElement('div');
+    meta.className = 'copilot-message-meta';
+    const name = document.createElement('strong');
+    name.textContent = 'Finance AI';
+    const state = document.createElement('span');
+    const isGenAi = data?.advisor_mode === 'OCI_GENAI';
+    state.textContent = isGenAi ? 'OCI GenAI' : 'Perhitungan sistem';
+    meta.append(name, state);
+
+    const verdict = document.createElement('span');
+    const verdictClass = data?.verdict === 'BERISIKO'
+      ? 'is-risk'
+      : (data?.verdict === 'PERLU_PERTIMBANGAN' ? 'is-caution' : 'is-safe');
+    verdict.className = `copilot-verdict-chip ${verdictClass}`;
+    verdict.textContent = String(data?.verdict_badge || 'Panduan keuangan')
+      .replace(/^[🟢🟡🔴⚠️💡]\s*/, '').trim();
+
+    const answer = document.createElement('div');
+    answer.className = 'copilot-answer-copy';
+    const paragraphs = String(data?.advice || 'Belum ada saran yang tersedia.')
+      .split(/\n\s*\n/).map((part) => part.trim()).filter(Boolean);
+    paragraphs.forEach((paragraph) => {
+      const text = document.createElement('p');
+      text.textContent = paragraph;
+      answer.appendChild(text);
+    });
+
+    bubble.append(meta, verdict, answer);
+    if (data?.is_purchase && Number(data?.estimated_cost) > 0) {
+      const snapshot = data.financial_snapshot || {};
+      const impact = document.createElement('div');
+      impact.className = 'copilot-impact-row';
+      [
+        ['Estimasi belanja', this.formatIDR(data.estimated_cost)],
+        ['Saldo setelahnya', this.formatIDR(snapshot.saldo_setelah_beli ?? 0)],
+        ['Sisa batas', this.formatIDR(snapshot.sisa_anggaran_setelah_beli ?? 0)],
+      ].forEach(([label, value]) => {
+        const item = document.createElement('div');
+        item.className = 'copilot-impact-item';
+        const itemLabel = document.createElement('span');
+        itemLabel.textContent = label;
+        const itemValue = document.createElement('strong');
+        itemValue.textContent = value;
+        item.append(itemLabel, itemValue);
+        impact.appendChild(item);
+      });
+      bubble.appendChild(impact);
+    }
+
+    if (!isGenAi && data?.advisor_notice) {
+      const notice = document.createElement('p');
+      notice.className = 'copilot-answer-notice';
+      notice.textContent = data.advisor_notice;
+      bubble.appendChild(notice);
+    }
+    this.scrollCopilotFeedToBottom();
+  }
+
+  scrollCopilotFeedToBottom() {
+    if (!this.copilotChatFeed) return;
+    requestAnimationFrame(() => {
+      this.copilotChatFeed.scrollTop = this.copilotChatFeed.scrollHeight;
+    });
+  }
+
+  resetCopilotConversation() {
+    if (!this.copilotChatFeed || !this.copilotWelcomeMarkup) return;
+    this.copilotConversation = [];
+    this.copilotChatFeed.innerHTML = this.copilotWelcomeMarkup;
+    if (this.copilotInput) this.copilotInput.value = '';
+    [this.snapAccName, this.snapAccBal, this.snapAccAfter, this.snapBudgetRem, this.snapBudgetAfter, this.snapGoalsStatus]
+      .filter(Boolean)
+      .forEach((element) => {
+        element.textContent = '—';
+        element.style.color = '';
+      });
+    if (this.copilotAiStatus) {
+      this.copilotAiStatus.className = 'copilot-ai-status';
+      this.copilotAiStatus.textContent = 'Jawaban akan memakai data keuangan terbaru yang tersedia.';
+    }
+    this.copilotChatFeed.scrollTop = 0;
+    this.copilotInput?.focus();
+  }
+
+  renderCopilotAdvice(data, chatMessage = null) {
     if (!data) return;
-    this.lastCopilotData = data;
 
     if (this.copilotAiStatus) {
       const isGenAi = data.advisor_mode === 'OCI_GENAI';
@@ -4156,49 +4301,6 @@ class App {
       this.copilotAiStatus.textContent = isGenAi
         ? 'Dianalisis OCI GenAI dengan snapshot keuangan terbaru.'
         : (data.advisor_notice || 'Menggunakan perhitungan sistem; OCI GenAI belum terkonfirmasi tersedia.');
-    }
-
-    if (this.copilotVerdictBadge) {
-      let dotClass = 'dot-green';
-      let badgeText = data.verdict_badge || 'Belum ada analisis';
-      badgeText = badgeText.replace(/^[🟢🟡🔴⚠️💡]\s*/, '');
-
-      if (data.verdict === 'PERLU_PERTIMBANGAN') {
-        dotClass = 'dot-yellow';
-        this.copilotVerdictBadge.className = 'verdict-badge-pill waspada';
-      } else if (data.verdict === 'BERISIKO') {
-        dotClass = 'dot-red';
-        this.copilotVerdictBadge.className = 'verdict-badge-pill berisiko';
-      } else {
-        dotClass = 'dot-green';
-        this.copilotVerdictBadge.className = 'verdict-badge-pill';
-      }
-
-      this.copilotVerdictBadge.innerHTML = `<span class="verdict-dot ${dotClass}"></span> ${badgeText}`;
-    }
-
-    if (this.copilotItemCost) {
-      const isPurchase = data.is_purchase && (data.estimated_cost > 0);
-      if (isPurchase) {
-        if (this.copilotItemCostLabel) this.copilotItemCostLabel.textContent = 'Estimasi Pengeluaran';
-        this.copilotItemCost.textContent = this.formatIDR(data.estimated_cost);
-      } else {
-        if (this.copilotItemCostLabel) this.copilotItemCostLabel.textContent = 'Topik Evaluasi';
-        this.copilotItemCost.textContent = 'Alokasi & Tabungan';
-      }
-    }
-
-    if (this.copilotAdviceText) {
-      const advice = data.advice || '';
-      const paragraphs = advice.split('\n\n').filter((p) => p.trim());
-      if (paragraphs.length > 0) {
-        this.copilotAdviceText.textContent = paragraphs[0];
-        if (this.copilotDetailText) {
-          this.copilotDetailText.textContent = paragraphs.slice(1).join('\n\n') || (data.is_purchase ? `Catatan: Periksa kembali dampak pembelian pada sisa anggaran sebesar ${this.formatIDR(data.financial_snapshot?.sisa_anggaran_setelah_beli ?? 0)}.` : 'Saran: Alokasikan sebagian sisa anggaran ke target tabungan sesuai kemampuan arus kas.');
-        }
-      } else {
-        this.copilotAdviceText.textContent = advice;
-      }
     }
 
     // Snapshot Breakdown (6 Metrics)
@@ -4217,68 +4319,7 @@ class App {
     if (this.snapGoalsStatus) {
       this.snapGoalsStatus.textContent = snap.target_tabungan_aktif !== undefined ? `${snap.target_tabungan_aktif} sasaran aktif` : '—';
     }
-  }
-
-  openEvaluationDetailModal() {
-    if (!this.modalEvaluationDetail) return;
-    const data = this.lastCopilotData;
-    const snap = data?.financial_snapshot || {};
-    const isPurchase = data?.is_purchase && (data?.estimated_cost > 0);
-    const query = this.copilotInput?.value?.trim() || snap.query || 'Bagaimana cara menyeimbangkan alokasi belanja bulan ini dengan target tabungan?';
-
-    if (this.modalEvalQuery) {
-      this.modalEvalQuery.textContent = query;
-    }
-
-    if (this.modalEvalAccount) {
-      this.modalEvalAccount.textContent = snap.rekening_terpilih || 'Kas Tunai';
-    }
-    if (this.modalEvalAccountSub) {
-      const bal = snap.saldo_saat_ini !== undefined ? snap.saldo_saat_ini : 0;
-      this.modalEvalAccountSub.textContent = `Saldo saat ini: ${this.formatIDR(bal)}`;
-      this.modalEvalAccountSub.style.color = bal < 0 ? 'var(--accent-rose)' : 'var(--text-secondary)';
-    }
-
-    if (this.modalEvalBudget) {
-      this.modalEvalBudget.textContent = `Batas pengeluaran: ${this.formatIDR(snap.total_anggaran_bulan_ini || 0)}`;
-    }
-    if (this.modalEvalBudgetSub) {
-      this.modalEvalBudgetSub.textContent = `Sisa alokasi belanja: ${this.formatIDR(snap.sisa_anggaran_bulan_ini || 0)}`;
-    }
-
-    if (this.modalEvalCost) {
-      this.modalEvalCost.textContent = isPurchase ? this.formatIDR(data.estimated_cost) : 'Rp 0 (Bukan Pembelian)';
-    }
-    if (this.modalEvalCostSub) {
-      this.modalEvalCostSub.textContent = isPurchase ? `Sisa saldo pasca beli: ${this.formatIDR(snap.saldo_setelah_beli || 0)}` : 'Konsultasi perencanaan anggaran & tabungan';
-    }
-
-    if (this.modalEvalGoals) {
-      const count = snap.target_tabungan_aktif !== undefined ? snap.target_tabungan_aktif : (this.savingsGoals?.length || 0);
-      this.modalEvalGoals.textContent = `${count} Sasaran Aktif`;
-    }
-    if (this.modalEvalGoalsSub) {
-      this.modalEvalGoalsSub.textContent = 'Status alokasi target tabungan';
-    }
-
-    if (this.modalEvalBadge) {
-      let badgeHtml = data?.verdict_badge || '💡 Panduan Strategi Finansial';
-      this.modalEvalBadge.innerHTML = badgeHtml;
-      if (data?.verdict === 'BERISIKO') {
-        this.modalEvalBadge.className = 'verdict-badge-pill berisiko';
-      } else if (data?.verdict === 'PERLU_PERTIMBANGAN') {
-        this.modalEvalBadge.className = 'verdict-badge-pill waspada';
-      } else {
-        this.modalEvalBadge.className = 'verdict-badge-pill';
-      }
-    }
-
-    if (this.modalEvalAdviceText) {
-      const advice = data?.advice || this.copilotAdviceText?.textContent || 'Silakan klik tombol "Minta Pertimbangan AI" untuk menyusun analisis finansial lengkap.';
-      this.modalEvalAdviceText.textContent = advice;
-    }
-
-    this.modalEvaluationDetail.style.display = 'flex';
+    this.renderCopilotChatAnswer(chatMessage, data);
   }
 
   async handleAnalyzePatterns() {
@@ -4290,12 +4331,6 @@ class App {
     try {
       const res = await api.planning.getSpendingPatterns();
       const d = res.data;
-      if (this.observationHeadline && d.ai_summary) {
-        this.observationHeadline.textContent = d.analysis_mode === 'OCI_GENAI' ? 'Analisis OCI GenAI selesai' : 'Ringkasan perhitungan transaksi';
-      }
-      if (this.observationBody && d.ai_summary) {
-        this.observationBody.textContent = d.analysis_notice ? `${d.ai_summary} ${d.analysis_notice}` : d.ai_summary;
-      }
       if (this.patternTableBody) {
         this.patternTableBody.innerHTML = '';
         const comps = Array.isArray(d.category_comparisons) ? d.category_comparisons : [];
@@ -4326,8 +4361,6 @@ class App {
       }
     } catch (err) {
       console.warn('Gagal memuat pola pengeluaran:', err);
-      if (this.observationHeadline) this.observationHeadline.textContent = 'Analisis belum tersedia';
-      if (this.observationBody) this.observationBody.textContent = `Tidak berhasil memuat pola pengeluaran: ${err.message}`;
       if (this.patternTableBody) {
         this.patternTableBody.innerHTML = '<tr><td colspan="4" class="pattern-empty-state">Pola pengeluaran gagal dimuat. Coba analisis ulang.</td></tr>';
       }
