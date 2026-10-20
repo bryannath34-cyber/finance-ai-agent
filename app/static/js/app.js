@@ -2904,6 +2904,21 @@ class App {
     })[char]);
   }
 
+  formatAiMarkdown(value) {
+    if (!value) return '';
+    let escaped = this.escapeHtml(value);
+    // Convert markdown list markers starting with * or - into bullet points
+    escaped = escaped.replace(/^[\*\-]\s+/gm, '• ');
+    // Convert markdown bold **text** or __text__ to strong
+    escaped = escaped.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    escaped = escaped.replace(/__(.*?)__/g, '<strong>$1</strong>');
+    // Convert markdown italic *text* or _text_ to em
+    escaped = escaped.replace(/(^|[^\*])\*([^\*\n]+)\*([^\*]|$)/g, '$1<em>$2</em>$3');
+    // Strip any remaining/unpaired asterisks so no raw '*' ever appears
+    escaped = escaped.replace(/\*/g, '');
+    return escaped;
+  }
+
   findPossibleDuplicate(draft) {
     const date = String(draft.transaction_date || '').slice(0, 10);
     const amount = Number(draft.amount || 0);
@@ -4308,7 +4323,7 @@ class App {
       .split(/\n\s*\n/).map((part) => part.trim()).filter(Boolean);
     paragraphs.forEach((paragraph) => {
       const text = document.createElement('p');
-      text.textContent = paragraph;
+      text.innerHTML = this.formatAiMarkdown(paragraph);
       answer.appendChild(text);
     });
 
@@ -4337,7 +4352,7 @@ class App {
     if (!isGenAi && data?.advisor_notice) {
       const notice = document.createElement('p');
       notice.className = 'copilot-answer-notice';
-      notice.textContent = data.advisor_notice;
+      notice.innerHTML = this.formatAiMarkdown(data.advisor_notice);
       bubble.appendChild(notice);
     }
     this.scrollCopilotFeedToBottom();

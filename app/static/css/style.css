@@ -7831,6 +7831,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   overflow-wrap: anywhere;
 }
 #tab-copilot .copilot-answer-copy { display: grid; gap: 10px; }
+#tab-copilot .copilot-answer-copy strong { font-weight: 700; color: var(--text-primary); }
+#tab-copilot .copilot-answer-copy em { font-style: italic; color: var(--text-secondary); }
 #tab-copilot .copilot-message-user { justify-content: flex-end; }
 #tab-copilot .copilot-user-bubble {
   max-width: min(620px, 78%);
