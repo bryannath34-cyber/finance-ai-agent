@@ -2062,11 +2062,11 @@ class App {
     if (this.totalNetWorth) {
       if (this.isBalanceHidden) {
         this.totalNetWorth.textContent = 'Rp ••••••••';
-        this.totalNetWorth.style.color = 'var(--text-secondary)';
+        this.totalNetWorth.style.color = 'rgba(255, 255, 255, 0.75)';
         this.totalNetWorth.classList.add('is-hidden-mask');
       } else {
         this.totalNetWorth.textContent = this.formatIDR(this.currentNetWorthValue);
-        this.totalNetWorth.style.color = this.currentNetWorthValue < 0 ? 'var(--accent-rose)' : 'var(--text-primary)';
+        this.totalNetWorth.style.color = this.currentNetWorthValue < 0 ? '#FF9B9B' : '#FFFFFF';
         this.totalNetWorth.classList.remove('is-hidden-mask');
       }
     }
@@ -2074,10 +2074,10 @@ class App {
     if (this.mobileTotalNetWorth) {
       if (this.isBalanceHidden) {
         this.mobileTotalNetWorth.textContent = 'Rp ••••••••';
-        this.mobileTotalNetWorth.style.color = 'var(--text-secondary)';
+        this.mobileTotalNetWorth.style.color = 'rgba(255, 255, 255, 0.75)';
       } else {
         this.mobileTotalNetWorth.textContent = this.formatIDR(this.currentNetWorthValue);
-        this.mobileTotalNetWorth.style.color = this.currentNetWorthValue < 0 ? 'var(--accent-rose)' : 'var(--text-primary)';
+        this.mobileTotalNetWorth.style.color = this.currentNetWorthValue < 0 ? '#FF9B9B' : '#FFFFFF';
       }
     }
 
