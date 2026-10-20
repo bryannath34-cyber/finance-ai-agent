@@ -3792,10 +3792,6 @@ body.auth-pending #auth-overlay.desktop-login-overlay {
   z-index: 999999 !important;
 }
 
-body.auth-pending #session-check-panel {
-  display: block !important;
-}
-
 body.auth-pending #btn-retry-session-check {
   display: none !important;
 }

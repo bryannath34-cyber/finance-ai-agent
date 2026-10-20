@@ -1430,10 +1430,8 @@ class App {
     if (this.authOverlay) this.authOverlay.style.setProperty('display', 'flex', 'important');
     this.showAuthView('login');
     if (this.loginForm) this.loginForm.style.removeProperty('display');
-    if (this.sessionCheckPanel) this.sessionCheckPanel.style.removeProperty('display');
-    if (this.sessionCheckMessage) {
-      this.sessionCheckMessage.textContent = 'Mohon tunggu sebentar. Kami memastikan sesi akun sebelum membuka halaman keuangan.';
-    }
+    // Keep the login view uncluttered while validation runs in the background.
+    if (this.sessionCheckPanel) this.sessionCheckPanel.style.display = 'none';
     try {
       const res = await api.auth.getMe({ timeout: 8000 });
       if (checkRun !== this.sessionCheckRun) return;
