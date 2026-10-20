@@ -2536,7 +2536,7 @@
             required>
         </div>
         <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button type="button" class="btn-secondary-light btn-close-modal">Batal</button>
+          <button type="button" id="btn-cancel-set-budget" class="btn-secondary-light btn-close-modal" onclick="window.app?.closeModals()">Batal</button>
           <button type="submit" class="btn-primary-dark">Simpan Anggaran</button>
         </div>
       </form>
@@ -2568,7 +2568,7 @@
             step="10000" required>
         </div>
         <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button type="button" class="btn-secondary-light btn-close-modal">Batal</button>
+          <button type="button" id="btn-cancel-set-cat-budget" class="btn-secondary-light btn-close-modal" onclick="window.app?.closeModals()">Batal</button>
           <button type="submit" class="btn-primary-dark">Simpan batas</button>
         </div>
       </form>
@@ -3008,7 +3008,7 @@
             <input type="date" id="input-goal-date" class="auth-input">
           </div>
           <div style="display: flex; justify-content: flex-end; gap: 8px;">
-            <button type="button" class="btn-secondary-light btn-close-modal">Batal</button>
+            <button type="button" id="btn-cancel-create-goal" class="btn-secondary-light btn-close-modal" onclick="window.app?.closeModals()">Batal</button>
             <button type="submit" class="btn-primary-dark">Buat Target</button>
           </div>
         </form>
@@ -3683,7 +3683,7 @@
       </div>
     </div>
 
-  <script type="module" src="js/app.js?v=2.8.7"></script>
+  <script type="module" src="js/app.js?v=2.8.8"></script>
 </body>
 
 </html>

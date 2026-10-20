@@ -486,6 +486,8 @@ class App {
       });
     }
     
+    const bindOpenModal = (btn, modal, onOpen = null) => this.bindOpenModal(btn, modal, onOpen);
+
     const handleLogoutAction = (e) => {
       if (e) {
         e.preventDefault();
@@ -498,6 +500,19 @@ class App {
     // creates two concurrent logout requests; a late cookie-deletion response
     // can otherwise erase the cookie from a login that just followed logout.
     document.addEventListener('click', (e) => {
+      // Delegated handler for closing any modal overlay via .btn-close-modal or clicking background overlay
+      const modalCloseBtn = e.target.closest('.btn-close-modal');
+      if (modalCloseBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.closeModals();
+        return;
+      }
+      if (e.target.classList && e.target.classList.contains('modal-overlay') && e.target.id !== 'auth-overlay') {
+        e.preventDefault();
+        this.closeModals();
+        return;
+      }
       const logoutBtn = e.target.closest('#btn-logout, #btn-sidebar-logout, #btn-settings-logout, #btn-settings-security-logout');
       if (logoutBtn) {
         e.preventDefault();
@@ -548,6 +563,24 @@ class App {
       const profileBadge = e.target.closest('.user-profile-badge');
       if (profileBadge && !e.target.closest('#btn-logout')) {
         this.switchTab('tab-settings');
+      }
+    });
+
+    // Delegated submit handler for planning modals to prevent browser reload
+    document.addEventListener('submit', (e) => {
+      const targetId = e.target?.id;
+      if (targetId === 'form-set-budget') {
+        e.preventDefault();
+        e.stopPropagation();
+        this.handleSetBudget(e);
+      } else if (targetId === 'form-set-cat-budget') {
+        e.preventDefault();
+        e.stopPropagation();
+        this.handleSetCatBudget(e);
+      } else if (targetId === 'form-create-goal') {
+        e.preventDefault();
+        e.stopPropagation();
+        this.handleCreateGoal(e);
       }
     });
 
@@ -676,15 +709,6 @@ class App {
     }
 
     // Modal Triggers
-    const bindOpenModal = (btn, modal, onOpen = null) => {
-      if (btn) {
-        btn.addEventListener('click', () => {
-          if (onOpen) onOpen();
-          this.openModal(modal);
-        });
-      }
-    };
-
     bindOpenModal(this.btnAddCategoryBudget, this.modalSetCatBudget, () => this.populateCatSelect());
     bindOpenModal(this.btnAddSavingsGoal, this.modalCreateGoal, () => this.populateGoalAccSelect());
     bindOpenModal(this.btnOpenCreateGoalMini, this.modalCreateGoal, () => this.populateGoalAccSelect());
@@ -1402,6 +1426,16 @@ class App {
       this.loadReportsData();
     } else if (tabId === 'tab-settings') {
       this.loadSettingsData();}
+  }
+
+  bindOpenModal(btn, modal, onOpen = null) {
+    if (btn && modal) {
+      btn.addEventListener('click', (e) => {
+        if (e) e.preventDefault();
+        if (onOpen) onOpen();
+        this.openModal(modal);
+      });
+    }
   }
 
   openModal(modal) {
@@ -4124,9 +4158,15 @@ class App {
   }
 
   async handleSetBudget(e) {
-    e.preventDefault();
-    const val = parseFloat(this.inputBudgetLimit.value);
-    if (!val || val <= 0) return;
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const val = parseFloat(this.inputBudgetLimit ? this.inputBudgetLimit.value : '0');
+    if (!val || val <= 0) {
+      this.showAlert('Masukkan batas pengeluaran yang valid (> 0)', 'warning');
+      return;
+    }
 
     const yr = this.selectedPlanningYear || new Date().getFullYear();
     const mo = this.selectedPlanningMonth || (new Date().getMonth() + 1);
@@ -4141,10 +4181,16 @@ class App {
   }
 
   async handleSetCatBudget(e) {
-    e.preventDefault();
-    const catId = parseInt(this.selectCatBudget.value);
-    const val = parseFloat(this.inputCatBudgetLimit.value);
-    if (!catId || !val || val <= 0) return;
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const catId = parseInt(this.selectCatBudget ? this.selectCatBudget.value : '0', 10);
+    const val = parseFloat(this.inputCatBudgetLimit ? this.inputCatBudgetLimit.value : '0');
+    if (!catId || !val || val <= 0) {
+      this.showAlert('Pilih kategori dan masukkan batas nominal yang valid', 'warning');
+      return;
+    }
 
     const yr = this.selectedPlanningYear || new Date().getFullYear();
     const mo = this.selectedPlanningMonth || (new Date().getMonth() + 1);
@@ -4159,13 +4205,19 @@ class App {
   }
 
   async handleCreateGoal(e) {
-    e.preventDefault();
-    const dedicatedAccountId = parseInt(this.selectGoalAccount.value);
-    const name = this.inputGoalName.value.trim();
-    const targetAmount = parseFloat(this.inputGoalTarget.value);
-    const targetDate = this.inputGoalDate.value || null;
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const dedicatedAccountId = parseInt(this.selectGoalAccount ? this.selectGoalAccount.value : '0', 10);
+    const name = this.inputGoalName ? this.inputGoalName.value.trim() : '';
+    const targetAmount = parseFloat(this.inputGoalTarget ? this.inputGoalTarget.value : '0');
+    const targetDate = this.inputGoalDate ? this.inputGoalDate.value || null : null;
 
-    if (!dedicatedAccountId || !name || !targetAmount) return;
+    if (!dedicatedAccountId || !name || !targetAmount) {
+      this.showAlert('Lengkapi sasaran dana, rekening, dan target nominal', 'warning');
+      return;
+    }
 
     try {
       await api.planning.createGoal({
@@ -4175,7 +4227,7 @@ class App {
         target_date: targetDate,
       });
       this.closeModals();
-      this.formCreateGoal.reset();
+      if (this.formCreateGoal) this.formCreateGoal.reset();
       this.showAlert('Target tabungan baru berhasil ditambahkan!', 'success');
       await this.loadSavingsGoals();
     } catch (err) {

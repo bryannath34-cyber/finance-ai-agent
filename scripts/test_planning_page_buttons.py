@@ -67,11 +67,12 @@ def run_tests():
         assert re.search(pattern, js), f"Property this.{prop} not initialized in app.js"
         print(f" [PASS] 4. Element this.{prop} properly initialized in app.js")
 
-    # 5. Check bindOpenModal is an arrow function (no undefined this bug)
-    assert "const bindOpenModal = (btn, modal, onOpen = null) =>" in js, (
-        "bindOpenModal must be an arrow function to avoid undefined this in ESM mode"
-    )
-    print(" [PASS] 5. bindOpenModal arrow function scoping verified (no undefined this)")
+    # 5. Check bindOpenModal is declared BEFORE any call (no TDZ / ReferenceError)
+    bind_decl_pos = js.find("const bindOpenModal = (btn, modal, onOpen = null) =>")
+    assert bind_decl_pos != -1, "bindOpenModal top-level declaration missing in attachEventListeners"
+    first_call_pos = js.find("bindOpenModal(")
+    assert bind_decl_pos <= first_call_pos, "bindOpenModal was called before its const declaration (TDZ ReferenceError bug)!"
+    print(" [PASS] 5. bindOpenModal declaration order verified (declared BEFORE any call, zero TDZ)")
 
     # 6. Check explicit event listeners for every single planning button
     assert "this.btnPlanningPeriodPicker.addEventListener('click'" in js, "btnPlanningPeriodPicker click listener missing"
@@ -93,11 +94,12 @@ def run_tests():
     assert ".btn-goal-complete" in js, ".btn-goal-complete handler missing"
     print(" [PASS] 7. Dynamic buttons (.btn-quick-cat-limit, .btn-goal-contribute, .btn-goal-complete) verified")
 
-    # 8. Check planning form submissions
+    # 8. Check planning form submissions and reload prevention
     assert "this.formSetBudget.addEventListener('submit'" in js, "formSetBudget submit listener missing"
     assert "this.formSetCatBudget.addEventListener('submit'" in js, "formSetCatBudget submit listener missing"
     assert "this.formCreateGoal.addEventListener('submit'" in js, "formCreateGoal submit listener missing"
-    print(" [PASS] 8. Planning form submission handlers (budget, cat budget, goal) verified")
+    assert "targetId === 'form-set-budget'" in js, "Delegated submit preventDefault for form-set-budget missing"
+    print(" [PASS] 8. Planning form submission handlers and delegated reload-prevention verified")
 
     # 9. Verify loadPlanningData ensures accounts and categories are fetched
     assert "this.loadCategories()" in js and "this.loadAccounts()" in js, (
@@ -105,9 +107,23 @@ def run_tests():
     )
     print(" [PASS] 9. Automatic cache-warm for categories & accounts verified")
 
+    # 10. Verify modal cancel buttons (Batal) and close fallback
+    assert 'id="btn-cancel-set-budget"' in html and 'onclick="window.app?.closeModals()"' in html, (
+        "modal-set-budget Batal button must have id and onclick fallback"
+    )
+    assert 'id="btn-cancel-set-cat-budget"' in html, "modal-set-cat-budget Batal button missing ID"
+    assert 'id="btn-cancel-create-goal"' in html, "modal-create-goal Batal button missing ID"
+    assert "e.target.closest('.btn-close-modal')" in js, "Delegated modal-close handler missing in app.js"
+    print(" [PASS] 10. Modal Batal buttons have both delegated listener and inline fallback")
+
+    # 11. Check version bump to avoid stale browser cache
+    assert 'src="js/app.js?v=2.8.8"' in html, "Cache version must be bumped to v=2.8.8"
+    print(" [PASS] 11. Script version v=2.8.8 verified for immediate cache invalidation")
+
     print("=" * 60)
     print("ALL ANGGARAN & TABUNGAN BUTTON TESTS PASSED (100% GREEN)")
     print("=" * 60)
 
 if __name__ == "__main__":
     run_tests()
+
