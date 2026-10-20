@@ -72,6 +72,8 @@ class App {
     this.loginTotpCode = document.getElementById('login-totp-code');
     this.loginError = document.getElementById('login-error');
     this.authFeedback = document.getElementById('auth-feedback');
+    this.authFeedbackMessage = document.getElementById('auth-feedback-message');
+    this.authFeedbackClose = document.getElementById('auth-feedback-close');
     this.sessionCheckPanel = document.getElementById('session-check-panel');
     this.sessionCheckMessage = document.getElementById('session-check-message');
     this.btnRetrySessionCheck = document.getElementById('btn-retry-session-check');
@@ -1077,6 +1079,9 @@ class App {
         this.btnToggleLoginPassword.title = isPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi';
       });
     }
+    if (this.authFeedbackClose) {
+      this.authFeedbackClose.addEventListener('click', () => this.hideAuthFeedback());
+    }
 
     if (this.btnGoogleLogin) {
       this.btnGoogleLogin.addEventListener('click', async () => {
@@ -1090,7 +1095,7 @@ class App {
             });
             if (error) throw error;
           } else {
-            this.showAlert('Login Google belum dikonfigurasi di server. Gunakan email dan kata sandi untuk masuk.', 'warning');
+            this.showAlert('Login Google belum tersedia. Silakan masuk dengan email dan kata sandi.', 'warning');
           }
         } catch (err) {
           this.showAlert(`Google OAuth: ${err.message || err}`, 'error');
@@ -1368,13 +1373,18 @@ class App {
 
   showAuthFeedback(message, type = 'warning') {
     if (!this.authFeedback) return;
-    this.authFeedback.textContent = message;
+    if (this.authFeedbackMessage) this.authFeedbackMessage.textContent = message;
     this.authFeedback.className = `auth-feedback is-${type}`;
     this.authFeedback.hidden = false;
     clearTimeout(this.authFeedbackTimer);
     this.authFeedbackTimer = setTimeout(() => {
-      if (this.authFeedback) this.authFeedback.hidden = true;
-    }, 7000);
+      this.hideAuthFeedback();
+    }, 4500);
+  }
+
+  hideAuthFeedback() {
+    clearTimeout(this.authFeedbackTimer);
+    if (this.authFeedback) this.authFeedback.hidden = true;
   }
 
   formatIDR(num) {
@@ -1492,6 +1502,7 @@ class App {
   }
 
   showAuthView(viewName) {
+    this.hideAuthFeedback();
     if (this.authViewLogin) this.authViewLogin.style.display = (viewName === 'login') ? 'block' : 'none';
     if (this.authViewSignup) this.authViewSignup.style.display = (viewName === 'signup') ? 'block' : 'none';
     if (this.authViewReset) this.authViewReset.style.display = (viewName === 'reset') ? 'block' : 'none';

@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=2.7.6">
+  <link rel="stylesheet" href="css/style.css?v=2.7.8">
   <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
   <link rel="shortcut icon" type="image/svg+xml" href="favicon.svg?v=3">
   <link rel="apple-touch-icon" href="favicon.svg?v=3">
@@ -3462,7 +3462,14 @@
               </div>
             </div>
 
-            <div id="auth-feedback" class="auth-feedback" role="status" aria-live="polite" hidden></div>
+            <div id="auth-feedback" class="auth-feedback" role="status" aria-live="polite" hidden>
+              <span class="auth-feedback-icon" aria-hidden="true"></span>
+              <span id="auth-feedback-message" class="auth-feedback-message"></span>
+              <button type="button" id="auth-feedback-close" class="auth-feedback-close" aria-label="Tutup pemberitahuan">
+                <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15" /></svg>
+              </button>
+              <span class="auth-feedback-progress" aria-hidden="true"></span>
+            </div>
 
             <!-- VIEW 1: LOGIN (Figma Screen 01) -->
             <div id="auth-view-login">
@@ -3825,7 +3832,7 @@
       </div>
     </div>
 
-  <script type="module" src="js/app.js?v=2.7.7"></script>
+  <script type="module" src="js/app.js?v=2.7.8"></script>
 </body>
 
 </html>
