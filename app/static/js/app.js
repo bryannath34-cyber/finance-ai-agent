@@ -676,14 +676,14 @@ class App {
     }
 
     // Modal Triggers
-    function bindOpenModal(btn, modal, onOpen = null) {
+    const bindOpenModal = (btn, modal, onOpen = null) => {
       if (btn) {
         btn.addEventListener('click', () => {
           if (onOpen) onOpen();
           this.openModal(modal);
         });
       }
-    }
+    };
 
     bindOpenModal(this.btnAddCategoryBudget, this.modalSetCatBudget, () => this.populateCatSelect());
     bindOpenModal(this.btnAddSavingsGoal, this.modalCreateGoal, () => this.populateGoalAccSelect());
@@ -691,18 +691,60 @@ class App {
     bindOpenModal(this.btnOpenAbout, this.modalAbout);
     bindOpenModal(this.btnOpenHelp, this.modalAbout);
 
+    // Direct event handlers for Planning page actions (robustness guarantee)
+    if (this.btnEditBudgetPagu) {
+      this.btnEditBudgetPagu.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.openMonthlyBudgetModal();
+      });
+    }
+
+    if (this.btnSetBudgetMonthPill) {
+      this.btnSetBudgetMonthPill.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.openMonthlyBudgetModal();
+      });
+    }
+
+    if (this.btnAddCategoryBudget) {
+      this.btnAddCategoryBudget.addEventListener('click', async () => {
+        await this.populateCatSelect();
+        this.openModal(this.modalSetCatBudget);
+      });
+    }
+
+    if (this.btnAddSavingsGoal) {
+      this.btnAddSavingsGoal.addEventListener('click', async () => {
+        await this.populateGoalAccSelect();
+        this.openModal(this.modalCreateGoal);
+      });
+    }
+
     // Explicit fallback click handler for + Tambah on Tujuan Tabungan mini card
     if (this.btnOpenCreateGoalMini) {
-      this.btnOpenCreateGoalMini.addEventListener('click', () => {
+      this.btnOpenCreateGoalMini.addEventListener('click', async () => {
+        await this.populateGoalAccSelect();
         this.openModal(this.modalCreateGoal);
-        this.populateGoalAccSelect();
       });
     }
 
     if (this.btnPlanContribution) {
-      this.btnPlanContribution.addEventListener('click', () => {
-        this.openModal(this.modalCreateGoal);
-        this.populateGoalAccSelect();
+      this.btnPlanContribution.addEventListener('click', async () => {
+        if (this.savingsGoals && this.savingsGoals.length > 0) {
+          const firstGoal = this.savingsGoals[0];
+          this.openCreateTxModal();
+          this.setCreateTxType('TRANSFER');
+          if (this.selectCreateTxDestAcc && firstGoal.dedicated_account_id) {
+            this.selectCreateTxDestAcc.value = firstGoal.dedicated_account_id;
+          }
+          if (this.inputCreateTxDesc) {
+            this.inputCreateTxDesc.value = `Setoran Tabungan: ${firstGoal.name}`;
+          }
+          this.showAlert(`Menyiapkan mutasi setor dana ke target '${firstGoal.name}'`, 'info');
+        } else {
+          await this.populateGoalAccSelect();
+          this.openModal(this.modalCreateGoal);
+        }
       });
     }
 
@@ -3737,6 +3779,8 @@ class App {
     await Promise.all([
       this.loadBudgetOverview(this.selectedPlanningYear, this.selectedPlanningMonth),
       this.loadSavingsGoals(),
+      (!this.categories || this.categories.length === 0) ? this.loadCategories() : Promise.resolve(),
+      (!this.accounts || this.accounts.length === 0) ? this.loadAccounts() : Promise.resolve(),
     ]);
   }
 
@@ -4048,11 +4092,14 @@ class App {
     }
   }
 
-  populateCatSelect() {
+  async populateCatSelect() {
     if (!this.selectCatBudget) return;
+    if (!this.categories || this.categories.length === 0) {
+      await this.loadCategories();
+    }
     this.selectCatBudget.innerHTML = '';
-    const expenseCats = this.categories.filter((c) => c.type === 'EXPENSE' || !c.type);
-    const list = expenseCats.length > 0 ? expenseCats : this.categories;
+    const expenseCats = (this.categories || []).filter((c) => c.type === 'EXPENSE' || !c.type);
+    const list = expenseCats.length > 0 ? expenseCats : (this.categories || []);
 
     list.forEach((c) => {
       const opt = document.createElement('option');
@@ -4062,10 +4109,13 @@ class App {
     });
   }
 
-  populateGoalAccSelect() {
+  async populateGoalAccSelect() {
     if (!this.selectGoalAccount) return;
+    if (!this.accounts || this.accounts.length === 0) {
+      await this.loadAccounts();
+    }
     this.selectGoalAccount.innerHTML = '';
-    this.accounts.forEach((a) => {
+    (this.accounts || []).forEach((a) => {
       const opt = document.createElement('option');
       opt.value = a.id;
       opt.textContent = `${a.name} (${this.formatIDR(a.current_balance)})`;
