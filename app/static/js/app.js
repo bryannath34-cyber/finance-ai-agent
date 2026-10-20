@@ -162,6 +162,9 @@ class App {
     this.ledgerSearchInput = document.getElementById('ledger-search-input');
     this.ledgerTypeSelect = document.getElementById('ledger-type-select');
     this.ledgerMonthSelect = document.getElementById('ledger-month-select');
+    this.ledgerCategorySelect = document.getElementById('ledger-category-select');
+    this.transaksiPeriodText = document.getElementById('transaksi-period-text');
+    this.ledgerAktivitasSubtitle = document.getElementById('ledger-aktivitas-subtitle');
     this.alertBox = document.getElementById('alert-box');
 
     // Ledger CRUD Modals & Form Elements
@@ -628,6 +631,9 @@ class App {
     }
     if (this.ledgerTypeSelect) {
       this.ledgerTypeSelect.addEventListener('change', () => this.applyLedgerFilters());
+    }
+    if (this.ledgerCategorySelect) {
+      this.ledgerCategorySelect.addEventListener('change', () => this.applyLedgerFilters());
     }
 
     // Tab 1 Events (AI Parse & Voice)
@@ -1695,9 +1701,18 @@ class App {
     try {
       const res = await api.categories.list();
       this.categories = res.data || [];
+      this.populateLedgerCategoryFilter();
     } catch (err) {
       console.warn('Gagal memuat kategori:', err);
     }
+  }
+
+  populateLedgerCategoryFilter() {
+    if (!this.ledgerCategorySelect) return;
+    const currentVal = this.ledgerCategorySelect.value || 'ALL';
+    this.ledgerCategorySelect.innerHTML = '<option value="ALL">Semua kategori</option>' +
+      (this.categories || []).map((c) => `<option value="${c.name}">${c.name}</option>`).join('');
+    this.ledgerCategorySelect.value = currentVal;
   }
 
   async loadHistory() {
@@ -1783,6 +1798,7 @@ class App {
     const q = this.ledgerSearchInput ? this.ledgerSearchInput.value.toLowerCase().trim() : '';
     const typeFilter = this.ledgerTypeSelect ? this.ledgerTypeSelect.value : 'ALL';
     const monthFilter = this.ledgerMonthSelect ? this.ledgerMonthSelect.value : '';
+    const catFilter = this.ledgerCategorySelect ? this.ledgerCategorySelect.value : 'ALL';
 
     this.filteredTransactions = this.transactions.filter((tx) => {
       const descMatch = (tx.description || '').toLowerCase().includes(q);
@@ -1791,13 +1807,14 @@ class App {
       const textMatches = !q || descMatch || catMatch || accMatch;
 
       const typeMatches = typeFilter === 'ALL' || tx.type === typeFilter;
+      const catMatches = catFilter === 'ALL' || (tx.category_name || '') === catFilter;
 
       let monthMatches = true;
       if (monthFilter && monthFilter !== 'ALL') {
         monthMatches = Boolean(tx.transaction_date && tx.transaction_date.startsWith(monthFilter));
       }
 
-      return textMatches && typeMatches && monthMatches;
+      return textMatches && typeMatches && monthMatches && catMatches;
     });
 
     this.renderHistory();
@@ -2128,27 +2145,41 @@ class App {
     return `<div class="td-desc">${tagHtml}<span>${text}</span>${reasonHtml}</div>`;
   }
 
-  // Render Ledger History in Figma Screen 02 Table Style
+  // Render Ledger History in Figma Screen 02 Table Style (4 Columns matching Mockup)
   renderHistory() {
     const list = this.filteredTransactions || this.transactions;
     this.historyTableBody.innerHTML = '';
 
+    const monthFilter = this.ledgerMonthSelect ? this.ledgerMonthSelect.value : '';
+    const now = new Date();
+    const curY = now.getFullYear();
+    const curM = now.getMonth() + 1;
+    const monthNames = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    let mLabel = `${monthNames[curM] || 'Oktober'} ${curY}`;
+    if (monthFilter && monthFilter !== 'ALL') {
+      const [y, mStr] = monthFilter.split('-');
+      const m = parseInt(mStr, 10);
+      mLabel = `${monthNames[m] || mStr} ${y}`;
+    }
+
+    if (this.ledgerAktivitasSubtitle) {
+      this.ledgerAktivitasSubtitle.textContent = `${mLabel} · ${list.length} transaksi`;
+    }
+    if (this.transaksiPeriodText) {
+      this.transaksiPeriodText.textContent = mLabel;
+    }
+
     if (list.length === 0) {
-      const monthFilter = this.ledgerMonthSelect ? this.ledgerMonthSelect.value : '';
       let emptyTitle = 'Tidak ada transaksi yang cocok.';
       let emptyDesc = '';
 
       if (monthFilter && monthFilter !== 'ALL') {
-        const [y, mStr] = monthFilter.split('-');
-        const m = parseInt(mStr, 10);
-        const monthNames = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-        const monthLabel = `${monthNames[m] || mStr} ${y}`;
-        emptyTitle = `Buku besar periode ${monthLabel} masih kosong`;
-        emptyDesc = `Belum ada mutasi yang dicatat di bulan ${monthLabel}. Jika memasuki bulan baru, transaksi akan dimulai dari nol. Anda dapat memilih bulan sebelumnya pada menu di atas untuk melihat data lampau.`;
+        emptyTitle = `Buku besar periode ${mLabel} masih kosong`;
+        emptyDesc = `Belum ada mutasi yang dicatat di bulan ${mLabel}. Jika memasuki bulan baru, transaksi akan dimulai dari nol. Anda dapat memilih bulan sebelumnya pada menu di atas untuk melihat data lampau.`;
       }
 
       this.historyTableBody.innerHTML = `
-        <tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 28px 16px;">
+        <tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 28px 16px;">
           <div style="font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">
             ${emptyTitle}
           </div>
@@ -2162,57 +2193,60 @@ class App {
       const tr = document.createElement('tr');
       const isRev = tx.is_reversal;
       const role = tx.ledger_role;
+      const isIncome = tx.type === 'INCOME';
 
-      let pillClass = 'cat-rose';
-      let statusLabel = 'EXPENSE';
-      let isIncome = false;
-
-      if (isRev) {
-        pillClass = 'cat-rose';
-        statusLabel = 'REVERSAL';
-      } else if (tx.type === 'INCOME') {
-        pillClass = 'cat-green';
-        statusLabel = 'INCOME';
-        isIncome = true;
-      } else if (tx.type === 'TRANSFER') {
-        pillClass = 'cat-blue';
-        statusLabel = 'TRANSFER';
+      let shortDate = '-';
+      if (tx.transaction_date) {
+        try {
+          const parts = tx.transaction_date.split('-');
+          if (parts.length === 3) {
+            const shortMonths = ['', 'Okt', 'Okt', 'Okt', 'Okt', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+            const indMonths = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+            const m = parseInt(parts[1], 10);
+            shortDate = `${parseInt(parts[2], 10)} ${indMonths[m] || parts[1]}`;
+          } else {
+            shortDate = tx.transaction_date;
+          }
+        } catch {
+          shortDate = tx.transaction_date;
+        }
       }
 
-      let accountsDisplay = '-';
-      if (tx.type === 'EXPENSE') accountsDisplay = `${tx.source_account_name || 'Rekening'}`;
-      else if (tx.type === 'INCOME') accountsDisplay = `${tx.destination_account_name || 'Rekening'}`;
-      else if (tx.type === 'TRANSFER') accountsDisplay = `${tx.source_account_name || 'Sumber'} ${Icons.arrowRight} ${tx.destination_account_name || 'Tujuan'}`;
-
-      const dateStr = this.formatDateID(tx.transaction_date);
-      const sign = isIncome ? '+' : '-';
-      const amountClass = isIncome ? 'income' : 'expense';
+      const sign = isIncome ? '+ ' : '- ';
+      const amountColor = isIncome ? '#166534' : '#111827';
 
       tr.innerHTML = `
-        <td class="td-date">${dateStr}</td>
-        <td>${this.formatTxDescription(tx.description, isRev)}</td>
-        <td class="td-category">${tx.category_name || '-'}</td>
-        <td class="td-account">${accountsDisplay}</td>
-        <td class="td-amount ${amountClass}">${sign}${this.formatIDR(tx.amount)}</td>
-        <td><span class="badge-cat-pill ${pillClass}">${statusLabel}</span></td>
-        <td style="text-align: right;">
-          <div style="display: flex; gap: 4px; justify-content: flex-end; align-items: center;">
-            ${!isRev && role !== 'ADMIN_FEE' ? `
-              <button type="button" class="btn-ledger-action btn-edit-tx" data-id="${tx.id}" title="Sunting transaksi">
-                ${Icons.edit}
-              </button>
-            ` : ''}
-            ${role !== 'ADMIN_FEE' ? `
-              <button type="button" class="btn-ledger-action danger btn-delete-tx" data-id="${tx.id}" title="Hapus transaksi">
-                ${Icons.trash}
-              </button>
-            ` : ''}
-            ${!isRev && role !== 'ADMIN_FEE' ? `
-              <button type="button" class="btn-draft-edit btn-reverse" data-id="${tx.id}" title="Terbitkan jurnal pembalik">
-                Balikkan
-              </button>
-            ` : ''}
-            ${isRev && role !== 'ADMIN_FEE' ? '' : (role === 'ADMIN_FEE' ? '—' : '')}
+        <td class="td-transaksi">
+          <div class="aktivitas-row-desc">
+            ${this.formatTxDescription(tx.description, isRev)}
+          </div>
+        </td>
+        <td class="td-tanggal">${shortDate}</td>
+        <td class="td-kategori">
+          <span class="aktivitas-cat-text">${tx.category_name || '-'}</span>
+        </td>
+        <td class="td-jumlah" style="text-align: right;">
+          <div class="aktivitas-amount-wrap">
+            <span class="aktivitas-amount-val" style="color: ${amountColor};">
+              ${sign}${this.formatIDR(tx.amount)}
+            </span>
+            <div class="aktivitas-hover-actions">
+              ${!isRev && role !== 'ADMIN_FEE' ? `
+                <button type="button" class="btn-ledger-action btn-edit-tx" data-id="${tx.id}" title="Sunting transaksi">
+                  ${Icons.edit}
+                </button>
+              ` : ''}
+              ${role !== 'ADMIN_FEE' ? `
+                <button type="button" class="btn-ledger-action danger btn-delete-tx" data-id="${tx.id}" title="Hapus transaksi">
+                  ${Icons.trash}
+                </button>
+              ` : ''}
+              ${!isRev && role !== 'ADMIN_FEE' ? `
+                <button type="button" class="btn-draft-edit btn-reverse" data-id="${tx.id}" title="Terbitkan jurnal pembalik">
+                  Balikkan
+                </button>
+              ` : ''}
+            </div>
           </div>
         </td>
       `;

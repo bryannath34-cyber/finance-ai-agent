@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=2.7.12">
+  <link rel="stylesheet" href="css/style.css?v=2.8.0">
   <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
   <link rel="shortcut icon" type="image/svg+xml" href="favicon.svg?v=3">
   <link rel="apple-touch-icon" href="favicon.svg?v=3">
@@ -248,281 +248,290 @@
       <div id="alert-box" class="alert-box" style="display: none;"></div>
 
       <!-- ================================================================
-           SCREEN 02: TAB MUTASI & SUARA AI (3 STACKED FULL-WIDTH CARDS)
-           Matches Figma Screen 02 1:1
+           SCREEN 02: TAB TRANSAKSI (Matches Figma Desktop & Mobile Mockup 1:1)
            ================================================================ -->
       <div id="tab-mutasi" class="tab-content">
-          <div class="transaction-page-heading">
-            <span class="page-eyebrow">RUANG KEUANGAN</span>
-            <h1>Transaksi</h1>
-            <p>Catat, tinjau, dan kelola aktivitas keuanganmu di satu tempat.</p>
+
+        <!-- Top Breadcrumb & Actions Bar -->
+        <div class="transaksi-top-bar">
+          <div class="transaksi-breadcrumb">Ruang keuangan / Transaksi</div>
+          <div class="transaksi-top-actions">
+            <button type="button" class="transaksi-period-pill" id="btn-transaksi-period" title="Periode aktif">
+              <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+              <span id="transaksi-period-text">Oktober 2026</span>
+            </button>
+            <button type="button" class="transaksi-bell-btn" title="Notifikasi" aria-label="Notifikasi">
+              <svg class="ui-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+              </svg>
+              <span class="bell-dot"></span>
+            </button>
           </div>
-          <!-- CARD 0: Posisi Saldo Rekening & Uang di Bank -->
-          <div class="figma-card ai-bank-card">
-            <div class="card-header-row ai-bank-header-row">
-              <div class="card-title-group">
-                <span class="card-header-icon blue" style="background: var(--accent-blue-bg); color: var(--accent-blue);">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="2" y="4" width="20" height="16" rx="3" />
-                    <line x1="2" y1="10" x2="22" y2="10" />
-                  </svg>
-                </span>
-                <div>
-                  <span class="card-section-title">Uang di Bank & Saldo Rekening</span>
-                  <div class="card-subtitle-text">
-                    Posisi saldo likuid riil yang tersedia di setiap rekening aktif
-                  </div>
-                </div>
-              </div>
-              <div class="ai-bank-actions">
-                <button type="button" class="card-action-link" id="btn-toggle-ai-balances" title="Sembunyikan/Tampilkan Saldo">
-                  <svg class="ui-icon icon-eye-toggle" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                    <circle cx="12" cy="12" r="3" />
-                  </svg>
-                  <span>Mata</span>
-                </button>
-                <button type="button" class="card-action-link" id="btn-refresh-ai-accounts">Segarkan</button>
-                <button type="button" class="card-action-link" id="btn-add-account-ai">+ Tambah Akun</button>
-              </div>
-            </div>
-
-            <!-- Total Saldo Likuid Hero Bar (Consistent with Dashboard KPI & Net Worth) -->
-            <div class="ai-bank-hero-bar">
-              <div class="ai-bank-hero-left">
-                <span class="ai-bank-hero-label">Total Uang Likuid Tersedia</span>
-                <div class="ai-bank-hero-amount" id="ai-total-liquid-balance" data-real-balance="Rp 0">Rp 0</div>
-              </div>
-              <div class="ai-bank-hero-badge">
-                <span class="ai-bank-live-dot"></span>
-                <span>Terhubung Buku Besar</span>
-              </div>
-            </div>
-
-            <!-- Grid / Scrollable Cards Rekening (Desktop Grid, Mobile Horizontal Scroll) -->
-            <div class="ai-accounts-grid" id="ai-accounts-grid">
-              <div style="color: var(--text-muted); font-size: 11px; padding: 12px 0;">Memuat saldo rekening...</div>
-            </div>
-          </div>
-
-          <!-- CARD 1: Asisten AI Command Center -->
-          <div class="figma-card transaction-ai-card" style="padding: 16px 20px;">
-            <div class="card-header-row">
-              <div class="card-title-group">
-                <span class="card-header-icon">
-                  <svg class="ui-icon ui-icon-spark" width="14" height="14" viewBox="0 0 24 24">
-                    <path
-                      d="M12 2C12 7.5 7.5 12 2 12C7.5 12 12 16.5 12 22C12 16.5 16.5 12 22 12C16.5 12 12 7.5 12 2Z" />
-                  </svg>
-                </span>
-                <span class="card-section-title">Catat transaksi dengan AI</span>
-              </div>
-              <div class="ai-online-badge">Draft aman</div>
-            </div>
-            <div class="card-subtitle-text">
-              Tulis seperti biasa. AI membantu menyusun detail transaksi menjadi draft untuk kamu periksa.
-            </div>
-
-            <div class="transaction-ai-compose">
-              <textarea id="ai-input" class="ai-textarea" aria-label="Tulis transaksi untuk dicatat dengan AI"
-                placeholder="Contoh: Baru beli nasgor Rp25.000 hari ini"></textarea>
-              <button type="button" id="btn-parse" class="btn-process">
-                <span>Buat draft transaksi</span>
-              </button>
-            </div>
-
-            <div class="transaction-ai-footer">
-              <button type="button" class="transaction-ai-example" data-ai-example="Baru beli nasgor Rp25.000 hari ini" data-ai-target="ai-input">
-                <span class="transaction-ai-example-label">COBA CONTOH</span>
-                Baru beli nasgor Rp25.000 hari ini
-              </button>
-              <div class="transaction-ai-footer-meta">
-                <span id="record-status" class="voice-helper-text">Bahasa Indonesia · hasil suara bisa diperiksa sebelum diproses</span>
-                <button type="button" id="btn-record" class="btn-voice">
-                  <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                    <line x1="12" y1="19" x2="12" y2="22" />
-                  </svg>
-                  <span>Rekam suara</span>
-                </button>
-              </div>
-            </div>
-
-            <div id="ai-process-status" class="ai-process-status" role="status" aria-live="polite" style="display: none;">
-              <span class="ai-process-indicator" aria-hidden="true"></span>
-              <div class="ai-process-copy">
-                <strong id="ai-process-title">Menyiapkan analisis</strong>
-                <span id="ai-process-detail">Teks transaksi tetap bisa kamu tinjau sebelum dikonfirmasi.</span>
-              </div>
-              <button type="button" id="btn-retry-ai" class="ai-retry-btn" style="display: none;">Coba lagi</button>
-            </div>
-
-            <!-- AI Copilot Natural Response Box -->
-            <div id="ai-response-box" class="ai-response-box" style="display: none;">
-              <div class="ai-response-header">
-                <div class="ai-response-title">
-                  <svg class="ui-icon ui-icon-spark" width="14" height="14" viewBox="0 0 24 24">
-                    <path d="M12 2C12 7.5 7.5 12 2 12C7.5 12 12 16.5 12 22C12 16.5 16.5 12 22 12C16.5 12 12 7.5 12 2Z" />
-                  </svg>
-                  <span>Jawaban AI Copilot</span>
-                </div>
-                <button type="button" id="btn-close-ai-response" class="btn-close-ai-msg" title="Tutup Tanggapan">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                  </svg>
-                </button>
-              </div>
-              <div id="ai-response-body" class="ai-response-body"></div>
-            </div>
-          </div>
-
-          <!-- CARD 2: Tinjau draft transaksi -->
-          <div class="figma-card draft-review-card" id="draft-section" style="padding: 16px 20px;">
-            <div class="card-header-row">
-              <div class="card-title-group">
-                <span class="card-header-icon">
-                  <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                    <polyline points="14 2 14 8 20 8" />
-                    <line x1="16" y1="13" x2="8" y2="13" />
-                    <line x1="16" y1="17" x2="8" y2="17" />
-                  </svg>
-                </span>
-                <span class="card-section-title">Tinjau draft transaksi</span>
-              </div>
-              <span id="draft-count-text" style="font-size: 10px; color: var(--accent-blue); font-weight: 500;">0
-                draft</span>
-            </div>
-            <div class="card-subtitle-text">
-              Periksa nominal, kategori, akun sumber, dan tipe transaksi sebelum konfirmasi.
-            </div>
-
-            <div class="figma-table-wrapper">
-              <table class="figma-table">
-                <thead>
-                  <tr>
-                    <th style="width: 35px;">No.</th>
-                    <th style="width: 210px;">Deskripsi</th>
-                    <th style="width: 170px;">Kategori</th>
-                    <th style="width: 130px;">Jumlah</th>
-                    <th style="width: 130px;">Akun</th>
-                    <th style="width: 110px;">Tipe</th>
-                    <th style="width: 110px;">Status</th>
-                    <th style="width: 100px; text-align: right;">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody id="draft-table-body">
-                  <tr>
-                    <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 18px;">
-                      Belum ada draft mutasi. Tulis atau rekam kalimat mutasi pada Command Center di atas.
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div class="draft-footer-row" id="draft-footer-row" style="display: none;">
-              <span class="draft-total-text" id="draft-total-summary">Total pengeluaran draft: Rp 0</span>
-              <button type="button" id="btn-confirm-batch" class="btn-confirm-all-pill">
-                <svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                <span>Konfirmasi semua draft</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- CARD 3: Riwayat buku besar -->
-          <div class="figma-card ledger-history-card" style="padding: 16px 20px;">
-            <div class="card-header-row ledger-card-header">
-              <div class="ledger-card-title-block">
-                <div class="card-title-group">
-                  <span class="card-header-icon">
-                    <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                      stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                      <circle cx="12" cy="12" r="10" />
-                      <polyline points="12 6 12 12 16 14" />
-                    </svg>
-                  </span>
-                  <span class="card-section-title">Riwayat buku besar</span>
-                </div>
-                <div class="card-subtitle-text">
-                  Transaksi yang sudah dikonfirmasi. Data bersifat immutable.
-                </div>
-              </div>
-
-              <!-- Ledger Toolbar (Search, Month, Type, + Catat Transaksi) -->
-              <div class="ledger-toolbar">
-                <div class="ledger-search-box">
-                  <svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="11" cy="11" r="8" />
-                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                  </svg>
-                  <input type="text" id="ledger-search-input" class="ledger-search-input"
-                    placeholder="Cari transaksi...">
-                </div>
-                <div class="ledger-filter-row">
-                  <select id="ledger-month-select" class="ledger-filter-select">
-                    <option value="">Bulan Ini</option>
-                    <option value="ALL">Semua Periode</option>
-                  </select>
-                  <select id="ledger-type-select" class="ledger-filter-select">
-                    <option value="ALL">Semua tipe</option>
-                    <option value="EXPENSE">Pengeluaran</option>
-                    <option value="INCOME">Pemasukan</option>
-                    <option value="TRANSFER">Transfer</option>
-                  </select>
-                </div>
-                <button type="button" class="btn-primary-dark btn-ledger-create" id="btn-open-create-tx">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="12" y1="5" x2="12" y2="19" />
-                    <line x1="5" y1="12" x2="19" y2="12" />
-                  </svg>
-                  <span>Catat Transaksi</span>
-                </button>
-                <button type="button" class="btn-secondary-light btn-ledger-import" id="btn-import-csv" title="Header wajib: type, amount. Kolom lain: date, account, source_account, destination_account, category, description, admin_fee." aria-label="Impor CSV transaksi">
-                  <span>Impor CSV</span>
-                </button>
-                <input type="file" id="input-import-csv" accept=".csv,text/csv" hidden>
-              </div>
-            </div>
-
-            <div class="figma-table-wrapper">
-              <table class="figma-table">
-                <thead>
-                  <tr>
-                    <th style="width: 105px;">Tanggal</th>
-                    <th style="width: 245px;">Deskripsi</th>
-                    <th style="width: 175px;">Kategori</th>
-                    <th style="width: 160px;">Akun</th>
-                    <th style="width: 160px;">Nominal</th>
-                    <th style="width: 110px;">Status</th>
-                    <th style="width: 100px; text-align: right;">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody id="history-table-body">
-                  <tr>
-                    <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 18px;">Memuat
-                      transaksi...</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div class="ledger-footer-note">
-              Tampilan transaksi · Data bersifat real-time dari MySQL DB System · Konfirmasi draft adalah langkah
-              terpisah dari pencatatan ledger.
-            </div>
-          </div>
-
         </div>
+
+        <!-- Page Hero: Title & Action Buttons -->
+        <div class="transaksi-hero-row">
+          <div class="transaksi-hero-titles">
+            <h1 class="transaksi-hero-title">Transaksi</h1>
+            <p class="transaksi-hero-subtitle">Satu tempat untuk catat, impor, dan periksa aktivitas.</p>
+          </div>
+          <div class="transaksi-hero-actions">
+            <button type="button" class="btn-transaksi-import" id="btn-import-csv" data-open-csv-import>
+              <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="12" y1="18" x2="12" y2="12"></line>
+                <line x1="9" y1="15" x2="15" y2="15"></line>
+              </svg>
+              <span>Impor CSV</span>
+            </button>
+            <button type="button" class="btn-transaksi-create" id="btn-open-create-tx">
+              <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>Catat transaksi</span>
+            </button>
+            <input type="file" id="input-import-csv" accept=".csv,text/csv" hidden>
+          </div>
+        </div>
+
+        <!-- CARD 1: Pencatatan Cerdas (Ceritakan transaksimu) -->
+        <div class="cerdas-card">
+          <div class="cerdas-header">
+            <div class="cerdas-header-left">
+              <div class="cerdas-icon-circle">
+                <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2C12 7.5 7.5 12 2 12C7.5 12 12 16.5 12 22C12 16.5 16.5 12 22 12C16.5 12 12 7.5 12 2Z"></path>
+                </svg>
+              </div>
+              <div class="cerdas-titles">
+                <div class="cerdas-eyebrow">PENCATATAN CERDAS</div>
+                <h2 class="cerdas-title">Ceritakan transaksimu</h2>
+                <p class="cerdas-desc">Tulis santai. AI bantu susun detailnya jadi draft.</p>
+              </div>
+            </div>
+            <div class="cerdas-badge">
+              <span class="cerdas-dot"></span>
+              <span>Draft aman</span>
+            </div>
+          </div>
+
+          <div class="cerdas-input-box">
+            <textarea id="ai-input" class="cerdas-textarea" placeholder="Contoh: Baru beli nasgor Rp25.000 hari ini" aria-label="Tulis transaksi untuk dicatat dengan AI"></textarea>
+            <button type="button" id="btn-parse" class="btn-cerdas-draft">
+              <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2C12 7.5 7.5 12 2 12C7.5 12 12 16.5 12 22C12 16.5 16.5 12 22 12C16.5 12 12 7.5 12 2Z"></path>
+              </svg>
+              <span>Buat draft</span>
+            </button>
+          </div>
+
+          <div class="cerdas-footer">
+            <div class="cerdas-example-group">
+              <button type="button" class="cerdas-example-link" data-ai-example="Baru beli nasgor Rp25.000 hari ini" data-ai-target="ai-input">
+                <span class="cerdas-example-label">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg>
+                  COBA CONTOH
+                </span>
+                <span class="cerdas-example-text">Baru beli nasgor Rp25.000 hari ini</span>
+              </button>
+            </div>
+            <div class="cerdas-safety-info">
+              <svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                <polyline points="9 12 11 14 15 10"></polyline>
+              </svg>
+              <span>Belum tersimpan sampai kamu konfirmasi</span>
+            </div>
+          </div>
+
+          <!-- Subtle Voice Integration for System Operability -->
+          <div class="cerdas-voice-row">
+            <span id="record-status" class="voice-helper-text">Bahasa Indonesia · hasil suara bisa diperiksa</span>
+            <button type="button" id="btn-record" class="btn-voice-mini" title="Rekam suara transaksi">
+              <svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                <line x1="12" y1="19" x2="12" y2="22" />
+              </svg>
+              <span>Rekam suara</span>
+            </button>
+          </div>
+
+          <!-- AI Process Status & Response Elements -->
+          <div id="ai-process-status" class="ai-process-status" role="status" aria-live="polite" style="display: none;">
+            <span class="ai-process-indicator" aria-hidden="true"></span>
+            <div class="ai-process-copy">
+              <strong id="ai-process-title">Menyiapkan analisis</strong>
+              <span id="ai-process-detail">Teks transaksi tetap bisa kamu tinjau sebelum dikonfirmasi.</span>
+            </div>
+            <button type="button" id="btn-retry-ai" class="ai-retry-btn" style="display: none;">Coba lagi</button>
+          </div>
+
+          <div id="ai-response-box" class="ai-response-box" style="display: none;">
+            <div class="ai-response-header">
+              <div class="ai-response-title">
+                <svg class="ui-icon ui-icon-spark" width="14" height="14" viewBox="0 0 24 24">
+                  <path d="M12 2C12 7.5 7.5 12 2 12C7.5 12 12 16.5 12 22C12 16.5 16.5 12 22 12C16.5 12 12 7.5 12 2Z" />
+                </svg>
+                <span>Jawaban AI Copilot</span>
+              </div>
+              <button type="button" id="btn-close-ai-response" class="btn-close-ai-msg" title="Tutup Tanggapan">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+            <div id="ai-response-body" class="ai-response-body"></div>
+          </div>
+        </div>
+
+        <!-- STAGING: Tinjau Draft Transaksi (Displays when drafts exist) -->
+        <div class="figma-card draft-review-card" id="draft-section" style="padding: 16px 20px; display: none; margin-bottom: 24px;">
+          <div class="card-header-row">
+            <div class="card-title-group">
+              <span class="card-header-icon">
+                <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="16" y1="13" x2="8" y2="13" />
+                  <line x1="16" y1="17" x2="8" y2="17" />
+                </svg>
+              </span>
+              <span class="card-section-title">Tinjau draft transaksi</span>
+            </div>
+            <span id="draft-count-text" style="font-size: 11px; color: #1E5338; font-weight: 600;">0 draft</span>
+          </div>
+          <div class="card-subtitle-text" style="margin-bottom: 12px; font-size: 11px; color: var(--text-secondary);">
+            Periksa nominal, kategori, akun sumber, dan tipe transaksi sebelum konfirmasi.
+          </div>
+
+          <div class="figma-table-wrapper">
+            <table class="figma-table">
+              <thead>
+                <tr>
+                  <th style="width: 35px;">No.</th>
+                  <th style="width: 210px;">Deskripsi</th>
+                  <th style="width: 170px;">Kategori</th>
+                  <th style="width: 130px;">Jumlah</th>
+                  <th style="width: 130px;">Akun</th>
+                  <th style="width: 110px;">Tipe</th>
+                  <th style="width: 110px;">Status</th>
+                  <th style="width: 100px; text-align: right;">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="draft-table-body">
+                <tr>
+                  <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 18px;">
+                    Belum ada draft mutasi. Tulis kalimat mutasi pada formulir di atas.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="draft-footer-row" id="draft-footer-row" style="display: none;">
+            <span class="draft-total-text" id="draft-total-summary">Total pengeluaran draft: Rp 0</span>
+            <button type="button" id="btn-confirm-batch" class="btn-confirm-all-pill">
+              <svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              <span>Konfirmasi semua draft</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- CARD 2: Semua aktivitas (Matches Mockup 1:1) -->
+        <div class="aktivitas-card">
+          <div class="aktivitas-header">
+            <div class="aktivitas-title-group">
+              <h2 class="aktivitas-title">Semua aktivitas</h2>
+              <div class="aktivitas-subtitle" id="ledger-aktivitas-subtitle">Oktober 2026 · 32 transaksi</div>
+            </div>
+            <div class="aktivitas-controls">
+              <div class="aktivitas-search-wrap">
+                <svg class="ui-icon aktivitas-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="ledger-search-input" class="aktivitas-search-input" placeholder="Cari transaksi">
+              </div>
+              <div class="aktivitas-select-wrap">
+                <select id="ledger-category-select" class="aktivitas-category-select">
+                  <option value="ALL">Semua kategori</option>
+                </select>
+                <svg class="ui-icon aktivitas-chevron-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="figma-table-wrapper aktivitas-table-wrapper">
+            <table class="figma-table aktivitas-table">
+              <thead>
+                <tr>
+                  <th style="width: 38%;">TRANSAKSI</th>
+                  <th style="width: 18%;">TANGGAL</th>
+                  <th style="width: 22%;">KATEGORI</th>
+                  <th style="width: 22%; text-align: right;">JUMLAH</th>
+                </tr>
+              </thead>
+              <tbody id="history-table-body">
+                <tr>
+                  <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 24px;">Memuat transaksi...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Bottom CSV Import Card: Visible on Desktop, Hidden on Mobile -->
+          <div class="ledger-bottom-csv-card">
+            <div class="bottom-csv-left">
+              <div class="bottom-csv-icon-box">
+                <svg class="ui-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                  <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+              </div>
+              <div class="bottom-csv-text">
+                <h4>Impor transaksi dari CSV</h4>
+                <p>Unggah file, petakan kolom, tinjau duplikat, lalu konfirmasi.</p>
+              </div>
+            </div>
+            <button type="button" class="btn-bottom-csv-pick" id="btn-bottom-import-csv" data-open-csv-import>Pilih file</button>
+          </div>
+        </div>
+
+        <!-- Hidden System Compatibility Elements to ensure 100% JS backward compatibility -->
+        <div class="transaksi-system-compat" style="display: none !important;" aria-hidden="true">
+          <div id="ai-accounts-grid"></div>
+          <div id="ai-total-liquid-balance" data-real-balance="Rp 0"></div>
+          <button type="button" id="btn-toggle-ai-balances"></button>
+          <button type="button" id="btn-refresh-ai-accounts"></button>
+          <button type="button" id="btn-add-account-ai"></button>
+          <select id="ledger-month-select">
+            <option value="ALL">Semua Periode</option>
+          </select>
+          <select id="ledger-type-select">
+            <option value="ALL">Semua tipe</option>
+          </select>
+        </div>
+
+      </div>
 
       <!-- ================================================================
            SCREEN 01: TAB DASHBOARD (3-COLUMN OVERVIEW)
@@ -3637,7 +3646,7 @@
       </div>
     </div>
 
-  <script type="module" src="js/app.js?v=2.7.10"></script>
+  <script type="module" src="js/app.js?v=2.8.0"></script>
 </body>
 
 </html>
