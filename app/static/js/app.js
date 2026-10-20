@@ -5193,11 +5193,6 @@ class App {
       });
     }
   }
-}
-
-// Bootstrapping
-document.addEventListener('DOMContentLoaded', () => {
-  window.app = new App();
 
   // ================================================================
   // NOTIFICATION CENTER SYSTEM (Real-time dynamic financial alerts)
@@ -5377,5 +5372,10 @@ document.addEventListener('DOMContentLoaded', () => {
       this.switchTab('tab-settings');
     }
   }
-
 }
+
+// Bootstrapping
+document.addEventListener('DOMContentLoaded', () => {
+  window.app = new App();
+});
+
