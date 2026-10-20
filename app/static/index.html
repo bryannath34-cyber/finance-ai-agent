@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=2.7.8">
+  <link rel="stylesheet" href="css/style.css?v=2.7.10">
   <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
   <link rel="shortcut icon" type="image/svg+xml" href="favicon.svg?v=3">
   <link rel="apple-touch-icon" href="favicon.svg?v=3">
@@ -93,7 +93,7 @@
                   <path d="M17 14H3l4 4" />
                 </svg>
               </span>
-              <span>Mutasi & Suara AI</span>
+              <span>Transaksi</span>
             </button>
           </li>
           <li>
@@ -252,6 +252,11 @@
            Matches Figma Screen 02 1:1
            ================================================================ -->
       <div id="tab-mutasi" class="tab-content">
+          <div class="transaction-page-heading">
+            <span class="page-eyebrow">RUANG KEUANGAN</span>
+            <h1>Transaksi</h1>
+            <p>Catat, tinjau, dan kelola aktivitas keuanganmu di satu tempat.</p>
+          </div>
           <!-- CARD 0: Posisi Saldo Rekening & Uang di Bank -->
           <div class="figma-card ai-bank-card">
             <div class="card-header-row ai-bank-header-row">
@@ -301,7 +306,7 @@
           </div>
 
           <!-- CARD 1: Asisten AI Command Center -->
-          <div class="figma-card" style="padding: 16px 20px;">
+          <div class="figma-card transaction-ai-card" style="padding: 16px 20px;">
             <div class="card-header-row">
               <div class="card-title-group">
                 <span class="card-header-icon">
@@ -310,19 +315,29 @@
                       d="M12 2C12 7.5 7.5 12 2 12C7.5 12 12 16.5 12 22C12 16.5 16.5 12 22 12C16.5 12 12 7.5 12 2Z" />
                   </svg>
                 </span>
-                <span class="card-section-title">Asisten AI Command Center</span>
+                <span class="card-section-title">Catat transaksi dengan AI</span>
               </div>
-              <div class="ai-online-badge">Asisten AI</div>
+              <div class="ai-online-badge">Draft aman</div>
             </div>
             <div class="card-subtitle-text">
-              Tulis mutasi alami atau ajukan pertanyaan keuangan. AI siap mencatat draft dan menjawab pertanyaanmu.
+              Tulis seperti biasa. AI membantu menyusun detail transaksi menjadi draft untuk kamu periksa.
             </div>
 
-            <textarea id="ai-input" class="ai-textarea"
-              placeholder="Ketik mutasi, saldo, atau pertanyaan (misal: 'di rekening gua ada 8jt', 'beli makan 35rb', 'saldo gua berapa?')"></textarea>
+            <div class="transaction-ai-compose">
+              <textarea id="ai-input" class="ai-textarea" aria-label="Tulis transaksi untuk dicatat dengan AI"
+                placeholder="Contoh: Baru beli nasgor Rp25.000 hari ini"></textarea>
+              <button type="button" id="btn-parse" class="btn-process">
+                <span>Buat draft transaksi</span>
+              </button>
+            </div>
 
-            <div class="ai-action-buttons-row">
-              <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <div class="transaction-ai-footer">
+              <button type="button" class="transaction-ai-example" data-ai-example="Baru beli nasgor Rp25.000 hari ini" data-ai-target="ai-input">
+                <span class="transaction-ai-example-label">COBA CONTOH</span>
+                Baru beli nasgor Rp25.000 hari ini
+              </button>
+              <div class="transaction-ai-footer-meta">
+                <span id="record-status" class="voice-helper-text">Bahasa Indonesia · hasil suara bisa diperiksa sebelum diproses</span>
                 <button type="button" id="btn-record" class="btn-voice">
                   <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -332,14 +347,7 @@
                   </svg>
                   <span>Rekam suara</span>
                 </button>
-                <span id="record-status" class="voice-helper-text">
-                  Bahasa Indonesia · hasil transkripsi ditinjau sebelum diproses
-                </span>
               </div>
-
-              <button type="button" id="btn-parse" class="btn-process">
-                <span>Proses Mutasi AI</span>
-              </button>
             </div>
 
             <div id="ai-process-status" class="ai-process-status" role="status" aria-live="polite" style="display: none;">
@@ -372,7 +380,7 @@
           </div>
 
           <!-- CARD 2: Tinjau draft transaksi -->
-          <div class="figma-card" id="draft-section" style="padding: 16px 20px;">
+          <div class="figma-card draft-review-card" id="draft-section" style="padding: 16px 20px;">
             <div class="card-header-row">
               <div class="card-title-group">
                 <span class="card-header-icon">
@@ -430,7 +438,7 @@
           </div>
 
           <!-- CARD 3: Riwayat buku besar -->
-          <div class="figma-card" style="padding: 16px 20px;">
+          <div class="figma-card ledger-history-card" style="padding: 16px 20px;">
             <div class="card-header-row ledger-card-header">
               <div class="ledger-card-title-block">
                 <div class="card-title-group">
@@ -958,8 +966,8 @@
             </div>
           </div>
 
-          <!-- 3. Asisten AI Card -->
-          <div class="mobile-fcard">
+          <!-- AI entry is available in the Transaksi tab on both screen sizes. -->
+          <div class="mobile-fcard mobile-ai-entry-card">
             <div class="mobile-fcard-top-row">
               <div class="mobile-title-with-icon">
                 <svg class="ui-icon ui-icon-spark" width="15" height="15" viewBox="0 0 24 24"><path d="M12 2C12 7.5 7.5 12 2 12C7.5 12 12 16.5 12 22C12 16.5 16.5 12 22 12C16.5 12 12 7.5 12 2Z"/></svg>
@@ -1044,6 +1052,11 @@
            SCREEN 03: TAB ANGGARAN & TABUNGAN (Figma Screen 03 1:1 Match)
            ================================================================ -->
       <div id="tab-planning" class="tab-content">
+        <div class="workspace-page-heading">
+          <span class="page-eyebrow">RENCANA KEUANGAN</span>
+          <h1>Anggaran &amp; tabungan</h1>
+          <p>Atur batas pengeluaran dan pantau progres tujuanmu.</p>
+        </div>
         <!-- Top month picker row (matches Figma) -->
         <div class="planning-top-bar">
           <button type="button" class="planning-month-pill" id="btn-planning-period-picker">
@@ -1287,6 +1300,11 @@
            SCREEN 04: TAB PENASIHAT FINANSIAL AI (Figma Screen 04 1:1 Match)
            ================================================================ -->
       <div id="tab-copilot" class="tab-content">
+        <div class="workspace-page-heading">
+          <span class="page-eyebrow">TEMAN MERENCANAKAN KEUANGAN</span>
+          <h1>Penasihat finansial AI</h1>
+          <p>Dapatkan pertimbangan berdasarkan transaksi dan rencana keuanganmu.</p>
+        </div>
         <div style="display: flex; flex-direction: column; gap: 18px;">
 
           <!-- CARD 1: Advisor / Purchase query (1168px x 167px) -->
@@ -1520,6 +1538,11 @@
            SCREEN 05: TAB LAPORAN KEUANGAN (Figma Screen 05 1:1 Match)
            ================================================================ -->
       <div id="tab-reports" class="tab-content">
+        <div class="workspace-page-heading">
+          <span class="page-eyebrow">GAMBARAN KEUANGAN</span>
+          <h1>Laporan keuangan</h1>
+          <p>Lihat pola pemasukan, pengeluaran, dan perkembangan saldo.</p>
+        </div>
         <!-- Top month selector and export button row -->
         <div class="reports-top-controls">
           <button type="button" class="reports-btn-pill" id="btn-report-month-picker">
@@ -2490,7 +2513,7 @@
             <path d="M7 10h14l-4-4" /><path d="M17 14H3l4 4" />
           </svg>
         </span>
-        <span>Mutasi</span>
+        <span>Transaksi</span>
       </button>
       <button type="button" class="mobile-nav-btn" data-tab="tab-planning">
         <span class="mobile-nav-icon">
