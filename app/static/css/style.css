@@ -3995,6 +3995,21 @@ body.user-logged-out #auth-overlay.desktop-login-overlay {
   pointer-events: none;
 }
 
+.auth-feedback {
+  margin: 0 0 14px;
+  padding: 11px 13px;
+  border: 1px solid #D9E5D8;
+  border-radius: 11px;
+  background: #F2F6EF;
+  color: #315E43;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.auth-feedback[hidden] { display: none !important; }
+.auth-feedback.is-error { border-color: #EBCFCB; background: #FBF1EF; color: #8B4038; }
+.auth-feedback.is-warning { border-color: #E8DCC0; background: #FBF7ED; color: #785F2E; }
+.auth-feedback.is-success { border-color: #D9E5D8; background: #F2F6EF; color: #315E43; }
+
 .login-row-meta {
   display: flex;
   justify-content: space-between;
@@ -4116,6 +4131,8 @@ body.user-logged-out #auth-overlay.desktop-login-overlay {
 .btn-google-login:hover {
   background: #F8F9F7;
 }
+
+.google-logo { display: block; width: 18px; height: 18px; flex: 0 0 18px; }
 
 .login-signup-notice {
   font-family: 'Inter', sans-serif;

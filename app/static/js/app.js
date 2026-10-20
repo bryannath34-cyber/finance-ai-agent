@@ -71,6 +71,7 @@ class App {
     this.loginTotpGroup = document.getElementById('login-totp-group');
     this.loginTotpCode = document.getElementById('login-totp-code');
     this.loginError = document.getElementById('login-error');
+    this.authFeedback = document.getElementById('auth-feedback');
     this.sessionCheckPanel = document.getElementById('session-check-panel');
     this.sessionCheckMessage = document.getElementById('session-check-message');
     this.btnRetrySessionCheck = document.getElementById('btn-retry-session-check');
@@ -1068,10 +1069,12 @@ class App {
     if (this.btnToggleLoginPassword && this.loginPassword) {
       this.btnToggleLoginPassword.addEventListener('click', (e) => {
         e.preventDefault();
-        e.stopPropagation();
         const isPassword = this.loginPassword.type === 'password';
         this.loginPassword.type = isPassword ? 'text' : 'password';
         this.btnToggleLoginPassword.innerHTML = isPassword ? Icons.eyeOff : Icons.eye;
+        this.btnToggleLoginPassword.setAttribute('aria-pressed', String(isPassword));
+        this.btnToggleLoginPassword.setAttribute('aria-label', isPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi');
+        this.btnToggleLoginPassword.title = isPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi';
       });
     }
 
@@ -1087,7 +1090,7 @@ class App {
             });
             if (error) throw error;
           } else {
-            this.showAlert('Login Google belum dikonfigurasi. Gunakan username dan kata sandi.', 'warning');
+            this.showAlert('Login Google belum dikonfigurasi di server. Gunakan email dan kata sandi untuk masuk.', 'warning');
           }
         } catch (err) {
           this.showAlert(`Google OAuth: ${err.message || err}`, 'error');
@@ -1105,12 +1108,14 @@ class App {
       this.linkOverlayForgot.addEventListener('click', (e) => {
         e.preventDefault();
         this.showAuthView('reset');
+        setTimeout(() => document.getElementById('mobile-reset-email')?.focus(), 0);
       });
     }
     if (this.linkOverlayRegister) {
       this.linkOverlayRegister.addEventListener('click', (e) => {
         e.preventDefault();
         this.showAuthView('signup');
+        setTimeout(() => document.getElementById('mobile-signup-name')?.focus(), 0);
       });
     }
     if (this.btnSignupToLogin) {
@@ -1138,17 +1143,13 @@ class App {
           this.showAlert('Kata sandi minimal 8 karakter.', 'error');
           return;
         }
-        this.showAlert('Pendaftaran akun belum diaktifkan. Hubungi administrator untuk mendapatkan akses.', 'warning');
-        this.formMobileSignup.reset();
-        this.showAuthView('login');
+        this.showAlert('Pendaftaran mandiri belum diaktifkan. Hubungi administrator untuk membuat akun.', 'warning');
       });
     }
     if (this.formMobileReset) {
       this.formMobileReset.addEventListener('submit', (e) => {
         e.preventDefault();
-        this.showAlert('Pemulihan kata sandi belum terhubung. Hubungi administrator untuk mengatur ulang akses.', 'warning');
-        this.formMobileReset.reset();
-        this.showAuthView('login');
+        this.showAlert('Pemulihan kata sandi belum terhubung ke layanan email. Hubungi administrator untuk mengatur ulang akses.', 'warning');
       });
     }
 
@@ -1167,16 +1168,14 @@ class App {
           return;
         }
 
-        this.showAlert('Pendaftaran akun belum diaktifkan. Hubungi administrator untuk mendapatkan akses.', 'warning');
-        this.formTabSignup.reset();
+        this.showAlert('Pendaftaran mandiri belum diaktifkan. Hubungi administrator untuk membuat akun.', 'warning');
       });
     }
 
     if (this.formTabReset) {
       this.formTabReset.addEventListener('submit', (e) => {
         e.preventDefault();
-        this.showAlert('Pemulihan kata sandi belum terhubung. Hubungi administrator untuk mengatur ulang akses.', 'warning');
-        this.formTabReset.reset();
+        this.showAlert('Pemulihan kata sandi belum terhubung ke layanan email. Hubungi administrator untuk mengatur ulang akses.', 'warning');
       });
     }
 
@@ -1355,12 +1354,27 @@ class App {
   }
 
   showAlert(message, type = 'success') {
+    if (document.body.classList.contains('auth-pending') || document.body.classList.contains('user-logged-out')) {
+      this.showAuthFeedback(message, type);
+      return;
+    }
     this.alertBox.className = `alert-box alert-${type}`;
     this.alertBox.innerHTML = `<span>${message}</span>`;
     this.alertBox.style.display = 'flex';
     setTimeout(() => {
       this.alertBox.style.display = 'none';
     }, 5000);
+  }
+
+  showAuthFeedback(message, type = 'warning') {
+    if (!this.authFeedback) return;
+    this.authFeedback.textContent = message;
+    this.authFeedback.className = `auth-feedback is-${type}`;
+    this.authFeedback.hidden = false;
+    clearTimeout(this.authFeedbackTimer);
+    this.authFeedbackTimer = setTimeout(() => {
+      if (this.authFeedback) this.authFeedback.hidden = true;
+    }, 7000);
   }
 
   formatIDR(num) {

@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=2.7.5">
+  <link rel="stylesheet" href="css/style.css?v=2.7.6">
   <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
   <link rel="shortcut icon" type="image/svg+xml" href="favicon.svg?v=3">
   <link rel="apple-touch-icon" href="favicon.svg?v=3">
@@ -3462,6 +3462,8 @@
               </div>
             </div>
 
+            <div id="auth-feedback" class="auth-feedback" role="status" aria-live="polite" hidden></div>
+
             <!-- VIEW 1: LOGIN (Figma Screen 01) -->
             <div id="auth-view-login">
               <div class="login-form-wrapper">
@@ -3505,7 +3507,7 @@
                       <input type="password" id="login-password" class="desktop-login-input with-both-icons"
                         placeholder="Masukkan kata sandi" required autocomplete="current-password">
                       <button type="button" id="btn-toggle-login-password" class="login-eye-btn"
-                        title="Tampilkan/sembunyikan kata sandi">
+                        title="Tampilkan kata sandi" aria-label="Tampilkan kata sandi" aria-pressed="false">
                         <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                           stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
@@ -3545,6 +3547,12 @@
 
                   <!-- Google Login Button -->
                   <button type="button" class="btn-google-login" id="btn-google-login">
+                    <svg class="google-logo" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+                      <path fill="#4285F4" d="M43.6 24.5c0-1.4-.1-2.8-.4-4.1H24v7.8h11c-.5 2.5-1.9 4.6-4 6v5h6.5c3.8-3.5 6.1-8.6 6.1-14.7z" />
+                      <path fill="#34A853" d="M24 44c5.5 0 10.1-1.8 13.5-4.8l-6.5-5c-1.8 1.2-4.1 2-7 2-5.3 0-9.8-3.6-11.4-8.4H5.9v5.2C9.3 39.5 16 44 24 44z" />
+                      <path fill="#FBBC05" d="M12.6 27.8a12 12 0 0 1 0-7.6V15H5.9a20 20 0 0 0 0 18l6.7-5.2z" />
+                      <path fill="#EA4335" d="M24 11.8c3 0 5.7 1 7.8 3.1l5.8-5.8C34.1 5.8 29.5 4 24 4 16 4 9.3 8.5 5.9 15l6.7 5.2C14.2 15.4 18.7 11.8 24 11.8z" />
+                    </svg>
                     <span>Lanjutkan dengan Google</span>
                   </button>
 
@@ -3817,7 +3825,7 @@
       </div>
     </div>
 
-  <script type="module" src="js/app.js?v=2.7.5"></script>
+  <script type="module" src="js/app.js?v=2.7.6"></script>
 </body>
 
 </html>
