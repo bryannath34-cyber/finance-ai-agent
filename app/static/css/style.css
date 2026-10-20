@@ -3780,6 +3780,32 @@ body.user-logged-out .app-shell {
   display: none !important;
 }
 
+/* Keep finance screens hidden until the server confirms the current session. */
+body.auth-pending .app-shell {
+  display: none !important;
+}
+
+body.auth-pending #auth-overlay.desktop-login-overlay {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  z-index: 999999 !important;
+}
+
+body.auth-pending #auth-view-login .login-title-h1,
+body.auth-pending #auth-view-login .login-intro-p,
+body.auth-pending #login-form {
+  display: none !important;
+}
+
+body.auth-pending #session-check-panel {
+  display: block !important;
+}
+
+body.auth-pending #btn-retry-session-check {
+  display: none !important;
+}
+
 body.user-logged-out #auth-overlay.desktop-login-overlay {
   display: flex !important;
   visibility: visible !important;

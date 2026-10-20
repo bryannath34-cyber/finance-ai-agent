@@ -1420,6 +1420,18 @@ class App {
       this.showLogin();
       return;
     }
+
+    // Fail closed while the session is being checked so private screens never flash on refresh.
+    document.body.classList.add('auth-pending');
+    document.body.classList.remove('user-logged-out');
+    if (this.appShell) this.appShell.style.setProperty('display', 'none', 'important');
+    if (this.authOverlay) this.authOverlay.style.setProperty('display', 'flex', 'important');
+    this.showAuthView('login');
+    if (this.loginForm) this.loginForm.style.setProperty('display', 'none', 'important');
+    if (this.sessionCheckPanel) this.sessionCheckPanel.style.removeProperty('display');
+    if (this.sessionCheckMessage) {
+      this.sessionCheckMessage.textContent = 'Mohon tunggu sebentar. Kami memastikan sesi akun sebelum membuka halaman keuangan.';
+    }
     try {
       const res = await api.auth.getMe();
       if (res && res.data && res.data.id) {
@@ -1429,17 +1441,24 @@ class App {
         this.showLogin();
       }
     } catch (err) {
-      try {
-        localStorage.removeItem('pf_token');
-        localStorage.removeItem('pf_csrf');
-        sessionStorage.removeItem('pf_csrf');
-      } catch (_) {}
-      this.showLogin();
+      if (err.status === 401 || err.status === 403) {
+        // Only discard legacy client tokens when the server explicitly rejects the session.
+        try {
+          localStorage.removeItem('pf_token');
+          localStorage.removeItem('pf_csrf');
+          sessionStorage.removeItem('pf_csrf');
+        } catch (_) {}
+        this.showLogin();
+        return;
+      }
+      this.showSessionCheckError();
     }
   }
 
   showSessionCheckError() {
     this.showAuthView('login');
+    document.body.classList.remove('auth-pending');
+    document.body.classList.add('user-logged-out');
     if (this.appShell) this.appShell.style.setProperty('display', 'none', 'important');
     if (this.authOverlay) {
       this.authOverlay.style.setProperty('display', 'flex', 'important');
@@ -1447,12 +1466,13 @@ class App {
       this.authOverlay.style.opacity = '1';
       this.authOverlay.style.setProperty('z-index', '999999', 'important');
     }
-    if (this.loginForm) this.loginForm.style.removeProperty('display');
+    if (this.loginForm) this.loginForm.style.setProperty('display', 'none', 'important');
     if (this.loginError) this.loginError.style.display = 'none';
     if (this.sessionCheckMessage) {
-      this.sessionCheckMessage.textContent = 'Server belum bisa memverifikasi sesi tersimpan. Silakan masukkan kredensial untuk masuk kembali.';
+      this.sessionCheckMessage.textContent = 'Server belum dapat memverifikasi sesi. Coba lagi; status login dan data akun tidak dihapus.';
     }
-    if (this.sessionCheckPanel) this.sessionCheckPanel.style.display = 'none';
+    if (this.sessionCheckPanel) this.sessionCheckPanel.style.display = 'block';
+    if (this.btnRetrySessionCheck) this.btnRetrySessionCheck.style.removeProperty('display');
   }
 
   showAuthView(viewName) {
@@ -1463,6 +1483,7 @@ class App {
 
   showLogin() {
     this.showAuthView('login');
+    document.body.classList.remove('auth-pending');
     if (this.loginForm) this.loginForm.style.removeProperty('display');
     if (this.sessionCheckPanel) this.sessionCheckPanel.style.display = 'none';
     document.body.classList.add('user-logged-out');
@@ -1492,6 +1513,7 @@ class App {
 
   showDashboard() {
     // Bersihkan penanda logout saat dashboard berhasil ditampilkan
+    document.body.classList.remove('auth-pending');
     document.body.classList.remove('user-logged-out');
     try {
       sessionStorage.removeItem('pf_logged_out');
