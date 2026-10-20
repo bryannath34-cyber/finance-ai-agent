@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=2.7.10">
+  <link rel="stylesheet" href="css/style.css?v=2.7.11">
   <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
   <link rel="shortcut icon" type="image/svg+xml" href="favicon.svg?v=3">
   <link rel="apple-touch-icon" href="favicon.svg?v=3">
@@ -1300,15 +1300,25 @@
            SCREEN 04: TAB PENASIHAT FINANSIAL AI (Figma Screen 04 1:1 Match)
            ================================================================ -->
       <div id="tab-copilot" class="tab-content">
-        <div class="workspace-page-heading">
-          <span class="page-eyebrow">TEMAN MERENCANAKAN KEUANGAN</span>
-          <h1>Penasihat finansial AI</h1>
-          <p>Dapatkan pertimbangan berdasarkan transaksi dan rencana keuanganmu.</p>
+        <div class="workspace-page-heading advisor-page-heading">
+          <div class="advisor-heading-copy">
+            <span class="page-eyebrow">TEMAN MERENCANAKAN KEUANGAN</span>
+            <h1>Penasihat AI</h1>
+            <p>Insight berdasarkan transaksi dan target keuanganmu.</p>
+          </div>
+          <span class="advisor-context-pill">
+            <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 3 4.5 6v5.5c0 4.4 3.2 7.8 7.5 9.5 4.3-1.7 7.5-5.1 7.5-9.5V6L12 3Z" />
+              <path d="m9 12 2 2 4-4" />
+            </svg>
+            Berdasarkan datamu
+          </span>
         </div>
-        <div style="display: flex; flex-direction: column; gap: 18px;">
+        <div class="copilot-advisor-layout">
+          <section class="advisor-main-panel" aria-label="Konsultasi dan analisis AI">
 
           <!-- CARD 1: Advisor / Purchase query (1168px x 167px) -->
-          <div class="figma-card" style="padding: 16px 20px;">
+          <div class="figma-card advisor-query-card" style="padding: 16px 20px;">
             <div class="card-header-row">
               <div class="card-title-group">
                 <span class="card-header-icon">
@@ -1317,12 +1327,11 @@
                       d="M12 2C12 7.5 7.5 12 2 12C7.5 12 12 16.5 12 22C12 16.5 16.5 12 22 12C16.5 12 12 7.5 12 2Z" />
                   </svg>
                 </span>
-                <span class="card-section-title">Konsultasi Rencana Pembelian</span>
+                <span class="card-section-title">Tanyakan ke penasihat AI</span>
               </div>
             </div>
             <div class="card-subtitle-text">
-              Tanyakan kelayakan membeli barang tertentu. AI akan menganalisis saldo, sisa anggaran, dan prioritas
-              tabungan.
+              Ceritakan rencana pembelian atau tanyakan cara mengatur uang. AI mempertimbangkan saldo, anggaran, dan target tabunganmu.
             </div>
 
             <div class="advisor-query-box">
@@ -1358,7 +1367,7 @@
           </div>
 
           <!-- CARD 2: Advisor / Verdict (1168px x 192px) -->
-          <div class="figma-card" id="copilot-verdict-card" style="padding: 16px 20px;">
+          <div class="figma-card advisor-result-card" id="copilot-verdict-card" style="padding: 16px 20px;">
             <div class="card-header-row">
               <div class="card-title-group">
                 <span class="card-header-icon" id="verdict-status-icon">
@@ -1367,7 +1376,7 @@
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                 </span>
-                <span class="card-section-title">Hasil Analisis & Rekomendasi</span>
+                <span class="card-section-title">Analisis keuanganmu</span>
               </div>
               <button type="button" class="card-action-link" id="btn-save-scenario-history">Detail evaluasi</button>
             </div>
@@ -1393,9 +1402,11 @@
               </div>
             </div>
           </div>
+          </section>
 
           <!-- CARD 3: Advisor / Financial snapshot (1168px x 151px) -->
-          <div class="figma-card" style="padding: 16px 20px;">
+          <aside class="advisor-side-panel" aria-label="Ringkasan kondisi keuangan">
+          <div class="figma-card advisor-snapshot-card" style="padding: 16px 20px;">
             <div class="card-header-row">
               <div class="card-title-group">
                 <span class="card-header-icon">
@@ -1448,12 +1459,13 @@
               </div>
             </div>
           </div>
+          </aside>
 
           <!-- BOTTOM ROW GRID (748px / 404px -> 65% / 35%) -->
-          <div class="bottom-advisor-grid">
+          <div class="bottom-advisor-grid advisor-support-grid">
 
             <!-- CARD 4: Advisor / Spending pattern (748px) -->
-            <div class="figma-card" style="padding: 16px 20px;">
+            <div class="figma-card advisor-pattern-card" style="padding: 16px 20px;">
               <div class="card-header-row">
                 <div class="card-title-group">
                   <span class="card-header-icon">
@@ -1490,7 +1502,7 @@
             </div>
 
             <!-- CARD 5: Advisor / AI observations (404px) -->
-            <div class="figma-card" style="padding: 16px 20px;">
+            <div class="figma-card advisor-observation-card" style="padding: 16px 20px;">
               <div class="card-header-row">
                 <div class="card-title-group">
                   <span class="card-header-icon">

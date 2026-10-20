@@ -7685,3 +7685,245 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .transaction-ai-card .ai-online-badge { padding-inline: 6px; }
   .transaction-ai-footer-meta .voice-helper-text { max-width: 180px; }
 }
+
+/* Penasihat AI — match the Hutan Hangat advisor composition while retaining
+   the existing live consultation, result, snapshot, and pattern controls. */
+#tab-copilot .advisor-page-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 16px;
+}
+#tab-copilot .advisor-heading-copy { min-width: 0; }
+#tab-copilot .advisor-context-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: 0 0 auto;
+  margin-bottom: 2px;
+  padding: 8px 11px;
+  border: 1px solid var(--accent-green-border);
+  border-radius: 999px;
+  background: var(--bg-card);
+  color: var(--brand-dark);
+  font-size: 11px;
+  font-weight: 650;
+}
+#tab-copilot .advisor-context-pill .ui-icon { color: var(--accent-green); }
+
+#tab-copilot .copilot-advisor-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(270px, .85fr);
+  grid-template-areas:
+    "main side"
+    "main observation"
+    "pattern pattern";
+  grid-template-rows: minmax(0, auto) minmax(0, auto) auto;
+  align-items: stretch;
+  gap: 14px;
+}
+#tab-copilot .advisor-main-panel {
+  grid-area: main;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  align-self: stretch;
+  padding: 22px;
+  overflow: hidden;
+  border: 1px solid var(--brand-dark);
+  border-radius: 17px;
+  background: var(--brand-dark);
+  color: #fff;
+  box-shadow: 0 14px 30px rgba(21, 62, 48, .11);
+}
+#tab-copilot .advisor-main-panel .figma-card {
+  min-width: 0;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #fff;
+}
+#tab-copilot .advisor-query-card { padding-bottom: 19px !important; }
+#tab-copilot .advisor-result-card {
+  padding-top: 18px !important;
+  border-top: 1px solid rgba(255, 255, 255, .16) !important;
+}
+#tab-copilot .advisor-main-panel .card-header-row { margin-bottom: 10px; }
+#tab-copilot .advisor-main-panel .card-title-group { gap: 10px; }
+#tab-copilot .advisor-main-panel .card-section-title { color: #fff; font-size: 14px; }
+#tab-copilot .advisor-main-panel .card-header-icon {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 11px;
+  background: #D8E99C;
+  color: var(--brand-dark);
+}
+#tab-copilot .advisor-main-panel .card-subtitle-text {
+  margin: 0 0 13px 44px;
+  color: #D4E2D5;
+  font-size: 11px;
+  line-height: 1.55;
+}
+#tab-copilot .advisor-query-box { display: flex; flex-direction: column; gap: 11px; }
+#tab-copilot .advisor-main-panel .advisor-textarea {
+  min-height: 94px;
+  border: 1px solid rgba(255, 255, 255, .2);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .09);
+  color: #fff;
+  font-size: 13px;
+  line-height: 1.55;
+  padding: 12px 13px;
+  resize: vertical;
+}
+#tab-copilot .advisor-main-panel .advisor-textarea::placeholder { color: #C4D2C5; }
+#tab-copilot .advisor-main-panel .advisor-textarea:focus {
+  border-color: rgba(216, 233, 156, .75);
+  box-shadow: 0 0 0 3px rgba(216, 233, 156, .13);
+  outline: 0;
+}
+#tab-copilot .advisor-sidebar-controls { align-items: end; gap: 9px; }
+#tab-copilot .advisor-control-label { color: #D4E2D5; font-size: 10px; }
+#tab-copilot .advisor-main-panel .advisor-select-wrapper {
+  border-color: rgba(255, 255, 255, .2);
+  background: rgba(255, 255, 255, .09);
+}
+#tab-copilot .advisor-main-panel .advisor-select-icon,
+#tab-copilot .advisor-main-panel .advisor-select-chevron { color: #D4E2D5; }
+#tab-copilot .advisor-main-panel .advisor-account-select {
+  color: #fff;
+  background: transparent;
+}
+#tab-copilot .advisor-main-panel .advisor-account-select option { color: #1D2C25; }
+#tab-copilot .btn-advisor-ask {
+  min-height: 42px;
+  border: 1px solid #D8E99C;
+  border-radius: 11px;
+  background: #D8E99C;
+  color: #153E30;
+  font-weight: 750;
+  box-shadow: none;
+}
+#tab-copilot .btn-advisor-ask:hover { background: #E3F0B7; border-color: #E3F0B7; }
+#tab-copilot .btn-advisor-ask:disabled { opacity: .68; }
+#tab-copilot .advisor-main-panel .copilot-ai-status {
+  margin-top: 0;
+  border: 1px solid rgba(255, 255, 255, .12);
+  background: rgba(255, 255, 255, .08);
+  color: #D4E2D5;
+}
+#tab-copilot .advisor-main-panel .copilot-ai-status.is-pending,
+#tab-copilot .advisor-main-panel .copilot-ai-status.is-fallback {
+  border-color: rgba(242, 207, 145, .2);
+  background: rgba(242, 207, 145, .12);
+  color: #F4D9A9;
+}
+#tab-copilot .advisor-main-panel .copilot-ai-status.is-live {
+  border-color: rgba(216, 233, 156, .2);
+  background: rgba(216, 233, 156, .12);
+  color: #E4F0C4;
+}
+#tab-copilot .advisor-main-panel .copilot-ai-status.is-error {
+  border-color: rgba(248, 183, 168, .25);
+  background: rgba(185, 110, 98, .19);
+  color: #FFD4C9;
+}
+
+#tab-copilot .advisor-result-card .card-action-link { color: #D4E2D5; }
+#tab-copilot .advisor-result-card .card-action-link:hover { color: #D8E99C; }
+#tab-copilot .advisor-result-card .verdict-card-body { gap: 16px; }
+#tab-copilot .advisor-result-card .verdict-badge-pill {
+  border-color: rgba(216, 233, 156, .2);
+  background: rgba(216, 233, 156, .12);
+  color: #E4F0C4;
+}
+#tab-copilot .advisor-result-card .verdict-amount-label { color: #C4D2C5; }
+#tab-copilot .advisor-result-card .verdict-amount-num { color: #fff; }
+#tab-copilot .advisor-result-card .verdict-explanation-text { color: #fff; font-size: 13px; line-height: 1.65; }
+#tab-copilot .advisor-result-card .verdict-detail-text { color: #C4D2C5; font-size: 11px; }
+
+#tab-copilot .advisor-side-panel { grid-area: side; min-width: 0; }
+#tab-copilot .advisor-snapshot-card,
+#tab-copilot .advisor-observation-card,
+#tab-copilot .advisor-pattern-card {
+  min-width: 0;
+  border: 1px solid var(--border-main);
+  border-radius: 15px;
+  background: var(--bg-card);
+  box-shadow: var(--shadow-card);
+}
+#tab-copilot .advisor-snapshot-card { height: 100%; }
+#tab-copilot .advisor-snapshot-card .snapshot-metrics-container {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 11px 14px;
+  margin-top: 15px;
+  overflow: visible;
+}
+#tab-copilot .advisor-snapshot-card .snapshot-metric-item {
+  min-width: 0;
+  padding: 9px 0 0;
+  border-top: 1px solid var(--border-main);
+}
+#tab-copilot .advisor-snapshot-card .snapshot-metric-item:first-child,
+#tab-copilot .advisor-snapshot-card .snapshot-metric-item:last-child { padding-inline: 0; }
+#tab-copilot .advisor-snapshot-card .snapshot-vertical-divider { display: none; }
+#tab-copilot .advisor-snapshot-card .snapshot-metric-label { font-size: 10px; line-height: 1.4; }
+#tab-copilot .advisor-snapshot-card .snapshot-metric-value { font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; }
+#tab-copilot .advisor-observation-card { grid-area: observation; align-self: stretch; }
+#tab-copilot .advisor-observation-card .observation-title-text { color: var(--text-primary); font-size: 13px; line-height: 1.45; }
+#tab-copilot .advisor-observation-card .observation-detail-text,
+#tab-copilot .advisor-observation-card .observation-disclaimer-text { color: var(--text-secondary); line-height: 1.55; }
+#tab-copilot .advisor-observation-card .btn-observation-action { min-height: 39px; border-radius: 10px; }
+#tab-copilot .advisor-support-grid { display: contents; }
+#tab-copilot .advisor-pattern-card { grid-area: pattern; }
+#tab-copilot .advisor-pattern-card .pattern-table-container { overflow-x: auto; }
+#tab-copilot .advisor-pattern-card .pattern-table { min-width: 480px; }
+#tab-copilot .planning-footer-note { margin-top: 14px; }
+
+@media (max-width: 900px) {
+  #tab-copilot .copilot-advisor-layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "main"
+      "side"
+      "observation"
+      "pattern";
+    grid-template-rows: auto;
+    gap: 12px;
+  }
+  #tab-copilot .advisor-main-panel,
+  #tab-copilot .advisor-side-panel,
+  #tab-copilot .advisor-observation-card,
+  #tab-copilot .advisor-pattern-card { grid-column: 1; grid-row: auto; }
+  #tab-copilot .advisor-main-panel { padding: 19px; }
+  #tab-copilot .advisor-snapshot-card { height: auto; }
+}
+
+@media (max-width: 768px) {
+  #tab-copilot .advisor-page-heading { align-items: flex-start; flex-direction: column; gap: 10px; }
+  #tab-copilot .advisor-context-pill { margin: 0; padding: 7px 10px; font-size: 10px; }
+  #tab-copilot .advisor-main-panel { padding: 17px 15px; border-radius: 15px; }
+  #tab-copilot .advisor-main-panel .card-subtitle-text { margin-left: 0; }
+  #tab-copilot .advisor-main-panel .advisor-textarea { min-height: 88px; font-size: 13px; }
+  #tab-copilot .advisor-sidebar-controls { display: grid; grid-template-columns: minmax(0, 1fr); align-items: stretch; gap: 7px; }
+  #tab-copilot .advisor-sidebar-controls .advisor-control-label { margin-bottom: -3px; }
+  #tab-copilot .advisor-select-wrapper,
+  #tab-copilot .advisor-account-select,
+  #tab-copilot .btn-advisor-ask { width: 100%; }
+  #tab-copilot .advisor-result-card .card-header-row { align-items: flex-start; }
+  #tab-copilot .advisor-snapshot-card .snapshot-metrics-container { gap: 9px 12px; }
+  #tab-copilot .advisor-pattern-card .pattern-table { min-width: 480px; }
+}
+
+@media (max-width: 390px) {
+  #tab-copilot .advisor-main-panel { padding: 15px 13px; }
+  #tab-copilot .advisor-main-panel .card-section-title { font-size: 13px; }
+  #tab-copilot .advisor-snapshot-card .snapshot-metric-label { font-size: 9px; }
+  #tab-copilot .advisor-snapshot-card .snapshot-metric-value { font-size: 11px; }
+}
