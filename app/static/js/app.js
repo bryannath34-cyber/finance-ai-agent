@@ -1288,7 +1288,7 @@ class App {
     const titles = {
       'tab-dashboard': null, // Dihapus sesuai permintaan pengguna agar tidak duplikasi dengan judul Dashboard di bawahnya
       'tab-mutasi': { title: 'Mutasi & Suara AI', intro: 'Catat transaksi lewat teks atau suara, periksa draft, lalu konfirmasi ke buku besar.' },
-      'tab-planning': { title: 'Anggaran & Tabungan', intro: 'Atur pagu bulanan dan pantau progres tujuan tabungan.' },
+      'tab-planning': { title: 'Anggaran & Tabungan', intro: 'Atur batas pengeluaran bulanan dan pantau progres tujuan tabungan.' },
       'tab-copilot': { title: 'Penasihat Finansial AI', intro: 'Tanyakan rencana pembelian, evaluasi kelayakan anggaran, dan pantau pola pengeluaran berbasis AI.' },
       'tab-reports': { title: 'Laporan Keuangan', intro: (window.innerWidth <= 768 ? 'Pantau arus kas dari bulan ke bulan.' : 'Tinjau arus kas, komposisi pengeluaran, dan perubahan dari bulan ke bulan.') },
       'tab-settings': { title: (window.innerWidth <= 768 ? 'Pengaturan' : 'Pengaturan & Profil'), intro: (window.innerWidth <= 768 ? 'Kelola akun dan preferensi aplikasi.' : 'Kelola profil, rekening, keamanan, dan preferensi aplikasi.') },
@@ -3727,13 +3727,13 @@ class App {
     if (this.budgetUsedVal) this.budgetUsedVal.textContent = this.formatIDR(totSpent);
     if (this.budgetRemainderVal) {
       if (totLimit === 0) {
-        this.budgetRemainderVal.innerHTML = 'Pagu belum ditetapkan untuk bulan ini';
+        this.budgetRemainderVal.innerHTML = 'Batas pengeluaran belum ditetapkan untuk bulan ini';
         this.budgetRemainderVal.style.color = 'var(--text-muted)';
       } else if (b.is_over) {
-        this.budgetRemainderVal.innerHTML = `${Icons.alert} Melebihi plafon sebesar ${this.formatIDR(totSpent - totLimit)}`;
+        this.budgetRemainderVal.innerHTML = `${Icons.alert} Pengeluaran melebihi batas sebesar ${this.formatIDR(totSpent - totLimit)}`;
         this.budgetRemainderVal.style.color = 'var(--accent-rose)';
       } else {
-        this.budgetRemainderVal.innerHTML = `Sisa plafon: ${this.formatIDR(totRem)}`;
+        this.budgetRemainderVal.innerHTML = `Sisa batas pengeluaran: ${this.formatIDR(totRem)}`;
         this.budgetRemainderVal.style.color = 'var(--accent-green)';
       }
     }
@@ -3755,7 +3755,7 @@ class App {
     if (this.statPengeluaran) this.statPengeluaran.textContent = this.formatIDR(totSpent);
     if (this.statPengeluaranStatus) {
       if (totLimit > 0) {
-        this.statPengeluaranStatus.textContent = `${pct}% dari pagu`;
+        this.statPengeluaranStatus.textContent = `${pct}% dari batas`;
         this.statPengeluaranStatus.className = pct > 80 ? 'stat-card-badge rose' : 'stat-card-badge green';
       } else {
         this.statPengeluaranStatus.textContent = 'Realisasi berjalan';
@@ -3768,10 +3768,10 @@ class App {
     }
     if (this.statSisaStatus) {
       if (totLimit > 0) {
-        this.statSisaStatus.textContent = b.is_over ? 'Pagu terlampaui' : `${100 - pct}% masih tersedia`;
+        this.statSisaStatus.textContent = b.is_over ? 'Batas terlampaui' : `${100 - pct}% masih tersedia`;
         this.statSisaStatus.className = b.is_over ? 'stat-card-badge rose' : 'stat-card-badge green';
       } else {
-        this.statSisaStatus.textContent = 'Atur pagu bulanan';
+        this.statSisaStatus.textContent = 'Atur batas bulanan';
         this.statSisaStatus.className = 'stat-card-badge amber';
       }
     }
@@ -4017,7 +4017,7 @@ class App {
     try {
       await api.planning.setMonthlyBudget(yr, mo, val);
       this.closeModals();
-      this.showAlert('Pagu anggaran total bulanan berhasil disimpan!', 'success');
+      this.showAlert('Batas pengeluaran bulanan berhasil disimpan!', 'success');
       await this.loadBudgetOverview(yr, mo);
     } catch (err) {
       this.showAlert(`Gagal menyimpan anggaran: ${err.message}`, 'error');
@@ -4227,7 +4227,7 @@ class App {
     }
 
     if (this.modalEvalBudget) {
-      this.modalEvalBudget.textContent = `Pagu: ${this.formatIDR(snap.total_anggaran_bulan_ini || 0)}`;
+      this.modalEvalBudget.textContent = `Batas pengeluaran: ${this.formatIDR(snap.total_anggaran_bulan_ini || 0)}`;
     }
     if (this.modalEvalBudgetSub) {
       this.modalEvalBudgetSub.textContent = `Sisa alokasi belanja: ${this.formatIDR(snap.sisa_anggaran_bulan_ini || 0)}`;

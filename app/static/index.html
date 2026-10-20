@@ -777,7 +777,7 @@
           <!-- KOLOM KANAN (SIDEBAR ~32%): 3 STACKED STATUS CARDS -->
           <div class="dashboard-side-col">
 
-            <!-- Side Card 1: 🔴 Pagu Anggaran & Plafon Belanja -->
+            <!-- Side Card 1: Batas Pengeluaran Bulanan -->
             <div class="side-kpi-card">
               <div class="side-card-top">
                 <div class="side-card-title-group">
@@ -789,15 +789,15 @@
                       <line x1="12" y1="16" x2="12.01" y2="16" />
                     </svg>
                   </span>
-                  <span class="side-card-title">Pagu Anggaran & Belanja</span>
+                  <span class="side-card-title">Batas Pengeluaran Bulanan</span>
                 </div>
-                <button type="button" class="card-action-link" id="btn-dash-goto-planning">Tinjau Plafon</button>
+                <button type="button" class="card-action-link" id="btn-dash-goto-planning">Lihat anggaran</button>
               </div>
               <div class="card-subtitle-text" style="margin-bottom: 10px;">Periode: <span id="budget-period-mini">Okt
                   2026</span></div>
               <div class="budget-cap-row">
                 <div class="budget-metric-block">
-                  <span class="budget-metric-label">Pagu Anggaran</span>
+                  <span class="budget-metric-label">Batas bulan ini</span>
                   <span class="budget-metric-val" id="budget-cap-val">Rp 5.000.000</span>
                 </div>
                 <div class="budget-metric-block" style="text-align: right;">
@@ -809,7 +809,7 @@
                 <div class="budget-progress-fill" id="budget-fill-bar" style="width: 0%;"></div>
               </div>
               <div class="budget-remainder-text" id="budget-remainder-val" style="margin-top: 6px;">
-                Sisa plafon: Rp 5.000.000
+                Sisa batas: Rp 5.000.000
               </div>
             </div>
 
@@ -831,7 +831,7 @@
               <div class="insight-highlight" id="dashboard-insight-title">Pengeluaran stabil di bawah batas rata-rata
               </div>
               <div class="insight-detail" id="dashboard-insight-desc">Realisasi belanja terkontrol dengan baik minggu
-                ini. Pagu anggaran Anda masih dalam zona aman.</div>
+                ini. Batas pengeluaran Anda masih aman.</div>
               <div class="insight-bars-row" id="dashboard-insight-bars" style="margin-top: 12px;">
                 <div class="insight-bar" style="height: 19px;"></div>
                 <div class="insight-bar" style="height: 27px;"></div>
@@ -1064,9 +1064,9 @@
 
         <!-- 4 Top Stat Cards -->
         <div class="planning-stat-cards">
-          <!-- Card 1: Pagu bulanan -->
+          <!-- Card 1: Batas pengeluaran bulanan -->
           <div class="planning-stat-card">
-            <div class="stat-card-label">Pagu bulanan</div>
+            <div class="stat-card-label">Batas pengeluaran bulanan</div>
             <div class="stat-card-val" id="stat-pagu-bulanan">Rp 5.000.000</div>
             <div class="stat-card-badge green" id="stat-pagu-status">Batas anggaran aktif</div>
           </div>
@@ -1075,7 +1075,7 @@
           <div class="planning-stat-card">
             <div class="stat-card-label">Pengeluaran</div>
             <div class="stat-card-val" id="stat-pengeluaran">Rp 2.150.000</div>
-            <div class="stat-card-badge rose" id="stat-pengeluaran-status">43% dari pagu</div>
+            <div class="stat-card-badge rose" id="stat-pengeluaran-status">43% dari batas</div>
           </div>
 
           <!-- Card 3: Sisa anggaran -->
@@ -1112,10 +1112,10 @@
                   </span>
                   <span class="card-section-title">Anggaran per kategori</span>
                 </div>
-                <button type="button" class="card-action-link" id="btn-edit-budget-pagu">Edit pagu</button>
+                <button type="button" class="card-action-link" id="btn-edit-budget-pagu">Ubah batas</button>
               </div>
               <div class="card-subtitle-text">
-                Bandingkan pagu, pengeluaran aktual, dan sisa setiap kategori.
+                Bandingkan batas tiap kategori dengan pengeluaran dan sisanya.
               </div>
 
               <div class="figma-table-wrapper" style="margin-top: 14px;">
@@ -1123,7 +1123,7 @@
                   <thead>
                     <tr>
                       <th style="width: 25%;">Kategori</th>
-                      <th style="width: 20%;">Pagu</th>
+                      <th style="width: 20%;">Batas</th>
                       <th style="width: 20%;">Terpakai</th>
                       <th style="width: 20%;">Sisa</th>
                       <th style="width: 15%;">Progress</th>
@@ -1159,7 +1159,7 @@
                 <button type="button" class="card-action-link" id="btn-view-all-budget-history">Lihat semua</button>
               </div>
               <div class="card-subtitle-text">
-                Perubahan pagu dan realisasi dari bulan sebelumnya.
+                Perubahan batas dan pengeluaran dari bulan sebelumnya.
               </div>
 
               <div class="figma-table-wrapper" style="margin-top: 14px;">
@@ -1167,7 +1167,7 @@
                   <thead>
                     <tr>
                       <th style="width: 25%;">Bulan</th>
-                      <th style="width: 20%;">Pagu</th>
+                      <th style="width: 20%;">Batas</th>
                       <th style="width: 20%;">Realisasi</th>
                       <th style="width: 20%;">Sisa</th>
                       <th style="width: 15%;">Tingkat pemakaian</th>
@@ -1417,7 +1417,7 @@
               <div class="snapshot-vertical-divider"></div>
 
               <div class="snapshot-metric-item">
-                <span class="snapshot-metric-label">Sisa pagu setelah beli</span>
+                <span class="snapshot-metric-label">Sisa batas setelah pembelian</span>
                 <span class="snapshot-metric-value" id="snap-budget-after">—</span>
               </div>
               <div class="snapshot-vertical-divider"></div>
@@ -2551,7 +2551,7 @@
             <span style="font-size: 10px; color: var(--text-secondary);">Peringatan AI Keuangan</span>
             <span style="background: #EBF2FF; color: #2B6CB0; padding: 2px 8px; border-radius: 12px; font-size: 9px; font-weight: 600;">Aman</span>
           </div>
-          <div style="font-size: 11px; font-weight: 600; color: var(--text-primary);">Pagu pengeluaran bulan ini dalam batas wajar</div>
+          <div style="font-size: 11px; font-weight: 600; color: var(--text-primary);">Pengeluaran bulan ini masih sesuai batas</div>
           <div style="font-size: 10px; color: var(--text-secondary); margin-top: 2px;">Tidak ditemukan lonjakan transaksi abnormal</div>
         </div>
       </div>
@@ -2576,14 +2576,13 @@
           <path
             d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
         </svg>
-        <span>Atur Anggaran Total Bulanan</span>
+        <span>Atur batas pengeluaran bulanan</span>
       </h3>
       <p style="font-size: 10px; color: var(--text-secondary); margin-bottom: 16px;">Tentukan batas total pengeluaran
         untuk bulan berjalan.</p>
       <form id="form-set-budget">
         <div style="margin-bottom: 14px;">
-          <label style="font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Pagu Total
-            Anggaran (Rp)</label>
+          <label style="font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Batas Pengeluaran Bulanan (Rp)</label>
           <input type="number" id="input-budget-limit" class="auth-input" placeholder="5000000" min="10000" step="10000"
             required>
         </div>
@@ -2604,7 +2603,7 @@
           <line x1="12" y1="5" x2="12" y2="19" />
           <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
-        <span>Atur Limit Anggaran Kategori</span>
+        <span>Atur batas pengeluaran per kategori</span>
       </h3>
       <p style="font-size: 10px; color: var(--text-secondary); margin-bottom: 16px;">Tetapkan batas pengeluaran spesifik
         per kategori.</p>
@@ -2615,14 +2614,13 @@
           <select id="select-cat-budget" class="auth-input" required></select>
         </div>
         <div style="margin-bottom: 14px;">
-          <label style="font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Batas Plafon
-            (Rp)</label>
+          <label style="font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Batas pengeluaran kategori (Rp)</label>
           <input type="number" id="input-cat-budget-limit" class="auth-input" placeholder="800000" min="10000"
             step="10000" required>
         </div>
         <div style="display: flex; justify-content: flex-end; gap: 8px;">
           <button type="button" class="btn-secondary-light btn-close-modal">Batal</button>
-          <button type="submit" class="btn-primary-dark">Simpan Limit</button>
+          <button type="submit" class="btn-primary-dark">Simpan batas</button>
         </div>
       </form>
     </div>
@@ -3065,7 +3063,7 @@
             </div>
             <div
               style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 10px; padding: 10px 12px;">
-              <div style="font-size: 9.5px; color: var(--text-secondary); margin-bottom: 2px;">Pagu Anggaran Bulanan
+              <div style="font-size: 9.5px; color: var(--text-secondary); margin-bottom: 2px;">Batas Pengeluaran Bulanan
               </div>
               <div id="modal-eval-budget" style="font-size: 13px; font-weight: 700; color: var(--accent-green);">—</div>
               <div id="modal-eval-budget-sub" style="font-size: 10px; color: var(--text-secondary); margin-top: 2px;">

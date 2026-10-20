@@ -189,7 +189,7 @@ class AIService:
                         f"{advice}\n\n"
                         f"• Estimasi Biaya: **{_idr(cost)}**\n"
                         f"• Saldo Rekening Setelah Beli: **{_idr(after_bal)}**\n"
-                        f"• Sisa Pagu Anggaran: **{_idr(rem_budget)}**"
+                        f"• Sisa batas pengeluaran: **{_idr(rem_budget)}**"
                     )
                 else:
                     ai_msg = (
@@ -232,7 +232,7 @@ class AIService:
                     ai_msg = (
                         f"Laporan Pengeluaran Bulan Ini:\n\n"
                         f"• Total Pengeluaran Aktual: **{_idr(total_spent)}**\n"
-                        f"• Batas Plafon Anggaran: **{_idr(total_limit)}**\n"
+                        f"• Batas Pengeluaran Bulanan: **{_idr(total_limit)}**\n"
                         f"• Sisa Anggaran Tersedia: **{_idr(rem)}** (Serapan: **{pct}%**)\n\n"
                         f"Semua mutasi telah diverifikasi dan tercatat resmi di buku besar."
                     )

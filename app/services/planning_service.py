@@ -22,15 +22,15 @@ class PlanningService:
     def get_budget_overview(user_id: int, year: Optional[int] = None, month: Optional[int] = None) -> Dict[str, Any]:
         """
         Mengambil ikhtisar anggaran bulanan dan limit kategori:
-        - Membandingkan pagu anggaran dengan realisasi pengeluaran aktual di buku besar.
-        - Menghitung persentase serapan, sisa plafon, dan status overbudget.
+        - Membandingkan batas pengeluaran dengan jumlah yang tercatat di buku besar.
+        - Menghitung persentase penggunaan, sisa batas pengeluaran, dan status terlampaui.
         """
         today = date.today()
         period_year = year or today.year
         period_month = month or today.month
 
         with get_db_cursor(commit=False) as cur:
-            # 1. Pagu Total Bulanan
+            # 1. Batas Total Bulanan
             cur.execute("""
                 SELECT limit_amount 
                 FROM monthly_budgets 
@@ -56,7 +56,7 @@ class PlanningService:
             spent_row = cur.fetchone()
             total_spent = Decimal(str(spent_row["spent"])) if spent_row else Decimal("0.00")
 
-            # 3. Pagu Spesifik per Kategori
+            # 3. Batas Spesifik per Kategori
             cur.execute("""
                 SELECT 
                     cb.category_id, c.name as category_name, cb.limit_amount,
@@ -113,7 +113,7 @@ class PlanningService:
 
     @staticmethod
     def set_monthly_budget(user_id: int, year: int, month: int, limit_amount: Decimal) -> Dict[str, Any]:
-        """Menetapkan atau memperbarui pagu anggaran total bulanan."""
+        """Menetapkan atau memperbarui batas pengeluaran bulanan."""
         with get_db_cursor(commit=True) as cur:
             cur.execute("""
                 INSERT INTO monthly_budgets (user_id, period_year, period_month, limit_amount)
@@ -124,7 +124,7 @@ class PlanningService:
 
     @staticmethod
     def set_category_budget(user_id: int, category_id: int, year: int, month: int, limit_amount: Decimal) -> Dict[str, Any]:
-        """Menetapkan atau memperbarui pagu anggaran per kategori pengeluaran."""
+        """Menetapkan atau memperbarui batas per kategori pengeluaran."""
         with get_db_cursor(commit=True) as cur:
             # Pastikan kategori milik pengguna dan bertipe EXPENSE
             cur.execute("SELECT id, name, type FROM categories WHERE id = %s AND user_id = %s", (category_id, user_id))
@@ -234,7 +234,7 @@ class PlanningService:
         """
         Fitur Unggulan AI Decision Copilot:
         1. Mengekstrak barang dan estimasi harga dari kalimat pengguna.
-        2. Mengambil snapshot finansial real-time (saldo, sisa pagu anggaran, target tabungan).
+        2. Mengambil snapshot finansial real-time (saldo, sisa batas pengeluaran, target tabungan).
         3. Menghitung dampak matematis deterministik (apakah saldo minus, anggaran jebol).
         4. OCI GenAI (Cohere Command A Osaka) menghasilkan analisis objektif dan rekomendasi bijak.
         5. Menyimpan ke purchase_scenarios untuk jejak audit pertimbangan.
@@ -385,14 +385,14 @@ Pengguna berkonsultasi mengenai rencana pembelian barang:
 - Barang yang ingin dibeli: {item_name}
 - Estimasi Harga: Rp {cost:,.0f}
 - Rekening yang dipakai: {acc_name} (Saldo saat ini: Rp {acc_bal:,.0f} -> Sisa setelah beli: Rp {bal_after:,.0f})
-- Anggaran Bulanan: Pagu Rp {tot_limit:,.0f}, Sudah Terpakai Rp {tot_spent:,.0f}, Sisa Anggaran: Rp {rem_budget:,.0f} (Jika dibeli sisa: Rp {budget_after:,.0f})
+- Anggaran Bulanan: Batas pengeluaran Rp {tot_limit:,.0f}, Sudah Terpakai Rp {tot_spent:,.0f}, Sisa Anggaran: Rp {rem_budget:,.0f} (Jika dibeli sisa: Rp {budget_after:,.0f})
 - Target Tabungan Pengguna:
 {goals_summary}
 - Vonis Kalkulator Sistem: {verdict}
 
 Berikan analisis keuangan yang objektif dalam 2-3 paragraf berbahasa Indonesia yang bersahabat:
 1. Simpulkan apakah pembelian ini aman dilakukan sekarang atau lebih baik ditunda/dicicil.
-2. Jelaskan dampaknya secara nyata terhadap arus kas dan plafon anggaran bulanannya.
+2. Jelaskan dampaknya secara nyata terhadap arus kas dan batas pengeluaran bulanannya.
 3. Berikan saran taktis atau alternatif opsi bijak bagi pengguna."""
         else:
             advice_prompt = f"""Kamu adalah Penasihat Keuangan Pribadi (Financial Copilot AI) yang cerdas, solutif, dan profesional.
@@ -402,14 +402,14 @@ Pengguna meminta panduan / konsultasi strategi finansial dengan pertanyaan:
 Berikut data posisi keuangan riil pengguna saat ini:
 - Rekening & Saldo Kas:
 {accounts_summary}
-- Pagu Anggaran Bulan Ini: Rp {tot_limit:,.0f} | Realisasi Belanja: Rp {tot_spent:,.0f} | Sisa Anggaran: Rp {rem_budget:,.0f}
+- Batas Pengeluaran Bulan Ini: Rp {tot_limit:,.0f} | Realisasi Belanja: Rp {tot_spent:,.0f} | Sisa Anggaran: Rp {rem_budget:,.0f}
 - Target Tabungan:
 {goals_summary}
 
 Instruksi Analisis & Rekomendasi:
 1. Jawab pertanyaan pengguna secara LANGSUNG, terstruktur, dan aplikatif. JANGAN mengarang atau mengasumsikan pembelian barang seharga Rp 500.000 karena pengguna sedang berkonsultasi strategi keuangan.
 2. Hubungkan analisis Anda dengan kondisi finansial riil pengguna di atas (misal: jika ada rekening bersaldo negatif seperti Kas Tunai, berikan saran cara menormalkannya terlebih dahulu).
-3. Berikan pembagian proporsi atau strategi praktis untuk menyeimbangkan alokasi belanja bulanan dengan setoran target tabungan (misal rumus 50/30/20 atau pemanfaatan sisa pagu anggaran).
+3. Berikan pembagian proporsi atau strategi praktis untuk menyeimbangkan alokasi belanja bulanan dengan setoran target tabungan (misal rumus 50/30/20 atau pemanfaatan sisa batas pengeluaran).
 4. Sampaikan dalam 2-3 paragraf berbahasa Indonesia yang hangat, memotivasi, dan mudah dijalankan."""
 
         if client and settings.OCI_COMPARTMENT_OCID:

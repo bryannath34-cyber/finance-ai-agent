@@ -34,7 +34,7 @@ def get_budget_overview(
 
 @router.post("/budget", response_model=BaseResponse)
 def set_monthly_budget(payload: MonthlyBudgetSetRequest, user: dict = Depends(get_current_user)):
-    """Menetapkan pagu anggaran total bulanan."""
+    """Menetapkan batas pengeluaran total bulanan."""
     res = PlanningService.set_monthly_budget(
         user["id"], payload.period_year, payload.period_month, payload.limit_amount
     )
@@ -42,7 +42,7 @@ def set_monthly_budget(payload: MonthlyBudgetSetRequest, user: dict = Depends(ge
 
 @router.post("/budget/category", response_model=BaseResponse)
 def set_category_budget(payload: CategoryBudgetSetRequest, user: dict = Depends(get_current_user)):
-    """Menetapkan pagu batas per kategori pengeluaran."""
+    """Menetapkan batas pengeluaran per kategori."""
     res = PlanningService.set_category_budget(
         user["id"], payload.category_id, payload.period_year, payload.period_month, payload.limit_amount
     )
