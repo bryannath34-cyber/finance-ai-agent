@@ -670,14 +670,14 @@ class App {
     }
 
     // Modal Triggers
-    const bindOpenModal = (btn, modal, onOpen = null) => {
+    function bindOpenModal(btn, modal, onOpen = null) {
       if (btn) {
         btn.addEventListener('click', () => {
           if (onOpen) onOpen();
           this.openModal(modal);
         });
       }
-    };
+    }
 
     bindOpenModal(this.btnEditBudgetPagu, this.modalSetBudget);
     bindOpenModal(this.btnSetBudgetMonthPill, this.modalSetBudget);
