@@ -431,6 +431,20 @@ class App {
     this.mobileNavBtns = document.querySelectorAll('.mobile-nav-btn');
     this.btnMobileNotif = document.getElementById('btn-mobile-notif');
     this.modalMobileNotif = document.getElementById('modal-mobile-notif');
+    this.btnTransaksiNotif = document.getElementById('btn-transaksi-notif');
+    this.transaksiNotifPopover = document.getElementById('transaksi-notif-popover');
+    this.notifBackdrop = document.getElementById('notif-backdrop');
+    this.btnCloseNotifPopover = document.getElementById('btn-close-notif-popover');
+    this.btnNotifFooterClose = document.getElementById('btn-notif-footer-close');
+    this.btnMarkNotifRead = document.getElementById('btn-mark-notif-read');
+    this.notifItemsList = document.getElementById('notif-items-list');
+    this.notifUnreadBadge = document.getElementById('notif-unread-badge');
+    this.transaksiBellDot = document.getElementById('transaksi-bell-dot');
+    this.btnNotifGoSettings = document.getElementById('btn-notif-go-settings');
+    this.notificationsRead = false;
+    try {
+      this.notificationsRead = localStorage.getItem('pf_notifications_read') === '1';
+    } catch (_) {}
     this.mobileGreetingName = document.getElementById('mobile-greeting-name');
     this.mobileTotalNetWorth = document.getElementById('mobile-total-net-worth');
     this.mobileBtnToggleNetWorth = document.getElementById('mobile-btn-toggle-net-worth');
@@ -1170,11 +1184,40 @@ class App {
       });
     }
 
+    // Unified Notification Center Triggers (Desktop Bell & Mobile Bell)
+    if (this.btnTransaksiNotif) {
+      this.btnTransaksiNotif.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.toggleNotificationCenter();
+      });
+    }
     if (this.btnMobileNotif) {
-      this.btnMobileNotif.addEventListener('click', () => {
-        if (this.modalMobileNotif) {
-          this.modalMobileNotif.style.display = 'flex';
-        }
+      this.btnMobileNotif.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.toggleNotificationCenter();
+      });
+    }
+    if (this.btnCloseNotifPopover) {
+      this.btnCloseNotifPopover.addEventListener('click', () => this.closeNotificationCenter());
+    }
+    if (this.btnNotifFooterClose) {
+      this.btnNotifFooterClose.addEventListener('click', () => this.closeNotificationCenter());
+    }
+    if (this.notifBackdrop) {
+      this.notifBackdrop.addEventListener('click', () => this.closeNotificationCenter());
+    }
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.transaksiNotifPopover && this.transaksiNotifPopover.classList.contains('active')) {
+        this.closeNotificationCenter();
+      }
+    });
+    if (this.btnMarkNotifRead) {
+      this.btnMarkNotifRead.addEventListener('click', () => this.markAllNotificationsRead());
+    }
+    if (this.btnNotifGoSettings) {
+      this.btnNotifGoSettings.addEventListener('click', () => {
+        this.closeNotificationCenter();
+        this.switchTab('tab-settings');
       });
     }
 
@@ -5140,4 +5183,184 @@ class App {
 // Bootstrapping
 document.addEventListener('DOMContentLoaded', () => {
   window.app = new App();
-});
+
+  // ================================================================
+  // NOTIFICATION CENTER SYSTEM (Real-time dynamic financial alerts)
+  // ================================================================
+  toggleNotificationCenter() {
+    if (!this.transaksiNotifPopover) return;
+    const isOpen = this.transaksiNotifPopover.classList.contains('active');
+    if (isOpen) {
+      this.closeNotificationCenter();
+    } else {
+      this.openNotificationCenter();
+    }
+  }
+
+  openNotificationCenter() {
+    if (!this.transaksiNotifPopover) return;
+    this.renderNotifications();
+    this.transaksiNotifPopover.classList.add('active');
+    if (this.notifBackdrop) this.notifBackdrop.style.display = 'block';
+  }
+
+  closeNotificationCenter() {
+    if (this.transaksiNotifPopover) {
+      this.transaksiNotifPopover.classList.remove('active');
+    }
+    if (this.notifBackdrop) {
+      this.notifBackdrop.style.display = 'none';
+    }
+  }
+
+  markAllNotificationsRead() {
+    this.notificationsRead = true;
+    try {
+      localStorage.setItem('pf_notifications_read', '1');
+    } catch (_) {}
+    if (this.transaksiBellDot) this.transaksiBellDot.style.display = 'none';
+    const mobileDot = document.querySelector('.notif-badge-dot');
+    if (mobileDot) mobileDot.style.display = 'none';
+    if (this.notifUnreadBadge) this.notifUnreadBadge.textContent = 'Semua dibaca';
+    if (this.notifItemsList) {
+      this.notifItemsList.querySelectorAll('.notif-item').forEach((item) => {
+        item.classList.remove('unread');
+      });
+    }
+  }
+
+  renderNotifications() {
+    if (!this.notifItemsList) return;
+
+    const draftCount = (this.currentBatch && this.currentBatch.drafts) ? this.currentBatch.drafts.length : 0;
+    const netWorthStr = this.formatIDR(this.currentNetWorthValue || 0);
+    const accCount = (this.accounts || []).length;
+    const txCount = (this.transactions || []).length;
+    const isRead = this.notificationsRead;
+
+    const unreadCount = isRead ? 0 : (draftCount > 0 ? 4 : 3);
+    if (this.notifUnreadBadge) {
+      this.notifUnreadBadge.textContent = unreadCount > 0 ? `${unreadCount} baru` : 'Semua dibaca';
+    }
+    if (this.transaksiBellDot) {
+      this.transaksiBellDot.style.display = unreadCount > 0 ? 'block' : 'none';
+    }
+    const mobileDot = document.querySelector('.notif-badge-dot');
+    if (mobileDot) {
+      mobileDot.style.display = unreadCount > 0 ? 'block' : 'none';
+    }
+
+    const items = [];
+
+    // 1. AI Draft Activity
+    if (draftCount > 0) {
+      items.push({
+        action: 'drafts',
+        iconClass: 'green',
+        iconSvg: Icons.check,
+        title: `Draft Transaksi AI (${draftCount} menunggu)`,
+        time: 'Baru saja',
+        desc: `Ada ${draftCount} draft mutasi yang siap kamu tinjau dan simpan ke buku besar.`,
+        unread: !isRead,
+      });
+    } else {
+      items.push({
+        action: 'mutasi',
+        iconClass: 'green',
+        iconSvg: Icons.brand,
+        title: 'Pencatatan AI Siap',
+        time: 'Aktif',
+        desc: 'Tulis atau rekam suara transaksi kamu di formulir Ceritakan Transaksimu.',
+        unread: false,
+      });
+    }
+
+    // 2. Liquid Net Worth & Accounts
+    items.push({
+      action: 'dashboard',
+      iconClass: 'blue',
+      iconSvg: Icons.bank,
+      title: 'Posisi Kas Likuid Real-Time',
+      time: 'Hari ini',
+      desc: `Total kas likuid kamu saat ini ${netWorthStr} terhubung ke ${accCount} rekening aktif.`,
+      unread: !isRead,
+    });
+
+    // 3. Transactions Activity
+    items.push({
+      action: 'mutasi',
+      iconClass: 'amber',
+      iconSvg: Icons.arrowRight,
+      title: 'Aktivitas Transaksi Buku Besar',
+      time: 'Oktober 2026',
+      desc: `${txCount} transaksi tercatat dan tersinkronisasi di sistem buku besar.`,
+      unread: !isRead,
+    });
+
+    // 4. AI Advisory Copilot
+    items.push({
+      action: 'copilot',
+      iconClass: 'purple',
+      iconSvg: Icons.target,
+      title: 'Penasehat Finansial AI',
+      time: 'Rekomendasi',
+      desc: 'Konsultasikan anggaran belanja atau simulasi keuangan kamu ke AI Advisor.',
+      unread: !isRead,
+    });
+
+    // 5. Security & Session
+    items.push({
+      action: 'settings',
+      iconClass: 'green',
+      iconSvg: Icons.shield,
+      title: 'Sistem Terproteksi OCI',
+      time: 'Terverifikasi',
+      desc: 'Server aktif terhubung dengan proteksi sesi Argon2id & CSRF Bearer token.',
+      unread: false,
+    });
+
+    this.notifItemsList.innerHTML = items.map((item) => `
+      <div class="notif-item ${item.unread ? 'unread' : ''}" data-notif-action="${item.action}">
+        <div class="notif-item-icon ${item.iconClass}">
+          ${item.iconSvg}
+        </div>
+        <div class="notif-item-content">
+          <div class="notif-item-top">
+            <span class="notif-item-title">${item.title}</span>
+            <span class="notif-item-time">${item.time}</span>
+          </div>
+          <p class="notif-item-desc">${item.desc}</p>
+        </div>
+        <span class="notif-item-dot"></span>
+      </div>
+    `).join('');
+
+    this.notifItemsList.querySelectorAll('.notif-item').forEach((el) => {
+      el.addEventListener('click', () => {
+        const action = el.getAttribute('data-notif-action');
+        this.handleNotificationAction(action);
+      });
+    });
+  }
+
+  handleNotificationAction(action) {
+    this.closeNotificationCenter();
+    if (action === 'drafts') {
+      this.switchTab('tab-mutasi');
+      const draftEl = document.getElementById('draft-section');
+      if (draftEl) {
+        draftEl.style.display = 'block';
+        draftEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    } else if (action === 'mutasi') {
+      this.switchTab('tab-mutasi');
+    } else if (action === 'copilot') {
+      this.switchTab('tab-copilot');
+    } else if (action === 'dashboard') {
+      this.switchTab('tab-dashboard');
+    } else if (action === 'settings') {
+      this.switchTab('tab-settings');
+    }
+  }
+
+}

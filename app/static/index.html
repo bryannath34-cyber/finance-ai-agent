@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=2.8.1">
+  <link rel="stylesheet" href="css/style.css?v=2.8.2">
   <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
   <link rel="shortcut icon" type="image/svg+xml" href="favicon.svg?v=3">
   <link rel="apple-touch-icon" href="favicon.svg?v=3">
@@ -265,13 +265,47 @@
               </svg>
               <span id="transaksi-period-text">Oktober 2026</span>
             </button>
-            <button type="button" class="transaksi-bell-btn" title="Notifikasi" aria-label="Notifikasi">
-              <svg class="ui-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-              </svg>
-              <span class="bell-dot"></span>
-            </button>
+            <div class="transaksi-bell-wrapper">
+              <button type="button" class="transaksi-bell-btn" id="btn-transaksi-notif" title="Notifikasi" aria-label="Notifikasi">
+                <svg class="ui-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+                <span class="bell-dot" id="transaksi-bell-dot"></span>
+              </button>
+
+              <!-- Unified Notification Center Dropdown / Sheet -->
+              <div class="transaksi-notif-popover" id="transaksi-notif-popover" role="dialog" aria-label="Pusat Notifikasi">
+                <div class="notif-mobile-drag-handle"></div>
+                <div class="notif-popover-header">
+                  <div class="notif-popover-title-row">
+                    <div class="notif-header-left">
+                      <span class="notif-header-title">Notifikasi</span>
+                      <span class="notif-unread-badge" id="notif-unread-badge">4 baru</span>
+                    </div>
+                    <div class="notif-header-actions">
+                      <button type="button" class="btn-mark-notif-read" id="btn-mark-notif-read" title="Tandai semua dibaca">Tandai dibaca</button>
+                      <button type="button" class="btn-close-notif-popover" id="btn-close-notif-popover" aria-label="Tutup notifikasi">✕</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="notif-popover-body" id="notif-items-list">
+                  <!-- Dynamic notification items populated by JS -->
+                </div>
+
+                <div class="notif-popover-footer">
+                  <button type="button" class="btn-notif-footer-link" id="btn-notif-go-settings">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="3"></circle>
+                      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                    <span>Pengaturan Akun</span>
+                  </button>
+                  <button type="button" class="btn-notif-footer-close" id="btn-notif-footer-close">Tutup</button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -2433,6 +2467,9 @@
 
   </div>
 
+  <!-- Global Notification Backdrop -->
+  <div id="notif-backdrop" class="notif-backdrop" style="display: none;"></div>
+
   <!-- MODAL: Notifikasi & Status Keamanan Mobile -->
   <div id="modal-mobile-notif" class="modal-overlay" style="display: none;">
     <div class="modal-content mobile-sheet-content" style="max-width: 480px; width: 94%;">
@@ -3646,7 +3683,7 @@
       </div>
     </div>
 
-  <script type="module" src="js/app.js?v=2.8.1"></script>
+  <script type="module" src="js/app.js?v=2.8.2"></script>
 </body>
 
 </html>
