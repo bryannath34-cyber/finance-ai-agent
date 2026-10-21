@@ -159,6 +159,19 @@ def get_current_user_from_token(plain_token: str) -> Optional[Dict[str, Any]]:
             "timezone": row["timezone"],
         }
 
+async def get_optional_current_user(request: Request) -> Optional[Dict[str, Any]]:
+    """FastAPI Dependency: Memeriksa cookie sesi atau header Authorization Bearer tanpa melempar HTTPException 401 jika belum login."""
+    token = request.cookies.get(settings.SESSION_COOKIE_NAME)
+    if not token:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ", 1)[1].strip()
+
+    if not token:
+        return None
+
+    return get_current_user_from_token(token)
+
 async def get_current_user(request: Request) -> Dict[str, Any]:
     """FastAPI Dependency: Memeriksa cookie sesi atau header Authorization Bearer dan memverifikasi pengguna aktif."""
     token = request.cookies.get(settings.SESSION_COOKIE_NAME)

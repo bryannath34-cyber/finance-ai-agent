@@ -2,6 +2,7 @@ import logging
 import json
 import re
 from datetime import datetime, date, timedelta, timezone
+from typing import Optional, Dict, Any, List
 from fastapi import APIRouter, HTTPException, status, Request, Response, Depends
 from urllib.parse import quote
 from app.core.config import settings
@@ -13,6 +14,7 @@ from app.core.security import (
     invalidate_user_session,
     generate_secure_token,
     get_current_user,
+    get_optional_current_user,
     encrypt_totp_secret,
     decrypt_totp_secret,
     generate_totp_secret,
@@ -389,9 +391,15 @@ def logout(request: Request, response: Response):
 
 
 
-@router.get("/me", response_model=DataResponse[UserProfile])
-def get_current_user_profile(user: dict = Depends(get_current_user)):
-    """Mengembalikan data profil pengguna yang sedang login aktif."""
+@router.get("/me", response_model=DataResponse[Optional[UserProfile]])
+def get_current_user_profile(user: Optional[dict] = Depends(get_optional_current_user)):
+    """Mengembalikan data profil pengguna yang sedang login aktif, atau null jika belum login."""
+    if not user:
+        return DataResponse(
+            success=True,
+            message="Belum ada sesi login aktif.",
+            data=None
+        )
     return DataResponse(
         success=True,
         message="Profil pengguna aktif diperoleh.",
