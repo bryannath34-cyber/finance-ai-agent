@@ -135,6 +135,29 @@ def test_sql_migration():
     print(" [PASS] sql/08_registration_and_email.sql contains all necessary grants and schema adjustments.")
 
 
+def test_csrf_exemption_for_register():
+    print("\n=== TEST 7: CSRF protection exemption for /auth/register ===")
+    from app.core.security import verify_csrf
+
+    # Test /api/auth/register without CSRF token
+    req1 = MagicMock()
+    req1.method = "POST"
+    req1.url.path = "/api/auth/register"
+    req1.headers = {}
+    req1.cookies = {}
+    verify_csrf(req1)  # Must not raise HTTPException
+
+    # Test /finance/api/auth/register without CSRF token
+    req2 = MagicMock()
+    req2.method = "POST"
+    req2.url.path = "/finance/api/auth/register"
+    req2.headers = {}
+    req2.cookies = {}
+    verify_csrf(req2)  # Must not raise HTTPException
+
+    print(" [PASS] verify_csrf successfully allows unauthenticated registration requests without CSRF token.")
+
+
 if __name__ == "__main__":
     print("=" * 65)
     print("RUNNING AUTOMATED TESTS: USER REGISTRATION & MULTI-ID LOGIN")
@@ -145,6 +168,7 @@ if __name__ == "__main__":
     test_index_html_dom()
     test_backend_auth_endpoints()
     test_sql_migration()
+    test_csrf_exemption_for_register()
     print("\n" + "=" * 65)
     print("ALL REGISTRATION & LOGIN TESTS PASSED SUCCESSFULLY! (100% GREEN)")
     print("=" * 65)
