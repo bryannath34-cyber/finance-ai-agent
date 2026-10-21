@@ -1210,10 +1210,22 @@ class App {
       });
     }
     if (this.formMobileSignup) {
-      this.formMobileSignup.addEventListener('submit', (e) => {
+      this.formMobileSignup.addEventListener('submit', async (e) => {
         e.preventDefault();
+        const name = document.getElementById('mobile-signup-name')?.value.trim() || '';
+        const email = document.getElementById('mobile-signup-email')?.value.trim() || '';
         const pwd = document.getElementById('mobile-signup-password')?.value || '';
         const confirm = document.getElementById('mobile-signup-confirm')?.value;
+        const terms = document.getElementById('mobile-signup-terms');
+
+        if (!name) {
+          this.showAlert('Nama lengkap wajib diisi.', 'error');
+          return;
+        }
+        if (!email || !email.includes('@')) {
+          this.showAlert('Format email tidak valid.', 'error');
+          return;
+        }
         if (pwd !== confirm) {
           this.showAlert('Konfirmasi kata sandi tidak cocok.', 'error');
           return;
@@ -1222,7 +1234,37 @@ class App {
           this.showAlert('Kata sandi minimal 8 karakter.', 'error');
           return;
         }
-        this.showAlert('Pendaftaran mandiri belum diaktifkan. Hubungi administrator untuk membuat akun.', 'warning');
+        if (terms && !terms.checked) {
+          this.showAlert('Anda harus menyetujui ketentuan penggunaan.', 'error');
+          return;
+        }
+
+        const submitBtn = document.getElementById('btn-submit-mobile-signup');
+        const origContent = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = '<span>Mendaftarkan...</span>';
+        }
+
+        try {
+          const res = await api.auth.register(name, email, pwd);
+          const userProfile = res?.user || (res?.data && res.data.id ? res.data : null);
+
+          sessionStorage.removeItem('pf_logged_out');
+          localStorage.removeItem('pf_logged_out');
+          this.currentUser = userProfile || { username: email, full_name: name };
+
+          this.formMobileSignup.reset();
+          this.showAlert('Akun berhasil dibuat! Selamat datang di Finance AI Agent.', 'success');
+          this.showDashboard();
+        } catch (err) {
+          this.showAlert(err.message || 'Gagal membuat akun. Silakan coba lagi.', 'error');
+        } finally {
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = origContent;
+          }
+        }
       });
     }
     if (this.formMobileReset) {
@@ -1233,11 +1275,22 @@ class App {
     }
 
     if (this.formTabSignup) {
-      this.formTabSignup.addEventListener('submit', (e) => {
+      this.formTabSignup.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const pwd = this.signupPassword.value;
-        const confirm = this.signupConfirm.value;
+        const name = this.signupFullname?.value.trim() || '';
+        const email = this.signupEmail?.value.trim() || '';
+        const pwd = this.signupPassword?.value || '';
+        const confirm = this.signupConfirm?.value;
+        const terms = this.signupTerms;
 
+        if (!name) {
+          this.showAlert('Nama lengkap wajib diisi.', 'error');
+          return;
+        }
+        if (!email || !email.includes('@')) {
+          this.showAlert('Format email tidak valid.', 'error');
+          return;
+        }
         if (pwd !== confirm) {
           this.showAlert('Konfirmasi kata sandi tidak cocok.', 'error');
           return;
@@ -1246,8 +1299,37 @@ class App {
           this.showAlert('Kata sandi minimal 8 karakter.', 'error');
           return;
         }
+        if (terms && !terms.checked) {
+          this.showAlert('Anda harus menyetujui ketentuan penggunaan.', 'error');
+          return;
+        }
 
-        this.showAlert('Pendaftaran mandiri belum diaktifkan. Hubungi administrator untuk membuat akun.', 'warning');
+        const submitBtn = this.formTabSignup.querySelector('button[type="submit"]');
+        const origContent = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = '<span>Mendaftarkan...</span>';
+        }
+
+        try {
+          const res = await api.auth.register(name, email, pwd);
+          const userProfile = res?.user || (res?.data && res.data.id ? res.data : null);
+
+          sessionStorage.removeItem('pf_logged_out');
+          localStorage.removeItem('pf_logged_out');
+          this.currentUser = userProfile || { username: email, full_name: name };
+
+          this.formTabSignup.reset();
+          this.showAlert('Akun berhasil dibuat! Selamat datang di Finance AI Agent.', 'success');
+          this.showDashboard();
+        } catch (err) {
+          this.showAlert(err.message || 'Gagal membuat akun. Silakan coba lagi.', 'error');
+        } finally {
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = origContent;
+          }
+        }
       });
     }
 

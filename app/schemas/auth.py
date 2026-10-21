@@ -2,9 +2,14 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 class LoginRequest(BaseModel):
-    username: str = Field(..., min_length=3, max_length=50, description="Username pengguna")
+    username: str = Field(..., min_length=3, max_length=100, description="Username atau email pengguna")
     password: str = Field(..., min_length=6, description="Password pengguna")
     totp_code: Optional[str] = Field(None, min_length=6, max_length=6, description="Kode TOTP saat 2FA aktif")
+
+class RegisterRequest(BaseModel):
+    full_name: str = Field(..., min_length=1, max_length=100, description="Nama lengkap pengguna")
+    email: str = Field(..., min_length=3, max_length=100, description="Email pengguna")
+    password: str = Field(..., min_length=8, max_length=128, description="Kata sandi minimal 8 karakter")
 
 class TwoFactorEnableRequest(BaseModel):
     secret: str = Field(..., min_length=16, max_length=64)

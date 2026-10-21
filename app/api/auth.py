@@ -1,6 +1,7 @@
 import logging
 import json
-from datetime import datetime, timedelta, timezone
+import re
+from datetime import datetime, date, timedelta, timezone
 from fastapi import APIRouter, HTTPException, status, Request, Response, Depends
 from urllib.parse import quote
 from app.core.config import settings
@@ -17,7 +18,16 @@ from app.core.security import (
     generate_totp_secret,
     verify_totp,
 )
-from app.schemas.auth import LoginRequest, LoginResponse, UserProfile, TwoFactorEnableRequest, TwoFactorDisableRequest, ChangePasswordRequest, UpdateProfileRequest
+from app.schemas.auth import (
+    LoginRequest,
+    RegisterRequest,
+    LoginResponse,
+    UserProfile,
+    TwoFactorEnableRequest,
+    TwoFactorDisableRequest,
+    ChangePasswordRequest,
+    UpdateProfileRequest,
+)
 from app.schemas.common import BaseResponse, DataResponse
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -26,11 +36,18 @@ logger = logging.getLogger("personal_finance.auth")
 MAX_FAILED_ATTEMPTS = 5
 LOCKOUT_MINUTES = 15
 
+def _has_email_column(cur) -> bool:
+    try:
+        cur.execute("SHOW COLUMNS FROM app_users LIKE 'email'")
+        return cur.fetchone() is not None
+    except Exception:
+        return False
+
 @router.post("/login", response_model=LoginResponse)
 def login(login_data: LoginRequest, request: Request, response: Response):
     """
     Otentikasi pengguna web:
-    - Memverifikasi username dan hash password Argon2id
+    - Memverifikasi username/email dan hash password Argon2id
     - Memeriksa batasan percobaan login gagal (lockout 15 menit jika 5x gagal)
     - Menerbitkan token sesi web server-side di tabel web_sessions
     - Mengatur HttpOnly Session Cookie dan Anti-CSRF Cookie
@@ -42,13 +59,23 @@ def login(login_data: LoginRequest, request: Request, response: Response):
     user_prefix = login_val.split("@")[0] if "@" in login_val else login_val
 
     with get_db_cursor(commit=True) as cur:
-        cur.execute("""
-            SELECT *
-            FROM app_users
-            WHERE username = %s OR username = %s
-            ORDER BY (username = %s) DESC
-            LIMIT 1
-        """, (login_val, user_prefix, login_val))
+        has_email = _has_email_column(cur)
+        if has_email:
+            cur.execute("""
+                SELECT *
+                FROM app_users
+                WHERE username = %s OR email = %s OR username = %s OR full_name = %s
+                ORDER BY (email = %s) DESC, (username = %s) DESC, (full_name = %s) DESC
+                LIMIT 1
+            """, (login_val, login_val, user_prefix, login_val, login_val, login_val, login_val))
+        else:
+            cur.execute("""
+                SELECT *
+                FROM app_users
+                WHERE username = %s OR username = %s OR full_name = %s
+                ORDER BY (username = %s) DESC, (full_name = %s) DESC
+                LIMIT 1
+            """, (login_val, user_prefix, login_val, login_val, login_val))
         user = cur.fetchone()
 
         if not user:
@@ -166,6 +193,178 @@ def login(login_data: LoginRequest, request: Request, response: Response):
     return LoginResponse(
         success=True,
         message="Login berhasil.",
+        user=user_profile,
+        data=user_profile,
+        csrf_token=csrf_token,
+        token=session_token
+    )
+
+@router.post("/register", response_model=LoginResponse)
+def register(reg_data: RegisterRequest, request: Request, response: Response):
+    """
+    Pendaftaran akun pengguna baru mandiri:
+    - Validasi nama, email, dan kata sandi (minimal 8 karakter)
+    - Enkripsi password menggunakan Argon2id
+    - Buat akun di app_users
+    - Inisialisasi 3 rekening bawaan ('Kas Tunai', 'Bank', 'E-Wallet')
+    - Inisialisasi 10 kategori standar (termasuk kategori sistem Biaya Admin)
+    - Inisialisasi preferensi pengguna bawaan
+    - Menerbitkan token sesi web dan login otomatis
+    """
+    full_name = reg_data.full_name.strip()
+    email = reg_data.email.strip().lower()
+    password = reg_data.password
+
+    if not full_name:
+        raise HTTPException(status_code=400, detail="Nama lengkap tidak boleh kosong.")
+    if "@" not in email or "." not in email:
+        raise HTTPException(status_code=400, detail="Format email tidak valid.")
+    if len(password) < 8:
+        raise HTTPException(status_code=400, detail="Kata sandi minimal 8 karakter.")
+
+    hashed_pw = hash_password(password)
+
+    with get_db_cursor(commit=True) as cur:
+        # Cek kolom email pada tabel app_users, jika belum ada coba tambahkan
+        has_email = _has_email_column(cur)
+        if not has_email:
+            try:
+                cur.execute("ALTER TABLE app_users ADD COLUMN email VARCHAR(100) NULL UNIQUE AFTER full_name")
+                has_email = True
+            except Exception as e:
+                logger.warning("Gagal menambahkan kolom email secara otomatis (abaikan jika keterbatasan hak akses): %s", e)
+
+        # Cek duplikasi akun
+        if has_email:
+            cur.execute("SELECT id FROM app_users WHERE email = %s OR username = %s LIMIT 1", (email, email))
+            if cur.fetchone():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Email atau username sudah terdaftar. Silakan login atau gunakan email lain."
+                )
+        else:
+            cur.execute("SELECT id FROM app_users WHERE username = %s LIMIT 1", (email,))
+            if cur.fetchone():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Email atau username sudah terdaftar. Silakan login atau gunakan email lain."
+                )
+
+        # Tentukan username unik
+        email_prefix = re.sub(r'[^a-zA-Z0-9_]', '', email.split("@")[0])[:30]
+        if not email_prefix:
+            email_prefix = re.sub(r'[^a-zA-Z0-9_]', '', full_name.lower().replace(' ', '_'))[:30]
+        if not email_prefix:
+            email_prefix = "user"
+
+        candidate_username = email_prefix
+        counter = 1
+        while True:
+            cur.execute("SELECT id FROM app_users WHERE username = %s LIMIT 1", (candidate_username,))
+            if not cur.fetchone():
+                break
+            candidate_username = f"{email_prefix[:25]}_{counter}"
+            counter += 1
+
+        # Simpan pengguna baru ke app_users
+        if has_email:
+            cur.execute("""
+                INSERT INTO app_users (username, email, password_hash, full_name, timezone)
+                VALUES (%s, %s, %s, %s, 'Asia/Jakarta')
+            """, (candidate_username, email, hashed_pw, full_name))
+        else:
+            chosen_username = email if len(email) <= 50 else candidate_username
+            cur.execute("""
+                INSERT INTO app_users (username, password_hash, full_name, timezone)
+                VALUES (%s, %s, %s, 'Asia/Jakarta')
+            """, (chosen_username, hashed_pw, full_name))
+
+        new_user_id = cur.lastrowid
+
+        # Inisialisasi 3 rekening bawaan
+        today = date.today()
+        accounts_data = [
+            (new_user_id, 'Kas Tunai', 'CASH', 0.00, today),
+            (new_user_id, 'Bank', 'BANK', 0.00, today),
+            (new_user_id, 'E-Wallet', 'EWALLET', 0.00, today),
+        ]
+        cur.executemany("""
+            INSERT INTO accounts (user_id, name, type, opening_balance, opening_balance_date, is_active)
+            VALUES (%s, %s, %s, %s, %s, TRUE)
+        """, accounts_data)
+
+        # Inisialisasi 9 kategori standar + 1 kategori sistem Biaya Admin
+        categories_data = [
+            (new_user_id, 'Gaji & Pendapatan', 'INCOME', False),
+            (new_user_id, 'Bonus & Freelance', 'INCOME', False),
+            (new_user_id, 'Investasi & Bunga', 'INCOME', False),
+            (new_user_id, 'Saldo Awal', 'INCOME', False),
+            (new_user_id, 'Makanan & Minuman', 'EXPENSE', False),
+            (new_user_id, 'Transportasi', 'EXPENSE', False),
+            (new_user_id, 'Tagihan & Utilitas', 'EXPENSE', False),
+            (new_user_id, 'Belanja Kebutuhan', 'EXPENSE', False),
+            (new_user_id, 'Hiburan & Liburan', 'EXPENSE', False),
+            (new_user_id, 'Biaya Admin', 'EXPENSE', True),
+        ]
+        cur.executemany("""
+            INSERT INTO categories (user_id, name, type, is_system, is_active)
+            VALUES (%s, %s, %s, %s, TRUE)
+        """, categories_data)
+
+        # Inisialisasi preferensi pengguna
+        try:
+            cur.execute("""
+                INSERT INTO user_preferences (user_id, preferences_json)
+                VALUES (%s, %s)
+                ON DUPLICATE KEY UPDATE preferences_json = VALUES(preferences_json)
+            """, (new_user_id, json.dumps(DEFAULT_PREFERENCES)))
+        except Exception as pref_err:
+            logger.warning("Gagal inisialisasi user_preferences untuk user %s: %s", new_user_id, pref_err)
+
+    # Dapatkan IP Address dan User Agent
+    client_ip = request.headers.get("X-Forwarded-For", request.client.host if request.client else "127.0.0.1")
+    if "," in client_ip:
+        client_ip = client_ip.split(",")[0].strip()
+    user_agent = request.headers.get("User-Agent", "")
+
+    # Terbitkan sesi di DB
+    session_token, expires_at = create_user_session(new_user_id, client_ip, user_agent)
+    csrf_token = generate_secure_token(24)
+
+    forwarded_proto = request.headers.get("X-Forwarded-Proto", "").split(",", 1)[0].strip().lower()
+    is_https = request.url.scheme.lower() == "https" or forwarded_proto == "https"
+
+    response.set_cookie(
+        key=settings.SESSION_COOKIE_NAME,
+        value=session_token,
+        max_age=settings.SESSION_EXPIRE_HOURS * 3600,
+        httponly=True,
+        samesite="lax",
+        secure=is_https,
+        path="/"
+    )
+
+    response.set_cookie(
+        key=settings.CSRF_COOKIE_NAME,
+        value=csrf_token,
+        max_age=settings.SESSION_EXPIRE_HOURS * 3600,
+        httponly=False,
+        samesite="lax",
+        secure=is_https,
+        path="/"
+    )
+
+    logger.info("Pengguna baru '%s' (ID: %s) berhasil mendaftar dan login otomatis", candidate_username, new_user_id)
+
+    user_profile = UserProfile(
+        id=new_user_id,
+        username=candidate_username,
+        full_name=full_name,
+        timezone="Asia/Jakarta"
+    )
+    return LoginResponse(
+        success=True,
+        message="Akun berhasil dibuat! Selamat datang di Finance AI Agent.",
         user=user_profile,
         data=user_profile,
         csrf_token=csrf_token,
