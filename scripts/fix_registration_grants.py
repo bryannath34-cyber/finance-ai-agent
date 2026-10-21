@@ -41,53 +41,47 @@ def main():
         print(f"❌ GAGAL terhubung ke database: {e}")
         sys.exit(1)
 
-    queries = [
-        # 1. Tambah kolom email jika belum ada
-        "ALTER TABLE app_users ADD COLUMN IF NOT EXISTS email VARCHAR(100) NULL UNIQUE AFTER full_name;",
-
-        # 2. Wildcard host (%)
-        "GRANT SELECT, INSERT, UPDATE ON personal_finance.app_users TO 'fin_bot_app'@'%';",
-        "GRANT SELECT, INSERT, UPDATE ON personal_finance.accounts TO 'fin_bot_app'@'%';",
-        "GRANT SELECT, INSERT, UPDATE ON personal_finance.categories TO 'fin_bot_app'@'%';",
-        "GRANT SELECT, INSERT, UPDATE ON personal_finance.user_preferences TO 'fin_bot_app'@'%';",
-
-        # 3. Subnet privat OCI (10.10.2.%)
-        "GRANT SELECT, INSERT, UPDATE ON personal_finance.app_users TO 'fin_bot_app'@'10.10.2.%';",
-        "GRANT SELECT, INSERT, UPDATE ON personal_finance.accounts TO 'fin_bot_app'@'10.10.2.%';",
-        "GRANT SELECT, INSERT, UPDATE ON personal_finance.categories TO 'fin_bot_app'@'10.10.2.%';",
-        "GRANT SELECT, INSERT, UPDATE ON personal_finance.user_preferences TO 'fin_bot_app'@'10.10.2.%';",
-
-        # 4. FQDN Hostname OCI VM (app-01)
-        "GRANT SELECT, INSERT, UPDATE ON personal_finance.app_users TO 'fin_bot_app'@'app-01.privatesubtrain.vcnocitraining.oraclevcn.com';",
-        "GRANT SELECT, INSERT, UPDATE ON personal_finance.accounts TO 'fin_bot_app'@'app-01.privatesubtrain.vcnocitraining.oraclevcn.com';",
-        "GRANT SELECT, INSERT, UPDATE ON personal_finance.categories TO 'fin_bot_app'@'app-01.privatesubtrain.vcnocitraining.oraclevcn.com';",
-        "GRANT SELECT, INSERT, UPDATE ON personal_finance.user_preferences TO 'fin_bot_app'@'app-01.privatesubtrain.vcnocitraining.oraclevcn.com';",
-
-        # 5. Localhost
-        "GRANT SELECT, INSERT, UPDATE ON personal_finance.app_users TO 'fin_bot_app'@'localhost';",
-        "GRANT SELECT, INSERT, UPDATE ON personal_finance.accounts TO 'fin_bot_app'@'localhost';",
-        "GRANT SELECT, INSERT, UPDATE ON personal_finance.categories TO 'fin_bot_app'@'localhost';",
-        "GRANT SELECT, INSERT, UPDATE ON personal_finance.user_preferences TO 'fin_bot_app'@'localhost';",
-
-        # 6. Flush Privileges
-        "FLUSH PRIVILEGES;"
-    ]
-
     try:
         with conn.cursor() as cur:
-            for q in queries:
-                print(f"  ▶️ Menjalankan: {q.strip()}")
-                try:
-                    cur.execute(q)
-                except Exception as query_err:
-                    print(f"     ⚠️ {query_err}")
+            # 1. Cek & Tambah Kolom Email pada app_users jika belum ada
+            cur.execute("SHOW COLUMNS FROM app_users LIKE 'email'")
+            if cur.fetchone():
+                print("  ℹ️ Kolom 'email' sudah ada di tabel app_users.")
+            else:
+                print("  ▶️ Menambahkan kolom 'email' ke tabel app_users...")
+                cur.execute("ALTER TABLE app_users ADD COLUMN email VARCHAR(100) NULL UNIQUE AFTER full_name")
+                print("  ✅ Kolom 'email' berhasil ditambahkan.")
+
+            # 2. Cek & Buat Tabel user_preferences jika belum ada
+            print("  ▶️ Memastikan tabel 'user_preferences' tersedia...")
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS user_preferences (
+                    user_id BIGINT UNSIGNED PRIMARY KEY,
+                    preferences_json JSON NOT NULL,
+                    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    CONSTRAINT fk_preferences_user FOREIGN KEY (user_id) REFERENCES app_users(id) ON DELETE CASCADE
+                ) ENGINE=InnoDB
+            """)
+            print("  ✅ Tabel 'user_preferences' siap.")
+
+            # 3. Berikan Hak Akses Pendaftaran ke 'fin_bot_app'@'10.10.2.%'
+            grants = [
+                "GRANT SELECT, INSERT, UPDATE ON personal_finance.app_users TO 'fin_bot_app'@'10.10.2.%';",
+                "GRANT SELECT, INSERT, UPDATE ON personal_finance.accounts TO 'fin_bot_app'@'10.10.2.%';",
+                "GRANT SELECT, INSERT, UPDATE ON personal_finance.categories TO 'fin_bot_app'@'10.10.2.%';",
+                "GRANT SELECT, INSERT, UPDATE ON personal_finance.user_preferences TO 'fin_bot_app'@'10.10.2.%';",
+                "FLUSH PRIVILEGES;"
+            ]
+            for g in grants:
+                print(f"  ▶️ Menjalankan: {g.strip()}")
+                cur.execute(g)
 
         print("\n" + "=" * 65)
-        print("✅ HAK AKSES INSERT REGISTRASI BERHASIL DIBERIKAN KEPADA 'fin_bot_app'!")
-        print("   Fitur Buat Akun Baru (Self-Registration) sekarang sudah aktif dan siap digunakan.")
+        print("🎉 SEMPURNA! HAK AKSES PENDAFTARAN AKUN BERHASIL DIKONFIGURASI!")
+        print("   Pengguna sekarang dapat membuat akun baru langsung dari halaman web.")
         print("=" * 65)
     except Exception as e:
-        print(f"\n❌ Terjadi kesalahan saat memperbarui privileges: {e}")
+        print(f"\n❌ Terjadi kesalahan: {e}")
         sys.exit(1)
     finally:
         conn.close()
