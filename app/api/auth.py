@@ -475,6 +475,16 @@ def forgot_password(req: ForgotPasswordRequest, request: Request):
     sent, email_msg = send_password_reset_email(target_email, recipient_name, reset_link, expire_minutes)
     if not sent:
         logger.warning("Pengiriman email Resend: %s. Link darurat: %s", email_msg, reset_link)
+        if "You can only send testing emails to your own email address" in str(email_msg):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Mode uji coba Resend (onboarding@resend.dev) saat ini hanya mengizinkan pengiriman ke email pemilik akun Resend (bryannath34@gmail.com). Silakan gunakan email tersebut, atau daftarkan domain di dashboard Resend."
+            )
+        if not getattr(settings, "RESEND_API_KEY", None):
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Layanan email belum dikonfigurasi (RESEND_API_KEY belum diisi di file .env)."
+            )
 
     return BaseResponse(
         success=True,
