@@ -5,7 +5,7 @@
  * Financial Planning, and AI Advisory Copilot.
  */
 
-import { api } from './api.js?v=2.8.10';
+import { api } from './api.js?v=2.8.11';
 import { AudioRecorder } from './audio_recorder.js';
 
 const Icons = {
@@ -1250,16 +1250,10 @@ class App {
           await api.auth.register(name, email, pwd);
 
           this.formMobileSignup.reset();
+          this.currentUser = null;
 
-          // Arahkan kembali ke form login user awal
-          this.showLogin();
-          if (this.loginUsername) {
-            this.loginUsername.value = email;
-          }
-          if (this.loginPassword) {
-            this.loginPassword.value = '';
-            setTimeout(() => this.loginPassword.focus(), 150);
-          }
+          // Arahkan kembali ke form login user awal dengan email terisi
+          this.showLogin(email);
           this.showAlert('Akun berhasil dibuat! Silakan masukkan kata sandi untuk masuk.', 'success');
         } catch (err) {
           this.showAlert(err.message || 'Gagal membuat akun. Silakan coba lagi.', 'error');
@@ -1319,16 +1313,10 @@ class App {
           await api.auth.register(name, email, pwd);
 
           this.formTabSignup.reset();
+          this.currentUser = null;
 
-          // Arahkan kembali ke form login user awal
-          this.showLogin();
-          if (this.loginUsername) {
-            this.loginUsername.value = email;
-          }
-          if (this.loginPassword) {
-            this.loginPassword.value = '';
-            setTimeout(() => this.loginPassword.focus(), 150);
-          }
+          // Arahkan kembali ke form login user awal dengan email terisi
+          this.showLogin(email);
           this.showAlert('Akun berhasil dibuat! Silakan masukkan kata sandi untuk masuk.', 'success');
         } catch (err) {
           this.showAlert(err.message || 'Gagal membuat akun. Silakan coba lagi.', 'error');
@@ -1760,8 +1748,9 @@ class App {
     if (this.authViewReset) this.authViewReset.style.display = (viewName === 'reset') ? 'block' : 'none';
   }
 
-  showLogin() {
+  showLogin(prefillUsername = '') {
     this.sessionCheckRun += 1;
+    this.currentUser = null;
     this.showAuthView('login');
     document.body.classList.remove('auth-pending');
     if (this.loginForm) this.loginForm.style.removeProperty('display');
@@ -1777,13 +1766,20 @@ class App {
       this.authOverlay.style.setProperty('z-index', '999999', 'important');
     }
     if (this.loginUsername) {
-      this.loginUsername.value = '';
-      setTimeout(() => {
-        try { this.loginUsername.focus(); } catch (_) {}
-      }, 50);
+      this.loginUsername.value = prefillUsername || '';
+      if (!prefillUsername) {
+        setTimeout(() => {
+          try { this.loginUsername.focus(); } catch (_) {}
+        }, 50);
+      }
     }
     if (this.loginPassword) {
       this.loginPassword.value = '';
+      if (prefillUsername) {
+        setTimeout(() => {
+          try { this.loginPassword.focus(); } catch (_) {}
+        }, 100);
+      }
     }
     if (this.loginError) {
       this.loginError.style.display = 'none';

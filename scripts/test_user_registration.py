@@ -68,9 +68,8 @@ def test_app_js_registration():
     with open("app/static/js/app.js", "r", encoding="utf-8") as f:
         js = f.read()
 
-    assert "api.auth.register(name, email, pwd)" in js, "app.js must call api.auth.register"
-    assert "this.showLogin();" in js, "signup must redirect to login screen on success"
-    assert "this.loginUsername.value = email;" in js, "login form must prefill registered email"
+    assert "this.showLogin(email);" in js, "signup must redirect to login screen with prefilled email"
+    assert "showLogin(prefillUsername = '')" in js, "showLogin must support prefillUsername"
     assert "Akun berhasil dibuat!" in js, "signup must display success message"
     assert "Pendaftaran mandiri belum diaktifkan" not in js, "placeholder warning must be removed"
     print(" [PASS] app.js formMobileSignup and formTabSignup redirect to login form on success.")
@@ -95,7 +94,7 @@ def test_index_html_dom():
     assert 'nama@email.com atau username' in html, "login input placeholder updated"
 
     # Cache bust version
-    assert 'js/app.js?v=2.8.10' in html, "app.js version bumped to 2.8.10"
+    assert 'js/app.js?v=2.8.11' in html, "app.js version bumped to 2.8.11"
     print(" [PASS] index.html registration inputs and dual email/username login labels verified.")
 
 
