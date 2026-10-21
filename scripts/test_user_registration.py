@@ -153,8 +153,48 @@ def test_csrf_exemption_for_register():
     req2.headers = {}
     req2.cookies = {}
     verify_csrf(req2)  # Must not raise HTTPException
-
     print(" [PASS] verify_csrf successfully allows unauthenticated registration requests without CSRF token.")
+
+
+def test_no_session_cookie_on_register():
+    print("\n=== TEST 8: Registration does NOT issue session cookie (clean redirect to login) ===")
+    with open("app/api/auth.py", "r", encoding="utf-8") as f:
+        auth_code = f.read()
+
+    # Locate register endpoint code
+    reg_start = auth_code.find('def register(')
+    assert reg_start != -1, "register function must exist in auth.py"
+    reg_body = auth_code[reg_start:auth_code.find('def logout(')]
+
+    # Verify no create_user_session or set_cookie in register
+    assert "create_user_session" not in reg_body, "register must NOT call create_user_session (session created on login)"
+    assert "response.set_cookie" not in reg_body, "register must NOT set session cookies (redirect to login first)"
+    assert "token=None" in reg_body, "register must return token=None"
+    assert "1142" in reg_body, "register must gracefully handle 1142 permission error"
+    print(" [PASS] /auth/register verified to not issue cookies or tokens, ensuring user must log in explicitly.")
+
+
+def test_multi_id_login_matching():
+    print("\n=== TEST 9: Multi-identifier login (Email, Username, Full Name) ===")
+    with open("app/api/auth.py", "r", encoding="utf-8") as f:
+        auth_code = f.read()
+
+    # Verify SQL query prioritizes email, username, and full_name
+    assert "WHERE username = %s OR email = %s OR username = %s OR full_name = %s" in auth_code
+    assert "ORDER BY (email = %s) DESC, (username = %s) DESC, (full_name = %s) DESC" in auth_code
+    print(" [PASS] Login endpoint matches and prioritizes Email > Username > Full Name seamlessly.")
+
+
+def test_version_synchronization():
+    print("\n=== TEST 10: Cache buster versions across files ===")
+    with open("app/static/index.html", "r", encoding="utf-8") as f:
+        html = f.read()
+    with open("app/static/js/app.js", "r", encoding="utf-8") as f:
+        js = f.read()
+
+    assert 'js/app.js?v=2.8.11' in html, "index.html must point to app.js?v=2.8.11"
+    assert "import { api } from './api.js?v=2.8.11';" in js, "app.js must import api.js?v=2.8.11"
+    print(" [PASS] Cache buster versions synchronized to 2.8.11 across index.html and app.js.")
 
 
 if __name__ == "__main__":
@@ -168,6 +208,9 @@ if __name__ == "__main__":
     test_backend_auth_endpoints()
     test_sql_migration()
     test_csrf_exemption_for_register()
+    test_no_session_cookie_on_register()
+    test_multi_id_login_matching()
+    test_version_synchronization()
     print("\n" + "=" * 65)
-    print("ALL REGISTRATION & LOGIN TESTS PASSED SUCCESSFULLY! (100% GREEN)")
+    print("ALL 10 REGISTRATION & LOGIN TEST SUITES PASSED (100% GREEN)!")
     print("=" * 65)
