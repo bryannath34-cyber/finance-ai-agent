@@ -224,102 +224,114 @@ def register(reg_data: RegisterRequest, request: Request, response: Response):
 
     hashed_pw = hash_password(password)
 
-    with get_db_cursor(commit=True) as cur:
-        # Cek kolom email pada tabel app_users, jika belum ada coba tambahkan
-        has_email = _has_email_column(cur)
-        if not has_email:
+    try:
+        with get_db_cursor(commit=True) as cur:
+            # Cek kolom email pada tabel app_users, jika belum ada coba tambahkan
+            has_email = _has_email_column(cur)
+            if not has_email:
+                try:
+                    cur.execute("ALTER TABLE app_users ADD COLUMN email VARCHAR(100) NULL UNIQUE AFTER full_name")
+                    has_email = True
+                except Exception as e:
+                    logger.warning("Gagal menambahkan kolom email secara otomatis (abaikan jika keterbatasan hak akses): %s", e)
+
+            # Cek duplikasi akun
+            if has_email:
+                cur.execute("SELECT id FROM app_users WHERE email = %s OR username = %s LIMIT 1", (email, email))
+                if cur.fetchone():
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Email atau username sudah terdaftar. Silakan login atau gunakan email lain."
+                    )
+            else:
+                cur.execute("SELECT id FROM app_users WHERE username = %s LIMIT 1", (email,))
+                if cur.fetchone():
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Email atau username sudah terdaftar. Silakan login atau gunakan email lain."
+                    )
+
+            # Tentukan username unik
+            email_prefix = re.sub(r'[^a-zA-Z0-9_]', '', email.split("@")[0])[:30]
+            if not email_prefix:
+                email_prefix = re.sub(r'[^a-zA-Z0-9_]', '', full_name.lower().replace(' ', '_'))[:30]
+            if not email_prefix:
+                email_prefix = "user"
+
+            candidate_username = email_prefix
+            counter = 1
+            while True:
+                cur.execute("SELECT id FROM app_users WHERE username = %s LIMIT 1", (candidate_username,))
+                if not cur.fetchone():
+                    break
+                candidate_username = f"{email_prefix[:25]}_{counter}"
+                counter += 1
+
+            # Simpan pengguna baru ke app_users
+            if has_email:
+                cur.execute("""
+                    INSERT INTO app_users (username, email, password_hash, full_name, timezone)
+                    VALUES (%s, %s, %s, %s, 'Asia/Jakarta')
+                """, (candidate_username, email, hashed_pw, full_name))
+            else:
+                chosen_username = email if len(email) <= 50 else candidate_username
+                cur.execute("""
+                    INSERT INTO app_users (username, password_hash, full_name, timezone)
+                    VALUES (%s, %s, %s, 'Asia/Jakarta')
+                """, (chosen_username, hashed_pw, full_name))
+
+            new_user_id = cur.lastrowid
+
+            # Inisialisasi 3 rekening bawaan
+            today = date.today()
+            accounts_data = [
+                (new_user_id, 'Kas Tunai', 'CASH', 0.00, today),
+                (new_user_id, 'Bank', 'BANK', 0.00, today),
+                (new_user_id, 'E-Wallet', 'EWALLET', 0.00, today),
+            ]
+            cur.executemany("""
+                INSERT INTO accounts (user_id, name, type, opening_balance, opening_balance_date, is_active)
+                VALUES (%s, %s, %s, %s, %s, TRUE)
+            """, accounts_data)
+
+            # Inisialisasi 9 kategori standar + 1 kategori sistem Biaya Admin
+            categories_data = [
+                (new_user_id, 'Gaji & Pendapatan', 'INCOME', False),
+                (new_user_id, 'Bonus & Freelance', 'INCOME', False),
+                (new_user_id, 'Investasi & Bunga', 'INCOME', False),
+                (new_user_id, 'Saldo Awal', 'INCOME', False),
+                (new_user_id, 'Makanan & Minuman', 'EXPENSE', False),
+                (new_user_id, 'Transportasi', 'EXPENSE', False),
+                (new_user_id, 'Tagihan & Utilitas', 'EXPENSE', False),
+                (new_user_id, 'Belanja Kebutuhan', 'EXPENSE', False),
+                (new_user_id, 'Hiburan & Liburan', 'EXPENSE', False),
+                (new_user_id, 'Biaya Admin', 'EXPENSE', True),
+            ]
+            cur.executemany("""
+                INSERT INTO categories (user_id, name, type, is_system, is_active)
+                VALUES (%s, %s, %s, %s, TRUE)
+            """, categories_data)
+
+            # Inisialisasi preferensi pengguna
             try:
-                cur.execute("ALTER TABLE app_users ADD COLUMN email VARCHAR(100) NULL UNIQUE AFTER full_name")
-                has_email = True
-            except Exception as e:
-                logger.warning("Gagal menambahkan kolom email secara otomatis (abaikan jika keterbatasan hak akses): %s", e)
-
-        # Cek duplikasi akun
-        if has_email:
-            cur.execute("SELECT id FROM app_users WHERE email = %s OR username = %s LIMIT 1", (email, email))
-            if cur.fetchone():
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Email atau username sudah terdaftar. Silakan login atau gunakan email lain."
-                )
-        else:
-            cur.execute("SELECT id FROM app_users WHERE username = %s LIMIT 1", (email,))
-            if cur.fetchone():
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Email atau username sudah terdaftar. Silakan login atau gunakan email lain."
-                )
-
-        # Tentukan username unik
-        email_prefix = re.sub(r'[^a-zA-Z0-9_]', '', email.split("@")[0])[:30]
-        if not email_prefix:
-            email_prefix = re.sub(r'[^a-zA-Z0-9_]', '', full_name.lower().replace(' ', '_'))[:30]
-        if not email_prefix:
-            email_prefix = "user"
-
-        candidate_username = email_prefix
-        counter = 1
-        while True:
-            cur.execute("SELECT id FROM app_users WHERE username = %s LIMIT 1", (candidate_username,))
-            if not cur.fetchone():
-                break
-            candidate_username = f"{email_prefix[:25]}_{counter}"
-            counter += 1
-
-        # Simpan pengguna baru ke app_users
-        if has_email:
-            cur.execute("""
-                INSERT INTO app_users (username, email, password_hash, full_name, timezone)
-                VALUES (%s, %s, %s, %s, 'Asia/Jakarta')
-            """, (candidate_username, email, hashed_pw, full_name))
-        else:
-            chosen_username = email if len(email) <= 50 else candidate_username
-            cur.execute("""
-                INSERT INTO app_users (username, password_hash, full_name, timezone)
-                VALUES (%s, %s, %s, 'Asia/Jakarta')
-            """, (chosen_username, hashed_pw, full_name))
-
-        new_user_id = cur.lastrowid
-
-        # Inisialisasi 3 rekening bawaan
-        today = date.today()
-        accounts_data = [
-            (new_user_id, 'Kas Tunai', 'CASH', 0.00, today),
-            (new_user_id, 'Bank', 'BANK', 0.00, today),
-            (new_user_id, 'E-Wallet', 'EWALLET', 0.00, today),
-        ]
-        cur.executemany("""
-            INSERT INTO accounts (user_id, name, type, opening_balance, opening_balance_date, is_active)
-            VALUES (%s, %s, %s, %s, %s, TRUE)
-        """, accounts_data)
-
-        # Inisialisasi 9 kategori standar + 1 kategori sistem Biaya Admin
-        categories_data = [
-            (new_user_id, 'Gaji & Pendapatan', 'INCOME', False),
-            (new_user_id, 'Bonus & Freelance', 'INCOME', False),
-            (new_user_id, 'Investasi & Bunga', 'INCOME', False),
-            (new_user_id, 'Saldo Awal', 'INCOME', False),
-            (new_user_id, 'Makanan & Minuman', 'EXPENSE', False),
-            (new_user_id, 'Transportasi', 'EXPENSE', False),
-            (new_user_id, 'Tagihan & Utilitas', 'EXPENSE', False),
-            (new_user_id, 'Belanja Kebutuhan', 'EXPENSE', False),
-            (new_user_id, 'Hiburan & Liburan', 'EXPENSE', False),
-            (new_user_id, 'Biaya Admin', 'EXPENSE', True),
-        ]
-        cur.executemany("""
-            INSERT INTO categories (user_id, name, type, is_system, is_active)
-            VALUES (%s, %s, %s, %s, TRUE)
-        """, categories_data)
-
-        # Inisialisasi preferensi pengguna
-        try:
-            cur.execute("""
-                INSERT INTO user_preferences (user_id, preferences_json)
-                VALUES (%s, %s)
-                ON DUPLICATE KEY UPDATE preferences_json = VALUES(preferences_json)
-            """, (new_user_id, json.dumps(DEFAULT_PREFERENCES)))
-        except Exception as pref_err:
-            logger.warning("Gagal inisialisasi user_preferences untuk user %s: %s", new_user_id, pref_err)
+                cur.execute("""
+                    INSERT INTO user_preferences (user_id, preferences_json)
+                    VALUES (%s, %s)
+                    ON DUPLICATE KEY UPDATE preferences_json = VALUES(preferences_json)
+                """, (new_user_id, json.dumps(DEFAULT_PREFERENCES)))
+            except Exception as pref_err:
+                logger.warning("Gagal inisialisasi user_preferences untuk user %s: %s", new_user_id, pref_err)
+    except HTTPException:
+        raise
+    except Exception as db_err:
+        err_msg = str(db_err)
+        if "1142" in err_msg or "command denied" in err_msg.lower():
+            logger.error("Database user 'fin_bot_app' kekurangan izin INSERT: %s", db_err)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Pendaftaran akun mandiri memerlukan izin INSERT database. Jalankan skrip 'python scripts/fix_registration_grants.py' di server untuk mengaktifkannya."
+            )
+        raise
 
     # Dapatkan IP Address dan User Agent
     client_ip = request.headers.get("X-Forwarded-For", request.client.host if request.client else "127.0.0.1")
