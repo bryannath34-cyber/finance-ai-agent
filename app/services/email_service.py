@@ -114,43 +114,55 @@ Tim Finance AI Agent
 
 
 def _send_via_smtp(to_email: str, subject: str, html_content: str, text_content: str) -> Tuple[bool, str]:
-    """Mengirim email via SMTP (mendukung Gmail, dsb)."""
+    """Mengirim email via SMTP (mendukung Gmail, dsb) dengan auto-fallback port 587 dan 465."""
     smtp_host = getattr(settings, "SMTP_HOST", "smtp.gmail.com")
     smtp_port = int(getattr(settings, "SMTP_PORT", 587))
     smtp_user = getattr(settings, "SMTP_USER", None)
     smtp_pass = getattr(settings, "SMTP_PASSWORD", None)
-    use_tls = getattr(settings, "SMTP_USE_TLS", True)
 
     if not smtp_user or not smtp_pass:
         return False, "SMTP_USER atau SMTP_PASSWORD belum dikonfigurasi di file .env."
 
-    try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = subject
-        msg["From"] = f"Finance AI Agent <{smtp_user}>"
-        msg["To"] = to_email
+    clean_pass = smtp_pass.replace(" ", "").strip()
 
-        part1 = MIMEText(text_content, "plain", "utf-8")
-        part2 = MIMEText(html_content, "html", "utf-8")
-        msg.attach(part1)
-        msg.attach(part2)
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = f"Finance AI Agent <{smtp_user}>"
+    msg["To"] = to_email
 
-        if smtp_port == 465:
-            with smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=15) as server:
-                server.login(smtp_user, smtp_pass)
-                server.sendmail(smtp_user, [to_email], msg.as_string())
-        else:
-            with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as server:
-                if use_tls:
+    part1 = MIMEText(text_content, "plain", "utf-8")
+    part2 = MIMEText(html_content, "html", "utf-8")
+    msg.attach(part1)
+    msg.attach(part2)
+
+    last_error = None
+    ports_to_try = [smtp_port]
+    fallback_port = 465 if smtp_port == 587 else 587
+    if fallback_port not in ports_to_try:
+        ports_to_try.append(fallback_port)
+
+    for port in ports_to_try:
+        try:
+            if port == 465:
+                with smtplib.SMTP_SSL(smtp_host, port, timeout=12) as server:
+                    server.login(smtp_user, clean_pass)
+                    server.sendmail(smtp_user, [to_email], msg.as_string())
+            else:
+                with smtplib.SMTP(smtp_host, port, timeout=12) as server:
+                    server.ehlo()
                     server.starttls()
-                server.login(smtp_user, smtp_pass)
-                server.sendmail(smtp_user, [to_email], msg.as_string())
+                    server.ehlo()
+                    server.login(smtp_user, clean_pass)
+                    server.sendmail(smtp_user, [to_email], msg.as_string())
 
-        logger.info("Email reset password berhasil dikirim ke '%s' via SMTP (%s)", to_email, smtp_host)
-        return True, "Email reset password berhasil dikirim via SMTP"
-    except Exception as e:
-        logger.error("Gagal mengirim email reset password via SMTP (%s): %s", smtp_host, e)
-        return False, f"SMTP error: {str(e)}"
+            logger.info("Email reset password berhasil dikirim ke '%s' via SMTP (%s:%d)", to_email, smtp_host, port)
+            return True, f"Email reset password berhasil dikirim via SMTP ({smtp_host}:{port})"
+        except Exception as e:
+            last_error = e
+            logger.warning("Percobaan kirim SMTP via %s:%d gagal: %s. Mencoba fallback...", smtp_host, port, e)
+
+    logger.error("Gagal mengirim email reset password via SMTP (%s): %s", smtp_host, last_error)
+    return False, f"SMTP error: {str(last_error)}"
 
 
 def _send_via_resend(to_email: str, subject: str, html_content: str, text_content: str) -> Tuple[bool, str]:
