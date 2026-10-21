@@ -71,18 +71,21 @@ def login(login_data: LoginRequest, request: Request, response: Response):
             cur.execute("""
                 SELECT *
                 FROM app_users
-                WHERE username = %s OR email = %s OR username = %s OR full_name = %s
+                WHERE username = %s 
+                   OR email = %s 
+                   OR full_name = %s
+                   OR email LIKE CONCAT(%s, '@%%')
                 ORDER BY (email = %s) DESC, (username = %s) DESC, (full_name = %s) DESC
                 LIMIT 1
-            """, (login_val, login_val, user_prefix, login_val, login_val, login_val, login_val))
+            """, (login_val, login_val, login_val, login_val, login_val, login_val, login_val))
         else:
             cur.execute("""
                 SELECT *
                 FROM app_users
-                WHERE username = %s OR username = %s OR full_name = %s
+                WHERE username = %s OR full_name = %s
                 ORDER BY (username = %s) DESC, (full_name = %s) DESC
                 LIMIT 1
-            """, (login_val, user_prefix, login_val, login_val, login_val))
+            """, (login_val, login_val, login_val, login_val))
         user = cur.fetchone()
 
         if not user:
