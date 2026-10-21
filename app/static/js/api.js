@@ -274,6 +274,37 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ transaction_id: transactionId, reason }),
       }),
+    exportTransactions: async (params = {}) => {
+      const query = new URLSearchParams();
+      if (params.year && params.year !== 'ALL') query.append('year', params.year);
+      if (params.month && params.month !== 'ALL') query.append('month', params.month);
+      if (params.type && params.type !== 'ALL') query.append('type', params.type);
+      if (params.format) query.append('format', params.format);
+
+      const url = `${API_BASE}/transactions/export?${query.toString()}`;
+      const headers = {};
+      try {
+        const bearerToken = typeof localStorage !== 'undefined' ? localStorage.getItem('pf_token') : null;
+        if (bearerToken) headers['Authorization'] = `Bearer ${bearerToken}`;
+      } catch (_) {}
+
+      const res = await fetch(url, {
+        credentials: 'include',
+        headers,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Gagal mengekspor data');
+      }
+      const blob = await res.blob();
+      let filename = `Laporan_Transaksi.${params.format || 'xlsx'}`;
+      const disposition = res.headers.get('content-disposition');
+      if (disposition && disposition.includes('filename=')) {
+        const match = disposition.match(/filename=["']?([^"';]+)["']?/);
+        if (match && match[1]) filename = match[1];
+      }
+      return { blob, filename };
+    },
   },
 
   // Planning & AI Advisory (Fase 7)

@@ -327,6 +327,16 @@ class App {
     this.btnReportSelectMonth = document.getElementById('btn-report-select-month');
     this.activeChartSeries = 'ALL'; // 'ALL' | 'INCOME' | 'EXPENSE'
 
+    // Modal: Ekspor Laporan & Transaksi ke Excel / CSV
+    this.modalExportReport = document.getElementById('modal-export-report');
+    this.formExportReport = document.getElementById('form-export-report');
+    this.selectExportType = document.getElementById('select-export-type');
+    this.selectExportYear = document.getElementById('select-export-year');
+    this.selectExportMonth = document.getElementById('select-export-month');
+    this.selectExportFormat = document.getElementById('select-export-format');
+    this.btnConfirmExport = document.getElementById('btn-confirm-export');
+    this.btnConfirmExportText = document.getElementById('btn-confirm-export-text');
+
     // Dashboard Real-time Visual Charts (Screen 01)
     this.dashboardSparklineSvg = document.getElementById('dashboard-sparkline-svg');
     this.dashboardSparklineLine = document.getElementById('dashboard-sparkline-line');
@@ -581,6 +591,10 @@ class App {
         e.preventDefault();
         e.stopPropagation();
         this.handleCreateGoal(e);
+      } else if (targetId === 'form-export-report') {
+        e.preventDefault();
+        e.stopPropagation();
+        this.handleExportSubmit(e);
       }
     });
 
@@ -862,9 +876,15 @@ class App {
       this.btnAnalyzePatterns.addEventListener('click', () => this.handleAnalyzePatterns());
     }
 
-    // Tab 5 Events (Laporan Keuangan & CSV Export)
+    // Tab 5 Events (Laporan Keuangan & Excel/CSV Export)
     if (this.btnExportReport) {
-      this.btnExportReport.addEventListener('click', () => this.handleExportReport());
+      this.btnExportReport.addEventListener('click', (e) => {
+        if (e) e.preventDefault();
+        this.openExportModal();
+      });
+    }
+    if (this.formExportReport) {
+      this.formExportReport.addEventListener('submit', (e) => this.handleExportSubmit(e));
     }
     // Month / Year Picker Controls (Replaces native prompt)
     if (this.btnPlanningPeriodPicker) {
@@ -1011,7 +1031,10 @@ class App {
     }
 
     if (this.btnSettingsExportCsv) {
-      this.btnSettingsExportCsv.addEventListener('click', () => this.handleExportReport());
+      this.btnSettingsExportCsv.addEventListener('click', (e) => {
+        if (e) e.preventDefault();
+        this.openExportModal();
+      });
     }
 
     if (this.btnToggle2fa) {
@@ -1449,6 +1472,46 @@ class App {
     }
     this.openModal(this.modalSetBudget);
     this.inputBudgetLimit?.focus();
+  }
+
+  openExportModal() {
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1;
+
+    let targetYear = this.reportSelectedYear || this.selectedPlanningYear || currentYear;
+    let targetMonth = this.reportSelectedMonth || this.selectedPlanningMonth || currentMonth;
+
+    if (this.selectExportYear) {
+      const availableYears = new Set([currentYear, currentYear - 1, currentYear - 2]);
+      if (this.transactions && this.transactions.length > 0) {
+        this.transactions.forEach((t) => {
+          if (t.transaction_date) {
+            const y = parseInt(String(t.transaction_date).slice(0, 4), 10);
+            if (y >= 2020 && y <= 2035) availableYears.add(y);
+          }
+        });
+      }
+      const sortedYears = Array.from(availableYears).sort((a, b) => b - a);
+      this.selectExportYear.innerHTML = `<option value="ALL">Semua Tahun</option>` +
+        sortedYears.map((y) => `<option value="${y}">${y}</option>`).join('');
+
+      this.selectExportYear.value = String(targetYear);
+      if (!this.selectExportYear.value) this.selectExportYear.value = 'ALL';
+    }
+
+    if (this.selectExportMonth) {
+      this.selectExportMonth.value = String(targetMonth);
+    }
+
+    if (this.selectExportType) {
+      this.selectExportType.value = 'EXPENSE';
+    }
+
+    if (this.selectExportFormat) {
+      this.selectExportFormat.value = 'xlsx';
+    }
+
+    this.openModal(this.modalExportReport);
   }
 
   closeModals() {
@@ -5014,48 +5077,53 @@ class App {
   }
 
   handleExportReport() {
+    this.openExportModal();
+  }
+
+  async handleExportSubmit(e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    const type = this.selectExportType ? this.selectExportType.value : 'ALL';
+    const year = this.selectExportYear ? this.selectExportYear.value : 'ALL';
+    const month = this.selectExportMonth ? this.selectExportMonth.value : 'ALL';
+    const format = this.selectExportFormat ? this.selectExportFormat.value : 'xlsx';
+
+    const btn = this.btnConfirmExport;
+    const btnText = this.btnConfirmExportText;
+    const originalText = btnText ? btnText.textContent : 'Unduh Berkas';
+
     try {
-      const rows = [
-        ['Periode', 'Pemasukan (IDR)', 'Pengeluaran (IDR)', 'Arus Kas Bersih (IDR)', 'Perubahan Pengeluaran']
-      ];
+      if (btn) btn.disabled = true;
+      if (btnText) btnText.textContent = 'Menyiapkan berkas...';
 
-      if (this.reportData && this.reportData.monthly_history && this.reportData.monthly_history.length > 0) {
-        this.reportData.monthly_history.forEach((r) => {
-          rows.push([
-            r.period_str,
-            r.income.toString(),
-            r.expense.toString(),
-            r.net_cashflow.toString(),
-            `${r.expense_change_percent}%`
-          ]);
-        });
-      } else if (this.transactions && this.transactions.length > 0) {
-        let inc = 0;
-        let exp = 0;
-        this.transactions.forEach((t) => {
-          if (t.is_reversal) return;
-          const a = parseFloat(t.amount) || 0;
-          if (t.type === 'INCOME') inc += a;
-          else if (t.type === 'EXPENSE') exp += a;
-        });
-        rows.push(['Bulan Berjalan', inc.toString(), exp.toString(), (inc - exp).toString(), '0%']);
-      } else {
-        rows.push(['Oktober 2026', '0', '0', '0', '0%']);
-      }
+      const result = await api.transactions.exportTransactions({
+        type: type,
+        year: year !== 'ALL' ? parseInt(year, 10) : undefined,
+        month: month !== 'ALL' ? parseInt(month, 10) : undefined,
+        format: format,
+      });
 
-      const csvContent = 'data:text/csv;charset=utf-8,' + rows.map((e) => e.map((val) => `"${val}"`).join(',')).join('\n');
-      const encodedUri = encodeURI(csvContent);
+      const blobUrl = window.URL.createObjectURL(result.blob);
       const link = document.createElement('a');
-      link.setAttribute('href', encodedUri);
-      link.setAttribute('download', `Laporan_Keuangan_Realtime_${new Date().toISOString().slice(0, 10)}.csv`);
+      link.href = blobUrl;
+      link.download = result.filename;
       document.body.appendChild(link);
       link.click();
+      window.URL.revokeObjectURL(blobUrl);
       document.body.removeChild(link);
 
-      this.showAlert('Laporan keuangan riil berhasil diekspor ke file CSV.', 'success');
+      this.closeModals();
+      const typeLabel = type === 'EXPENSE' ? 'pengeluaran' : (type === 'INCOME' ? 'pemasukan' : 'transaksi');
+      this.showAlert(`Laporan ${typeLabel} berhasil diekspor (${result.filename})`, 'success');
     } catch (err) {
       console.error('Gagal mengekspor laporan:', err);
-      this.showAlert('Gagal mengekspor laporan keuangan.', 'error');
+      this.showAlert(`Gagal mengekspor laporan: ${err.message || 'Terjadi kesalahan sistem'}`, 'error');
+    } finally {
+      if (btn) btn.disabled = false;
+      if (btnText) btnText.textContent = originalText;
     }
   }
 

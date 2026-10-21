@@ -375,6 +375,48 @@ class TransactionService:
             return cur.fetchall()
 
     @staticmethod
+    def get_transactions_for_export(
+        user_id: int,
+        year: Optional[int] = None,
+        month: Optional[int] = None,
+        transaction_type: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """Mengambil data transaksi lengkap buku besar untuk diekspor ke Excel / CSV tanpa batasan paginasi sempit."""
+        where_clauses = ["t.user_id = %s", "t.is_reversal = FALSE"]
+        params: List[Any] = [user_id]
+
+        if year is not None:
+            where_clauses.append("YEAR(t.transaction_date) = %s")
+            params.append(year)
+        if month is not None:
+            where_clauses.append("MONTH(t.transaction_date) = %s")
+            params.append(month)
+        if transaction_type and transaction_type.upper() in ("EXPENSE", "INCOME", "TRANSFER"):
+            where_clauses.append("t.type = %s")
+            params.append(transaction_type.upper())
+
+        where_sql = " AND ".join(where_clauses)
+
+        with get_db_cursor(commit=False) as cur:
+            cur.execute(f"""
+                SELECT 
+                    t.id, t.draft_id, t.ledger_role, t.parent_transaction_id, t.reverses_transaction_id,
+                    t.type, t.amount, t.description, t.transaction_date, t.is_reversal, t.created_at,
+                    t.source_account_id, sa.name as source_account_name,
+                    t.destination_account_id, da.name as destination_account_name,
+                    t.category_id, c.name as category_name
+                FROM transactions t
+                LEFT JOIN accounts sa ON t.source_account_id = sa.id AND sa.user_id = t.user_id
+                LEFT JOIN accounts da ON t.destination_account_id = da.id AND da.user_id = t.user_id
+                LEFT JOIN categories c ON t.category_id = c.id AND c.user_id = t.user_id
+                WHERE {where_sql}
+                ORDER BY t.transaction_date ASC, t.id ASC
+                LIMIT 10000
+            """, tuple(params))
+            return cur.fetchall()
+
+
+    @staticmethod
     def get_transaction_by_id(user_id: int, transaction_id: int) -> Dict[str, Any]:
         """Mengambil rincian satu transaksi buku besar berdasarkan ID."""
         with get_db_cursor(commit=False) as cur:

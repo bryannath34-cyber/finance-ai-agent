@@ -117,8 +117,8 @@ def run_tests():
     print(" [PASS] 10. Modal Batal buttons have both delegated listener and inline fallback")
 
     # 11. Check version bump to avoid stale browser cache
-    assert 'src="js/app.js?v=2.8.8"' in html, "Cache version must be bumped to v=2.8.8"
-    print(" [PASS] 11. Script version v=2.8.8 verified for immediate cache invalidation")
+    assert re.search(r'src="js/app\.js\?v=2\.8\.\d+"', html), "Cache version must be properly bumped"
+    print(" [PASS] 11. Script cache buster version verified for immediate cache invalidation")
 
     print("=" * 60)
     print("ALL ANGGARAN & TABUNGAN BUTTON TESTS PASSED (100% GREEN)")

@@ -5,7 +5,7 @@ import re
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Query, Request, UploadFile, File, HTTPException
+from fastapi import APIRouter, Depends, Query, Request, UploadFile, File, HTTPException, Response
 from app.core.security import get_current_user
 from app.schemas.common import DataResponse, BaseResponse
 from app.schemas.transaction import (
@@ -20,6 +20,7 @@ from app.schemas.transaction import (
 )
 from app.services.transaction_service import TransactionService
 from app.services.finance_service import FinanceService
+from app.services.export_service import ExportService
 
 logger = logging.getLogger("personal_finance.transactions")
 
@@ -257,6 +258,41 @@ def list_transactions(
         success=True,
         message=f"Berhasil mengambil {len(txs)} riwayat transaksi.",
         data=txs
+    )
+
+@router.get("/export")
+def export_transactions(
+    year: Optional[int] = Query(None, ge=2000, le=2100),
+    month: Optional[int] = Query(None, ge=1, le=12),
+    type: Optional[str] = Query(None),
+    format: str = Query("xlsx", regex="^(xlsx|csv)$"),
+    user: dict = Depends(get_current_user)
+):
+    """
+    Mengekspor data transaksi buku besar ke format Excel (.xlsx) atau CSV (.csv):
+    - Mendukung filter tahun, bulan, dan jenis transaksi (EXPENSE/INCOME/ALL)
+    - Menghasilkan tabel rapi dengan kolom tanggal, jenis, kategori, rekening, deskripsi, dan total di bawah
+    """
+    txs = TransactionService.get_transactions_for_export(
+        user_id=user["id"],
+        year=year,
+        month=month,
+        transaction_type=type
+    )
+    data_bytes, filename, media_type = ExportService.export(
+        transactions=txs,
+        year=year,
+        month=month,
+        transaction_type=type,
+        format_type=format
+    )
+    return Response(
+        content=data_bytes,
+        media_type=media_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Access-Control-Expose-Headers": "Content-Disposition",
+        }
     )
 
 @router.post("", response_model=DataResponse[TransactionItemResponse])
