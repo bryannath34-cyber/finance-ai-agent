@@ -162,7 +162,7 @@ def test_frontend_dom_and_js():
     assert 'id="form-mobile-new-password"' in html, "form-mobile-new-password must exist in index.html"
     assert 'id="new-password-input"' in html, "new-password-input must exist in index.html"
     assert 'id="new-password-confirm"' in html, "new-password-confirm must exist in index.html"
-    assert 'app.js?v=2.8.12' in html, "index.html must reference app.js?v=2.8.12"
+    assert 'app.js?v=2.8.13' in html, "index.html must reference app.js?v=2.8.13"
 
     api_path = os.path.join(BASE_DIR, "app", "static", "js", "api.js")
     with open(api_path, "r", encoding="utf-8") as f:
@@ -175,7 +175,7 @@ def test_frontend_dom_and_js():
     with open(app_path, "r", encoding="utf-8") as f:
         app_js = f.read()
 
-    assert "api.js?v=2.8.12" in app_js, "app.js must import api.js?v=2.8.12"
+    assert "api.js?v=2.8.13" in app_js, "app.js must import api.js?v=2.8.13"
     assert "showNewPasswordView" in app_js, "showNewPasswordView must be defined in app.js"
     assert "reset_token" in app_js, "reset_token param handling must be in app.js"
     assert "formMobileNewPassword" in app_js, "formMobileNewPassword handler must be in app.js"

@@ -5,7 +5,7 @@
  * Financial Planning, and AI Advisory Copilot.
  */
 
-import { api } from './api.js?v=2.8.12';
+import { api } from './api.js?v=2.8.13';
 import { AudioRecorder } from './audio_recorder.js';
 
 const Icons = {
@@ -1793,9 +1793,13 @@ class App {
     // Periksa jika pengguna membuka tautan reset kata sandi via email (?reset_token=xyz)
     try {
       const urlParams = new URLSearchParams(window.location.search);
-      const resetToken = urlParams.get('reset_token');
+      let resetToken = urlParams.get('reset_token');
+      if (!resetToken && window.location.hash) {
+        const hashMatch = window.location.hash.match(/[?&#]reset_token=([^&#]+)/);
+        if (hashMatch) resetToken = decodeURIComponent(hashMatch[1]);
+      }
       if (resetToken) {
-        this.showNewPasswordView(resetToken);
+        this.showNewPasswordView(resetToken.trim());
         return;
       }
     } catch (_) {}

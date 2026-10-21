@@ -449,9 +449,7 @@ def forgot_password(req: ForgotPasswordRequest, request: Request):
 
         raw_token = secrets.token_urlsafe(32)
         token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
-        expire_minutes = getattr(settings, "PASSWORD_RESET_EXPIRE_MINUTES", 15)
-
-        cur.execute("UPDATE password_reset_tokens SET used_at = UTC_TIMESTAMP() WHERE user_id = %s AND used_at IS NULL", (user["id"],))
+        expire_minutes = getattr(settings, "PASSWORD_RESET_EXPIRE_MINUTES", 60)
 
         cur.execute("""
             INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
@@ -518,10 +516,16 @@ def reset_password(req: ResetPasswordRequest):
         """, (token_hash,))
         record = cur.fetchone()
 
-        if not record or record.get("used_at") is not None:
+        if not record:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Tautan pemulihan kata sandi tidak valid atau sudah pernah digunakan."
+                detail="Tautan pemulihan kata sandi tidak valid atau tidak ditemukan. Silakan ajukan permintaan baru dari halaman login."
+            )
+
+        if record.get("used_at") is not None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Tautan pemulihan kata sandi ini sudah pernah digunakan sebelumnya. Silakan buat tautan baru jika diperlukan."
             )
 
         expires_at = record.get("expires_at")
@@ -534,7 +538,7 @@ def reset_password(req: ResetPasswordRequest):
             if is_expired:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Tautan pemulihan kata sandi telah kedaluwarsa (lebih dari 15 menit). Silakan ajukan permintaan baru."
+                    detail="Tautan pemulihan kata sandi telah kedaluwarsa. Silakan ajukan permintaan baru dari halaman login."
                 )
 
         user_id = record["user_id"]
@@ -546,7 +550,7 @@ def reset_password(req: ResetPasswordRequest):
             WHERE id = %s
         """, (new_pwd_hash, user_id))
 
-        cur.execute("UPDATE password_reset_tokens SET used_at = UTC_TIMESTAMP() WHERE id = %s", (record["id"],))
+        cur.execute("UPDATE password_reset_tokens SET used_at = UTC_TIMESTAMP() WHERE user_id = %s AND used_at IS NULL", (user_id,))
 
         try:
             cur.execute("DELETE FROM web_sessions WHERE user_id = %s", (user_id,))

@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     # Email & Pemulihan Kata Sandi (Resend API - Dikonfigurasi lewat file .env)
     RESEND_API_KEY: Optional[str] = None
     RESEND_FROM_EMAIL: str = "Finance AI Agent <onboarding@resend.dev>"
-    PASSWORD_RESET_EXPIRE_MINUTES: int = 15
+    PASSWORD_RESET_EXPIRE_MINUTES: int = 60
     APP_BASE_URL: str = "https://161.118.216.250"
 
     # Email SMTP (Gmail / SMTP Server - Tidak memerlukan nama domain pribadi)
