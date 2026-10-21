@@ -1,33 +1,24 @@
 """
 Modul Layanan Email untuk Finance AI Agent.
-Menggunakan Resend API (HTTPS REST) dengan template HTML elegan dan fallback aman.
+Mendukung:
+1. Google SMTP / Custom SMTP (tanpa perlu domain pribadi, gratis 100%, langsung kirim ke semua email)
+2. Resend API (HTTPS REST)
 """
 import json
 import logging
+import smtplib
 import urllib.request
 import urllib.error
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from typing import Tuple
 from app.core.config import settings
 
 logger = logging.getLogger("personal_finance.email")
 
 
-def send_password_reset_email(to_email: str, recipient_name: str, reset_link: str, expire_minutes: int = 15) -> Tuple[bool, str]:
-    """
-    Mengirimkan email tautan pemulihan kata sandi melalui Resend API.
-    Mengembalikan (success: bool, message: str).
-    """
-    api_key = settings.RESEND_API_KEY
-    if not api_key:
-        logger.error("Gagal mengirim email: RESEND_API_KEY belum dikonfigurasi di settings.")
-        return False, "Layanan email belum dikonfigurasi di server."
-
-    from_email = settings.RESEND_FROM_EMAIL or "Finance AI Agent <onboarding@resend.dev>"
-    name = recipient_name.strip() if recipient_name else "Pengguna"
-
-    subject = "Atur Ulang Kata Sandi - Finance AI Agent"
-
-    # Template HTML Modern bertema Nordic & Glassmorphism
+def _build_email_templates(name: str, reset_link: str, expire_minutes: int, subject: str) -> Tuple[str, str]:
+    """Menghasilkan HTML dan Plain Text untuk email reset password."""
     html_content = f"""<!DOCTYPE html>
 <html lang="id">
 <head>
@@ -61,28 +52,26 @@ def send_password_reset_email(to_email: str, recipient_name: str, reset_link: st
               </p>
 
               <!-- Action Button -->
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 28px 0;">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 32px 0;">
                 <tr>
-                  <td align="center" style="border-radius: 10px; background: linear-gradient(135deg, #0ea5e9, #059669);">
-                    <a href="{reset_link}" target="_blank" style="display: inline-block; padding: 14px 28px; font-size: 15px; font-weight: 600; color: #ffffff; text-decoration: none; border-radius: 10px;">
+                  <td align="center" style="border-radius: 10px; background: linear-gradient(135deg, #0ea5e9, #10b981);">
+                    <a href="{reset_link}" target="_blank" style="font-size: 15px; font-weight: 600; color: #ffffff; text-decoration: none; padding: 14px 28px; display: inline-block; border-radius: 10px; letter-spacing: 0.3px;">
                       Atur Ulang Kata Sandi Sekarang &rarr;
                     </a>
                   </td>
                 </tr>
               </table>
 
-              <!-- Link Fallback -->
-              <p style="margin: 0 0 10px 0; font-size: 13px; color: #64748b; line-height: 1.5;">
-                Jika tombol di atas tidak dapat diklik, salin dan tempelkan tautan berikut ke bilah alamat browser Anda:
+              <p style="margin: 0 0 12px 0; font-size: 13px; line-height: 1.6; color: #64748b;">
+                Atau salin dan tempel tautan berikut di peramban (browser) Anda jika tombol di atas tidak dapat diklik:
               </p>
-              <p style="margin: 0 0 28px 0; font-size: 12px; color: #38bdf8; word-break: break-all; line-height: 1.4; background-color: #0b1319; padding: 12px; border-radius: 8px; border: 1px solid #1e3242;">
-                <a href="{reset_link}" style="color: #38bdf8; text-decoration: none;">{reset_link}</a>
-              </p>
+              <div style="background-color: #0b1319; border: 1px solid #1a2a38; border-radius: 8px; padding: 12px; word-break: break-all; font-family: monospace; font-size: 12px; color: #38bdf8; line-height: 1.4; margin-bottom: 24px;">
+                {reset_link}
+              </div>
 
-              <!-- Security notice -->
               <div style="border-top: 1px solid #1a2a38; padding-top: 20px;">
-                <p style="margin: 0; font-size: 13px; color: #64748b; line-height: 1.5;">
-                  <strong>Perhatian:</strong> Jika Anda tidak merasa meminta pengaturan ulang kata sandi ini, abaikan email ini. Akun Anda tetap aman dan kata sandi Anda tidak akan berubah.
+                <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #64748b;">
+                  ⚠️ Jika Anda tidak merasa melakukan permintaan ini, abaikan email ini dengan aman. Kata sandi Anda tidak akan berubah.
                 </p>
               </div>
             </td>
@@ -90,9 +79,12 @@ def send_password_reset_email(to_email: str, recipient_name: str, reset_link: st
 
           <!-- Footer -->
           <tr>
-            <td style="padding: 20px 32px; background-color: #0c151c; border-top: 1px solid #1a2a38; text-align: center;">
-              <p style="margin: 0; font-size: 12px; color: #475569;">
-                &copy; Finance AI Agent &bull; Notifikasi Keamanan Otomatis
+            <td style="padding: 24px 32px; background-color: #0a1117; border-top: 1px solid #14202c; text-align: center;">
+              <p style="margin: 0 0 6px 0; font-size: 12px; color: #475569;">
+                Finance AI Agent &bull; Asisten Keuangan Pribadi Berbasis Kecerdasan Buatan
+              </p>
+              <p style="margin: 0; font-size: 11px; color: #334155;">
+                Email ini dibuat secara otomatis. Mohon tidak membalas email ini.
               </p>
             </td>
           </tr>
@@ -102,12 +94,13 @@ def send_password_reset_email(to_email: str, recipient_name: str, reset_link: st
     </tr>
   </table>
 </body>
-</html>
-"""
+</html>"""
 
-    text_content = f"""Halo {name},
+    text_content = f"""Atur Ulang Kata Sandi - Finance AI Agent
 
-Kami menerima permintaan untuk mengatur ulang kata sandi akun Finance AI Agent Anda.
+Halo {name},
+
+Kami menerima permintaan untuk mengatur ulang kata sandi akun Anda.
 
 Kunjungi tautan berikut untuk membuat kata sandi baru (berlaku selama {expire_minutes} menit):
 {reset_link}
@@ -117,7 +110,56 @@ Jika Anda tidak meminta pengaturan ulang ini, abaikan email ini. Akun Anda tetap
 Salam,
 Tim Finance AI Agent
 """
+    return html_content, text_content
 
+
+def _send_via_smtp(to_email: str, subject: str, html_content: str, text_content: str) -> Tuple[bool, str]:
+    """Mengirim email via SMTP (mendukung Gmail, dsb)."""
+    smtp_host = getattr(settings, "SMTP_HOST", "smtp.gmail.com")
+    smtp_port = int(getattr(settings, "SMTP_PORT", 587))
+    smtp_user = getattr(settings, "SMTP_USER", None)
+    smtp_pass = getattr(settings, "SMTP_PASSWORD", None)
+    use_tls = getattr(settings, "SMTP_USE_TLS", True)
+
+    if not smtp_user or not smtp_pass:
+        return False, "SMTP_USER atau SMTP_PASSWORD belum dikonfigurasi di file .env."
+
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = f"Finance AI Agent <{smtp_user}>"
+        msg["To"] = to_email
+
+        part1 = MIMEText(text_content, "plain", "utf-8")
+        part2 = MIMEText(html_content, "html", "utf-8")
+        msg.attach(part1)
+        msg.attach(part2)
+
+        if smtp_port == 465:
+            with smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=15) as server:
+                server.login(smtp_user, smtp_pass)
+                server.sendmail(smtp_user, [to_email], msg.as_string())
+        else:
+            with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as server:
+                if use_tls:
+                    server.starttls()
+                server.login(smtp_user, smtp_pass)
+                server.sendmail(smtp_user, [to_email], msg.as_string())
+
+        logger.info("Email reset password berhasil dikirim ke '%s' via SMTP (%s)", to_email, smtp_host)
+        return True, "Email reset password berhasil dikirim via SMTP"
+    except Exception as e:
+        logger.error("Gagal mengirim email reset password via SMTP (%s): %s", smtp_host, e)
+        return False, f"SMTP error: {str(e)}"
+
+
+def _send_via_resend(to_email: str, subject: str, html_content: str, text_content: str) -> Tuple[bool, str]:
+    """Mengirim email via Resend API."""
+    api_key = settings.RESEND_API_KEY
+    if not api_key:
+        return False, "RESEND_API_KEY belum dikonfigurasi di server."
+
+    from_email = settings.RESEND_FROM_EMAIL or "Finance AI Agent <onboarding@resend.dev>"
     payload = {
         "from": from_email,
         "to": [to_email],
@@ -158,3 +200,25 @@ Tim Finance AI Agent
     except Exception as e:
         logger.error("Gagal mengirim email reset password via Resend: %s", e)
         return False, f"Kesalahan koneksi email: {str(e)}"
+
+
+def send_password_reset_email(to_email: str, recipient_name: str, reset_link: str, expire_minutes: int = 15) -> Tuple[bool, str]:
+    """
+    Mengirimkan email tautan pemulihan kata sandi.
+    Secara otomatis menggunakan:
+    1. Google SMTP / Custom SMTP jika SMTP_USER & SMTP_PASSWORD terisi di .env (Bebas kirim ke semua email, 0 domain)
+    2. Resend API jika RESEND_API_KEY terisi
+    """
+    name = recipient_name.strip() if recipient_name else "Pengguna"
+    subject = "Atur Ulang Kata Sandi - Finance AI Agent"
+    html_content, text_content = _build_email_templates(name, reset_link, expire_minutes, subject)
+
+    # 1. Gunakan SMTP jika user/password dikonfigurasi (misal Google App Password)
+    if getattr(settings, "SMTP_USER", None) and getattr(settings, "SMTP_PASSWORD", None):
+        return _send_via_smtp(to_email, subject, html_content, text_content)
+
+    # 2. Gunakan Resend API jika API Key tersedia
+    if getattr(settings, "RESEND_API_KEY", None):
+        return _send_via_resend(to_email, subject, html_content, text_content)
+
+    return False, "Layanan email belum dikonfigurasi di server (SMTP_USER/SMTP_PASSWORD atau RESEND_API_KEY belum diisi)."
