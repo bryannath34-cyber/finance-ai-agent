@@ -202,16 +202,20 @@ def verify_csrf(request: Request):
     if request.method in ("GET", "HEAD", "OPTIONS"):
         return
 
-    # Sesi login, registrasi akun baru, dan logout dikecualikan dari header CSRF (karena pembentukan/pembubaran sesi publik)
+    # Sesi login, registrasi akun baru, logout, serta pemulihan kata sandi dikecualikan dari header CSRF (alur publik sebelum sesi terbentuk)
     clean_path = request.url.path.rstrip("/")
     if (
         clean_path.endswith("/api/auth/login") or 
         clean_path.endswith("/api/auth/register") or 
         clean_path.endswith("/api/auth/logout") or
+        clean_path.endswith("/api/auth/forgot-password") or
+        clean_path.endswith("/api/auth/reset-password") or
         request.url.path in (
             f"{settings.APP_PREFIX}/api/auth/login",
             f"{settings.APP_PREFIX}/api/auth/register",
-            f"{settings.APP_PREFIX}/api/auth/logout"
+            f"{settings.APP_PREFIX}/api/auth/logout",
+            f"{settings.APP_PREFIX}/api/auth/forgot-password",
+            f"{settings.APP_PREFIX}/api/auth/reset-password"
         )
     ):
         return

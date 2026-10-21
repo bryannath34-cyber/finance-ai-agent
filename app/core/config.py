@@ -1,5 +1,5 @@
 import os
-from typing import List
+from typing import List, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
@@ -35,6 +35,12 @@ class Settings(BaseSettings):
     SESSION_EXPIRE_HOURS: int = 24
     ALLOWED_HOSTS: str = "*"
     FFMPEG_PATH: str = "/usr/local/bin/ffmpeg"
+
+    # Email & Pemulihan Kata Sandi (Resend API - Dikonfigurasi lewat file .env)
+    RESEND_API_KEY: Optional[str] = None
+    RESEND_FROM_EMAIL: str = "Finance AI Agent <onboarding@resend.dev>"
+    PASSWORD_RESET_EXPIRE_MINUTES: int = 15
+    APP_BASE_URL: str = "https://161.118.216.250"
 
     model_config = SettingsConfigDict(
         env_file=".env",

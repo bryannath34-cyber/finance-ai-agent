@@ -119,6 +119,18 @@ export const api = {
         body: JSON.stringify({ full_name: fullName, email: email, password: password }),
       });
     },
+    forgotPassword: async (email) => {
+      return await request('/auth/forgot-password', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      });
+    },
+    resetPassword: async (token, newPassword) => {
+      return await request('/auth/reset-password', {
+        method: 'POST',
+        body: JSON.stringify({ token, new_password: newPassword }),
+      });
+    },
     logout: async () => {
       try {
         return await request('/auth/logout', { method: 'POST', timeout: 8000 });

@@ -5,7 +5,7 @@
  * Financial Planning, and AI Advisory Copilot.
  */
 
-import { api } from './api.js?v=2.8.11';
+import { api } from './api.js?v=2.8.12';
 import { AudioRecorder } from './audio_recorder.js';
 
 const Icons = {
@@ -83,8 +83,17 @@ class App {
     this.authViewLogin = document.getElementById('auth-view-login');
     this.authViewSignup = document.getElementById('auth-view-signup');
     this.authViewReset = document.getElementById('auth-view-reset');
+    this.authViewNewPassword = document.getElementById('auth-view-new-password');
     this.formMobileSignup = document.getElementById('form-mobile-signup');
     this.formMobileReset = document.getElementById('form-mobile-reset');
+    this.mobileResetEmail = document.getElementById('mobile-reset-email');
+    this.formMobileNewPassword = document.getElementById('form-mobile-new-password');
+    this.newPasswordToken = document.getElementById('new-password-token');
+    this.newPasswordInput = document.getElementById('new-password-input');
+    this.newPasswordConfirm = document.getElementById('new-password-confirm');
+    this.btnNewPwdToLogin = document.getElementById('btn-new-pwd-to-login');
+    this.btnToggleNewPassword = document.getElementById('btn-toggle-new-password');
+    this.btnToggleNewPasswordConfirm = document.getElementById('btn-toggle-new-password-confirm');
     this.btnSignupToLogin = document.getElementById('btn-signup-to-login');
     this.btnResetToLoginLink = document.getElementById('btn-reset-to-login-link');
     this.linkOverlayForgot = document.getElementById('link-overlay-forgot');
@@ -1266,9 +1275,100 @@ class App {
       });
     }
     if (this.formMobileReset) {
-      this.formMobileReset.addEventListener('submit', (e) => {
+      this.formMobileReset.addEventListener('submit', async (e) => {
         e.preventDefault();
-        this.showAlert('Pemulihan kata sandi belum terhubung ke layanan email. Hubungi administrator untuk mengatur ulang akses.', 'warning');
+        const email = this.mobileResetEmail?.value.trim() || '';
+        if (!email || !email.includes('@')) {
+          this.showAlert('Format email tidak valid.', 'error');
+          return;
+        }
+
+        const submitBtn = document.getElementById('btn-submit-mobile-reset');
+        const origContent = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = '<span>Mengirim email...</span>';
+        }
+
+        try {
+          const res = await api.auth.forgotPassword(email);
+          this.showAlert(res.message || 'Tautan pemulihan kata sandi telah dikirim ke email Anda! Periksa kotak masuk.', 'success');
+          this.formMobileReset.reset();
+          this.showLogin(email);
+        } catch (err) {
+          this.showAlert(err.message || 'Gagal mengirim email pemulihan kata sandi. Silakan coba lagi.', 'error');
+        } finally {
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = origContent;
+          }
+        }
+      });
+    }
+
+    if (this.formMobileNewPassword) {
+      this.formMobileNewPassword.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const token = this.newPasswordToken?.value.trim();
+        const newPwd = this.newPasswordInput?.value || '';
+        const confirmPwd = this.newPasswordConfirm?.value || '';
+
+        if (!token) {
+          this.showAlert('Token pemulihan kata sandi tidak valid atau hilang.', 'error');
+          return;
+        }
+        if (newPwd.length < 8) {
+          this.showAlert('Kata sandi baru minimal 8 karakter.', 'error');
+          return;
+        }
+        if (newPwd !== confirmPwd) {
+          this.showAlert('Konfirmasi kata sandi tidak cocok.', 'error');
+          return;
+        }
+
+        const submitBtn = document.getElementById('btn-submit-new-password');
+        const origContent = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = '<span>Menyimpan kata sandi...</span>';
+        }
+
+        try {
+          const res = await api.auth.resetPassword(token, newPwd);
+          this.showAlert(res.message || 'Kata sandi akun Anda berhasil diperbarui! Silakan masuk.', 'success');
+          this.formMobileNewPassword.reset();
+          const cleanUrl = window.location.pathname + window.location.hash.replace('#reset-password', '');
+          window.history.replaceState({}, document.title, cleanUrl || '/');
+          this.showLogin();
+        } catch (err) {
+          this.showAlert(err.message || 'Gagal memperbarui kata sandi. Tautan mungkin telah kedaluwarsa.', 'error');
+        } finally {
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = origContent;
+          }
+        }
+      });
+    }
+
+    if (this.btnNewPwdToLogin) {
+      this.btnNewPwdToLogin.addEventListener('click', () => {
+        const cleanUrl = window.location.pathname + window.location.hash.replace('#reset-password', '');
+        window.history.replaceState({}, document.title, cleanUrl || '/');
+        this.showLogin();
+      });
+    }
+
+    if (this.btnToggleNewPassword && this.newPasswordInput) {
+      this.btnToggleNewPassword.addEventListener('click', () => {
+        const isPwd = this.newPasswordInput.type === 'password';
+        this.newPasswordInput.type = isPwd ? 'text' : 'password';
+      });
+    }
+    if (this.btnToggleNewPasswordConfirm && this.newPasswordConfirm) {
+      this.btnToggleNewPasswordConfirm.addEventListener('click', () => {
+        const isPwd = this.newPasswordConfirm.type === 'password';
+        this.newPasswordConfirm.type = isPwd ? 'text' : 'password';
       });
     }
 
@@ -1330,9 +1430,21 @@ class App {
     }
 
     if (this.formTabReset) {
-      this.formTabReset.addEventListener('submit', (e) => {
+      this.formTabReset.addEventListener('submit', async (e) => {
         e.preventDefault();
-        this.showAlert('Pemulihan kata sandi belum terhubung ke layanan email. Hubungi administrator untuk mengatur ulang akses.', 'warning');
+        const emailInput = this.formTabReset.querySelector('input[type="email"]');
+        const email = emailInput?.value.trim() || '';
+        if (!email || !email.includes('@')) {
+          this.showAlert('Format email tidak valid.', 'error');
+          return;
+        }
+        try {
+          const res = await api.auth.forgotPassword(email);
+          this.showAlert(res.message || 'Tautan pemulihan kata sandi telah dikirim ke email Anda!', 'success');
+          this.formTabReset.reset();
+        } catch (err) {
+          this.showAlert(err.message || 'Gagal memproses pemulihan kata sandi.', 'error');
+        }
       });
     }
 
@@ -1677,6 +1789,17 @@ class App {
 
   async checkSession() {
     const checkRun = ++this.sessionCheckRun;
+
+    // Periksa jika pengguna membuka tautan reset kata sandi via email (?reset_token=xyz)
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const resetToken = urlParams.get('reset_token');
+      if (resetToken) {
+        this.showNewPasswordView(resetToken);
+        return;
+      }
+    } catch (_) {}
+
     // Jika ada penanda logout aktif di storage, jangan auto-login
     let explicitlyLoggedOut = false;
     try {
@@ -1746,6 +1869,28 @@ class App {
     if (this.authViewLogin) this.authViewLogin.style.display = (viewName === 'login') ? 'block' : 'none';
     if (this.authViewSignup) this.authViewSignup.style.display = (viewName === 'signup') ? 'block' : 'none';
     if (this.authViewReset) this.authViewReset.style.display = (viewName === 'reset') ? 'block' : 'none';
+    if (this.authViewNewPassword) this.authViewNewPassword.style.display = (viewName === 'new-password') ? 'block' : 'none';
+  }
+
+  showNewPasswordView(token) {
+    this.sessionCheckRun += 1;
+    this.currentUser = null;
+    document.body.classList.remove('auth-pending');
+    document.body.classList.add('user-logged-out');
+    if (this.appShell) this.appShell.style.setProperty('display', 'none', 'important');
+    if (this.authOverlay) {
+      this.authOverlay.style.setProperty('display', 'flex', 'important');
+      this.authOverlay.style.setProperty('visibility', 'visible', 'important');
+      this.authOverlay.style.opacity = '1';
+      this.authOverlay.style.setProperty('z-index', '999999', 'important');
+    }
+    this.showAuthView('new-password');
+    if (this.newPasswordToken) this.newPasswordToken.value = token;
+    if (this.newPasswordInput) {
+      this.newPasswordInput.value = '';
+      setTimeout(() => { try { this.newPasswordInput.focus(); } catch (_) {} }, 100);
+    }
+    if (this.newPasswordConfirm) this.newPasswordConfirm.value = '';
   }
 
   showLogin(prefillUsername = '') {

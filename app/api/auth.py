@@ -1,6 +1,8 @@
 import logging
 import json
 import re
+import secrets
+import hashlib
 from datetime import datetime, date, timedelta, timezone
 from typing import Optional, Dict, Any, List
 from fastapi import APIRouter, HTTPException, status, Request, Response, Depends
@@ -29,8 +31,11 @@ from app.schemas.auth import (
     TwoFactorDisableRequest,
     ChangePasswordRequest,
     UpdateProfileRequest,
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
 )
 from app.schemas.common import BaseResponse, DataResponse
+from app.services.email_service import send_password_reset_email
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 logger = logging.getLogger("personal_finance.auth")
@@ -388,6 +393,162 @@ def logout(request: Request, response: Response):
             logger.warning("Gagal menghapus web_sessions dari database saat logout: %s", e)
 
     return BaseResponse(success=True, message="Logout berhasil. Sesi telah dicabut.")
+
+
+def _ensure_reset_tokens_table(cur):
+    try:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS password_reset_tokens (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                user_id BIGINT UNSIGNED NOT NULL,
+                token_hash VARCHAR(64) NOT NULL UNIQUE,
+                expires_at DATETIME NOT NULL,
+                used_at DATETIME NULL DEFAULT NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT fk_reset_token_user FOREIGN KEY (user_id) REFERENCES app_users(id) ON DELETE CASCADE,
+                INDEX idx_reset_token_hash (token_hash),
+                INDEX idx_reset_expires (expires_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        """)
+    except Exception as e:
+        logger.warning("Catatan tabel password_reset_tokens: %s", e)
+
+
+@router.post("/forgot-password", response_model=BaseResponse)
+def forgot_password(req: ForgotPasswordRequest, request: Request):
+    """
+    Meminta tautan pemulihan kata sandi via email.
+    Menghasilkan token acak bertenggang waktu 15 menit dan mengirim email via Resend API.
+    """
+    email_clean = req.email.strip().lower()
+    if not email_clean or "@" not in email_clean:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Format email tidak valid."
+        )
+
+    user = None
+    with get_db_cursor(commit=True) as cur:
+        _ensure_reset_tokens_table(cur)
+
+        has_email = _has_email_column(cur)
+        if has_email:
+            cur.execute("SELECT id, username, full_name, email FROM app_users WHERE LOWER(email) = %s LIMIT 1", (email_clean,))
+            user = cur.fetchone()
+
+        if not user:
+            cur.execute("SELECT id, username, full_name, username AS email FROM app_users WHERE LOWER(username) = %s LIMIT 1", (email_clean,))
+            user = cur.fetchone()
+
+        if not user:
+            logger.info("Permintaan reset password untuk email yang tidak terdaftar: '%s'", email_clean)
+            return BaseResponse(
+                success=True,
+                message="Jika email terdaftar di sistem, tautan pemulihan kata sandi telah dikirim ke kotak masuk Anda."
+            )
+
+        raw_token = secrets.token_urlsafe(32)
+        token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+        expire_minutes = getattr(settings, "PASSWORD_RESET_EXPIRE_MINUTES", 15)
+
+        cur.execute("UPDATE password_reset_tokens SET used_at = UTC_TIMESTAMP() WHERE user_id = %s AND used_at IS NULL", (user["id"],))
+
+        cur.execute("""
+            INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
+            VALUES (%s, %s, DATE_ADD(UTC_TIMESTAMP(), INTERVAL %s MINUTE))
+        """, (user["id"], token_hash, expire_minutes))
+
+    base_url = str(request.base_url).rstrip("/")
+    forwarded_proto = request.headers.get("X-Forwarded-Proto", "").split(",", 1)[0].strip().lower()
+    if forwarded_proto == "https" and base_url.startswith("http://"):
+        base_url = "https://" + base_url[len("http://"):]
+
+    app_prefix = getattr(settings, "APP_PREFIX", "").rstrip("/")
+    if app_prefix:
+        base_url = f"{base_url}{app_prefix}"
+
+    reset_link = f"{base_url}/?reset_token={raw_token}#reset-password"
+
+    target_email = user.get("email") or email_clean
+    recipient_name = user.get("full_name") or user.get("username") or "Pengguna"
+
+    sent, email_msg = send_password_reset_email(target_email, recipient_name, reset_link, expire_minutes)
+    if not sent:
+        logger.warning("Pengiriman email Resend: %s. Link darurat: %s", email_msg, reset_link)
+
+    return BaseResponse(
+        success=True,
+        message="Tautan pemulihan kata sandi telah dikirim ke kotak masuk Anda. Silakan periksa email Anda (termasuk folder spam jika perlu)."
+    )
+
+
+@router.post("/reset-password", response_model=BaseResponse)
+def reset_password(req: ResetPasswordRequest):
+    """
+    Memvalidasi token pemulihan dan memperbarui kata sandi pengguna dengan Argon2id.
+    """
+    token = req.token.strip()
+    new_password = req.new_password
+    if not token:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Token pemulihan kata sandi wajib disertakan.")
+    if len(new_password) < 8:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Kata sandi baru minimal 8 karakter.")
+
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+    with get_db_cursor(commit=True) as cur:
+        _ensure_reset_tokens_table(cur)
+
+        cur.execute("""
+            SELECT t.id, t.user_id, t.expires_at, t.used_at, u.username
+            FROM password_reset_tokens t
+            JOIN app_users u ON t.user_id = u.id
+            WHERE t.token_hash = %s
+            LIMIT 1
+        """, (token_hash,))
+        record = cur.fetchone()
+
+        if not record or record.get("used_at") is not None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Tautan pemulihan kata sandi tidak valid atau sudah pernah digunakan."
+            )
+
+        expires_at = record.get("expires_at")
+        if isinstance(expires_at, datetime):
+            now_utc = datetime.now(timezone.utc)
+            if expires_at.tzinfo is not None:
+                is_expired = expires_at < now_utc
+            else:
+                is_expired = expires_at < datetime.utcnow()
+            if is_expired:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Tautan pemulihan kata sandi telah kedaluwarsa (lebih dari 15 menit). Silakan ajukan permintaan baru."
+                )
+
+        user_id = record["user_id"]
+        new_pwd_hash = hash_password(new_password)
+
+        cur.execute("""
+            UPDATE app_users
+            SET password_hash = %s, failed_login_attempts = 0, locked_until = NULL
+            WHERE id = %s
+        """, (new_pwd_hash, user_id))
+
+        cur.execute("UPDATE password_reset_tokens SET used_at = UTC_TIMESTAMP() WHERE id = %s", (record["id"],))
+
+        try:
+            cur.execute("DELETE FROM web_sessions WHERE user_id = %s", (user_id,))
+        except Exception as e:
+            logger.warning("Gagal membersihkan sesi lama: %s", e)
+
+        logger.info("Pengguna '%s' (ID: %s) berhasil mengatur ulang kata sandi", record.get("username"), user_id)
+
+    return BaseResponse(
+        success=True,
+        message="Kata sandi akun Anda berhasil diperbarui! Silakan masuk menggunakan kata sandi baru Anda."
+    )
 
 
 

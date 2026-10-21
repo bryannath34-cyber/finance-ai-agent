@@ -94,7 +94,7 @@ def test_index_html_dom():
     assert 'nama@email.com atau username' in html, "login input placeholder updated"
 
     # Cache bust version
-    assert 'js/app.js?v=2.8.11' in html, "app.js version bumped to 2.8.11"
+    assert 'js/app.js?v=2.8.12' in html, "app.js version bumped to 2.8.12"
     print(" [PASS] index.html registration inputs and dual email/username login labels verified.")
 
 
@@ -192,9 +192,9 @@ def test_version_synchronization():
     with open("app/static/js/app.js", "r", encoding="utf-8") as f:
         js = f.read()
 
-    assert 'js/app.js?v=2.8.11' in html, "index.html must point to app.js?v=2.8.11"
-    assert "import { api } from './api.js?v=2.8.11';" in js, "app.js must import api.js?v=2.8.11"
-    print(" [PASS] Cache buster versions synchronized to 2.8.11 across index.html and app.js.")
+    assert 'js/app.js?v=2.8.12' in html, "index.html must point to app.js?v=2.8.12"
+    assert "import { api } from './api.js?v=2.8.12';" in js, "app.js must import api.js?v=2.8.12"
+    print(" [PASS] Cache buster versions synchronized to 2.8.12 across index.html and app.js.")
 
 
 if __name__ == "__main__":

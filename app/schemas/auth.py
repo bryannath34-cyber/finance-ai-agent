@@ -39,3 +39,11 @@ class LoginResponse(BaseModel):
     data: Optional[UserProfile] = None
     csrf_token: str
     token: Optional[str] = None
+
+class ForgotPasswordRequest(BaseModel):
+    email: str = Field(..., min_length=3, max_length=100, description="Email terdaftar pengguna")
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(..., min_length=16, max_length=128, description="Token rahasia pemulihan kata sandi")
+    new_password: str = Field(..., min_length=8, max_length=128, description="Kata sandi baru minimal 8 karakter")
+
