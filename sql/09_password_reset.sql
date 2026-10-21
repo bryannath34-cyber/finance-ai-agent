@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
 
 -- Berikan izin akses penuh pada tabel token kepada user aplikasi
 GRANT SELECT, INSERT, UPDATE, DELETE ON personal_finance.password_reset_tokens TO 'fin_bot_app'@'10.10.2.%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON personal_finance.password_reset_tokens TO 'fin_bot_app'@'app-01.privatesubtrain.vcnocitraining.oraclevcn.com';
 GRANT SELECT, INSERT, UPDATE, DELETE ON personal_finance.password_reset_tokens TO 'fin_bot_app'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON personal_finance.password_reset_tokens TO 'fin_bot_app'@'%';
 
