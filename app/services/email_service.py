@@ -18,7 +18,7 @@ logger = logging.getLogger("personal_finance.email")
 
 
 def _build_email_templates(name: str, reset_link: str, expire_minutes: int, subject: str) -> Tuple[str, str]:
-    """Menghasilkan HTML dan Plain Text untuk email reset password."""
+    """Menghasilkan HTML dan Plain Text untuk email reset password dengan estetika Nordic / Figma 1:1."""
     html_content = f"""<!DOCTYPE html>
 <html lang="id">
 <head>
@@ -26,65 +26,115 @@ def _build_email_templates(name: str, reset_link: str, expire_minutes: int, subj
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{subject}</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #0b1319; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #e2e8f0;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #0b1319; padding: 40px 16px;">
+<body style="margin: 0; padding: 0; background-color: #F2F3F1; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #202420; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #F2F3F1; padding: 40px 16px;">
     <tr>
       <td align="center">
-        <table role="presentation" width="100%" style="max-width: 560px; background-color: #121e28; border: 1px solid #1e3242; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);" cellspacing="0" cellpadding="0" border="0">
+        <!-- Main Card Container (Figma 1:1) -->
+        <table role="presentation" width="100%" style="max-width: 540px; background-color: #FFFFFF; border: 1px solid #E2E5DF; border-radius: 18px; overflow: hidden; box-shadow: 0 4px 20px rgba(32, 36, 32, 0.04);" cellspacing="0" cellpadding="0" border="0">
           
-          <!-- Header -->
+          <!-- Brand Header -->
           <tr>
-            <td style="padding: 32px 32px 20px 32px; border-bottom: 1px solid #1a2a38; text-align: left;">
-              <div style="display: inline-block; background: linear-gradient(135deg, #0ea5e9, #10b981); width: 36px; height: 36px; border-radius: 10px; vertical-align: middle; margin-right: 12px;"></div>
-              <span style="font-size: 20px; font-weight: 700; color: #ffffff; letter-spacing: -0.5px; vertical-align: middle;">Finance AI Agent</span>
+            <td style="padding: 22px 28px; background-color: #FAFAF8; border-bottom: 1px solid #E2E5DF;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td align="left" style="vertical-align: middle;">
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                      <tr>
+                        <td style="width: 30px; height: 30px; background-color: #252A26; border-radius: 8px; text-align: center; vertical-align: middle;">
+                          <span style="color: #FFFFFF; font-size: 15px; font-weight: 700; line-height: 1;">✦</span>
+                        </td>
+                        <td style="padding-left: 10px; vertical-align: middle;">
+                          <span style="font-size: 15px; font-weight: 600; color: #202420; letter-spacing: -0.2px;">Finance AI Agent</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                  <td align="right" style="vertical-align: middle;">
+                    <span style="display: inline-block; padding: 4px 10px; background-color: #FFFFFF; border: 1px solid #E2E5DF; border-radius: 14px; font-size: 11px; font-weight: 500; color: #6F7770; letter-spacing: 0.1px;">
+                      Keamanan Akun
+                    </span>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
 
           <!-- Content Body -->
           <tr>
-            <td style="padding: 32px; text-align: left;">
-              <h2 style="margin: 0 0 16px 0; font-size: 20px; font-weight: 600; color: #f8fafc;">Atur Ulang Kata Sandi</h2>
-              <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: #94a3b8;">
-                Halo <strong style="color: #f1f5f9;">{name}</strong>, kami menerima permintaan untuk mengatur ulang kata sandi akun Anda.
-              </p>
-              <p style="margin: 0 0 28px 0; font-size: 15px; line-height: 1.6; color: #94a3b8;">
-                Klik tombol di bawah ini untuk membuat kata sandi baru. Tautan ini hanya berlaku selama <strong style="color: #10b981;">{expire_minutes} menit</strong>:
+            <td style="padding: 36px 32px 28px 32px; text-align: left;">
+              <h1 style="margin: 0 0 8px 0; font-size: 22px; font-weight: 600; color: #202420; letter-spacing: -0.3px; line-height: 1.3;">
+                Atur ulang kata sandi
+              </h1>
+              <p style="margin: 0 0 24px 0; font-size: 14px; line-height: 1.6; color: #6F7770;">
+                Halo <strong style="color: #202420; font-weight: 600;">{name}</strong>, kami menerima permintaan untuk mengatur ulang kata sandi akun Finance AI Agent Anda.
               </p>
 
-              <!-- Action Button -->
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 32px 0;">
+              <!-- Privacy / Info Callout Card (Matching Web Component) -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #F8F9F7; border: 1px solid #E2E5DF; border-radius: 12px; margin-bottom: 28px;">
                 <tr>
-                  <td align="center" style="border-radius: 10px; background: linear-gradient(135deg, #0ea5e9, #10b981);">
-                    <a href="{reset_link}" target="_blank" style="font-size: 15px; font-weight: 600; color: #ffffff; text-decoration: none; padding: 14px 28px; display: inline-block; border-radius: 10px; letter-spacing: 0.3px;">
-                      Atur Ulang Kata Sandi Sekarang &rarr;
-                    </a>
+                  <td style="padding: 14px 16px;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                      <tr>
+                        <td style="width: 28px; vertical-align: top; padding-top: 1px;">
+                          <span style="display: inline-block; width: 22px; height: 22px; background-color: #EAF4EE; border: 1px solid #D5E8DC; border-radius: 6px; text-align: center; line-height: 20px; font-size: 12px; color: #2D7653;">🔒</span>
+                        </td>
+                        <td style="padding-left: 8px; vertical-align: middle;">
+                          <div style="font-size: 13px; font-weight: 600; color: #202420; margin-bottom: 2px;">
+                            Tautan Berlaku {expire_minutes} Menit
+                          </div>
+                          <div style="font-size: 12px; color: #6F7770; line-height: 1.45;">
+                            Demi keamanan, tautan ini hanya bisa dipakai satu kali dan kedaluwarsa secara otomatis.
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
                   </td>
                 </tr>
               </table>
 
-              <p style="margin: 0 0 12px 0; font-size: 13px; line-height: 1.6; color: #64748b;">
-                Atau salin dan tempel tautan berikut di peramban (browser) Anda jika tombol di atas tidak dapat diklik:
+              <!-- Main Action CTA Button (Matching .btn-login-submit) -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom: 28px;">
+                <tr>
+                  <td align="center">
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                      <tr>
+                        <td align="center" style="border-radius: 12px; background-color: #252A26; box-shadow: 0 2px 8px rgba(37, 42, 38, 0.18);">
+                          <a href="{reset_link}" target="_blank" style="font-size: 14px; font-weight: 600; color: #FFFFFF; text-decoration: none; padding: 13px 28px; display: inline-block; border-radius: 12px; letter-spacing: 0.2px;">
+                            Atur Ulang Kata Sandi Sekarang &rarr;
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Fallback Link Section -->
+              <p style="margin: 0 0 8px 0; font-size: 12px; line-height: 1.5; color: #959C95;">
+                Atau salin tautan berikut ke peramban (browser) Anda jika tombol di atas tidak berfungsi:
               </p>
-              <div style="background-color: #0b1319; border: 1px solid #1a2a38; border-radius: 8px; padding: 12px; word-break: break-all; font-family: monospace; font-size: 12px; color: #38bdf8; line-height: 1.4; margin-bottom: 24px;">
+              <div style="background-color: #F8F9F7; border: 1px solid #E2E5DF; border-radius: 8px; padding: 10px 14px; word-break: break-all; font-family: -apple-system-ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 11px; color: #486F95; line-height: 1.45; margin-bottom: 24px;">
                 {reset_link}
               </div>
 
-              <div style="border-top: 1px solid #1a2a38; padding-top: 20px;">
-                <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #64748b;">
-                  ⚠️ Jika Anda tidak merasa melakukan permintaan ini, abaikan email ini dengan aman. Kata sandi Anda tidak akan berubah.
+              <!-- Security Advice Notice -->
+              <div style="border-top: 1px solid #E2E5DF; padding-top: 18px;">
+                <p style="margin: 0; font-size: 12px; line-height: 1.55; color: #6F7770;">
+                  🛡️ Jika Anda tidak meminta pengaturan ulang ini, abaikan email ini dengan aman. Kata sandi akun Anda tidak akan berubah tanpa konfirmasi Anda.
                 </p>
               </div>
             </td>
           </tr>
 
-          <!-- Footer -->
+          <!-- Footer Area -->
           <tr>
-            <td style="padding: 24px 32px; background-color: #0a1117; border-top: 1px solid #14202c; text-align: center;">
-              <p style="margin: 0 0 6px 0; font-size: 12px; color: #475569;">
-                Finance AI Agent &bull; Asisten Keuangan Pribadi Berbasis Kecerdasan Buatan
+            <td style="padding: 20px 32px; background-color: #FAFAF8; border-top: 1px solid #E2E5DF; text-align: center;">
+              <p style="margin: 0 0 4px 0; font-size: 12px; font-weight: 500; color: #6F7770;">
+                Finance AI Agent &bull; Sistem Keuangan Pribadi Mandiri
               </p>
-              <p style="margin: 0; font-size: 11px; color: #334155;">
-                Email ini dibuat secara otomatis. Mohon tidak membalas email ini.
+              <p style="margin: 0; font-size: 11px; color: #959C95;">
+                Email ini dibuat secara otomatis oleh sistem keamanan akun. Mohon tidak membalas email ini.
               </p>
             </td>
           </tr>
@@ -100,12 +150,12 @@ def _build_email_templates(name: str, reset_link: str, expire_minutes: int, subj
 
 Halo {name},
 
-Kami menerima permintaan untuk mengatur ulang kata sandi akun Anda.
+Kami menerima permintaan untuk mengatur ulang kata sandi akun Finance AI Agent Anda.
 
 Kunjungi tautan berikut untuk membuat kata sandi baru (berlaku selama {expire_minutes} menit):
 {reset_link}
 
-Jika Anda tidak meminta pengaturan ulang ini, abaikan email ini. Akun Anda tetap aman.
+Demi keamanan akun, tautan ini hanya bisa dipakai satu kali. Jika Anda tidak merasa melakukan permintaan ini, abaikan email ini. Akun Anda tetap aman.
 
 Salam,
 Tim Finance AI Agent
