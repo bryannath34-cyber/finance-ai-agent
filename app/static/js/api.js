@@ -82,7 +82,11 @@ async function request(endpoint, options = {}) {
       console.error(`[API Timeout] ${method} ${url}:`, timeoutErr);
       throw timeoutErr;
     }
-    console.error(`[API Error] ${method} ${url}:`, err);
+    // Jangan cetak error merah di console jika hanya pemeriksaan sesi awal (/auth/me) saat user belum login
+    const isGuestCheck = endpoint === '/auth/me' && (err.status === 401 || err.status === 403);
+    if (!isGuestCheck) {
+      console.error(`[API Error] ${method} ${url}:`, err);
+    }
     throw err;
   }
 }
