@@ -69,11 +69,11 @@ def test_app_js_registration():
         js = f.read()
 
     assert "api.auth.register(name, email, pwd)" in js, "app.js must call api.auth.register"
-    assert "this.formMobileSignup.reset();" in js, "mobile signup must reset form on success"
-    assert "this.showDashboard();" in js, "signup must redirect to dashboard on success"
+    assert "this.showLogin();" in js, "signup must redirect to login screen on success"
+    assert "this.loginUsername.value = email;" in js, "login form must prefill registered email"
     assert "Akun berhasil dibuat!" in js, "signup must display success message"
     assert "Pendaftaran mandiri belum diaktifkan" not in js, "placeholder warning must be removed"
-    print(" [PASS] app.js formMobileSignup and formTabSignup wired to real registration flow.")
+    print(" [PASS] app.js formMobileSignup and formTabSignup redirect to login form on success.")
 
 
 def test_index_html_dom():

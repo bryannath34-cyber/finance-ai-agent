@@ -110,23 +110,10 @@ export const api = {
       return res;
     },
     register: async (fullName, email, password) => {
-      const res = await request('/auth/register', {
+      return await request('/auth/register', {
         method: 'POST',
         body: JSON.stringify({ full_name: fullName, email: email, password: password }),
       });
-      if (res && res.csrf_token) {
-        memoryCsrfToken = res.csrf_token;
-        try {
-          sessionStorage.setItem('pf_csrf', res.csrf_token);
-          localStorage.setItem('pf_csrf', res.csrf_token);
-        } catch (_) {}
-      }
-      if (res && res.token) {
-        try {
-          localStorage.setItem('pf_token', res.token);
-        } catch (_) {}
-      }
-      return res;
     },
     logout: async () => {
       try {

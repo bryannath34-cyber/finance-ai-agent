@@ -1247,16 +1247,20 @@ class App {
         }
 
         try {
-          const res = await api.auth.register(name, email, pwd);
-          const userProfile = res?.user || (res?.data && res.data.id ? res.data : null);
-
-          sessionStorage.removeItem('pf_logged_out');
-          localStorage.removeItem('pf_logged_out');
-          this.currentUser = userProfile || { username: email, full_name: name };
+          await api.auth.register(name, email, pwd);
 
           this.formMobileSignup.reset();
-          this.showAlert('Akun berhasil dibuat! Selamat datang di Finance AI Agent.', 'success');
-          this.showDashboard();
+
+          // Arahkan kembali ke form login user awal
+          this.showLogin();
+          if (this.loginUsername) {
+            this.loginUsername.value = email;
+          }
+          if (this.loginPassword) {
+            this.loginPassword.value = '';
+            setTimeout(() => this.loginPassword.focus(), 150);
+          }
+          this.showAlert('Akun berhasil dibuat! Silakan masukkan kata sandi untuk masuk.', 'success');
         } catch (err) {
           this.showAlert(err.message || 'Gagal membuat akun. Silakan coba lagi.', 'error');
         } finally {
@@ -1312,16 +1316,20 @@ class App {
         }
 
         try {
-          const res = await api.auth.register(name, email, pwd);
-          const userProfile = res?.user || (res?.data && res.data.id ? res.data : null);
-
-          sessionStorage.removeItem('pf_logged_out');
-          localStorage.removeItem('pf_logged_out');
-          this.currentUser = userProfile || { username: email, full_name: name };
+          await api.auth.register(name, email, pwd);
 
           this.formTabSignup.reset();
-          this.showAlert('Akun berhasil dibuat! Selamat datang di Finance AI Agent.', 'success');
-          this.showDashboard();
+
+          // Arahkan kembali ke form login user awal
+          this.showLogin();
+          if (this.loginUsername) {
+            this.loginUsername.value = email;
+          }
+          if (this.loginPassword) {
+            this.loginPassword.value = '';
+            setTimeout(() => this.loginPassword.focus(), 150);
+          }
+          this.showAlert('Akun berhasil dibuat! Silakan masukkan kata sandi untuk masuk.', 'success');
         } catch (err) {
           this.showAlert(err.message || 'Gagal membuat akun. Silakan coba lagi.', 'error');
         } finally {

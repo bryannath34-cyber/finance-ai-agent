@@ -333,40 +333,7 @@ def register(reg_data: RegisterRequest, request: Request, response: Response):
             )
         raise
 
-    # Dapatkan IP Address dan User Agent
-    client_ip = request.headers.get("X-Forwarded-For", request.client.host if request.client else "127.0.0.1")
-    if "," in client_ip:
-        client_ip = client_ip.split(",")[0].strip()
-    user_agent = request.headers.get("User-Agent", "")
-
-    # Terbitkan sesi di DB
-    session_token, expires_at = create_user_session(new_user_id, client_ip, user_agent)
-    csrf_token = generate_secure_token(24)
-
-    forwarded_proto = request.headers.get("X-Forwarded-Proto", "").split(",", 1)[0].strip().lower()
-    is_https = request.url.scheme.lower() == "https" or forwarded_proto == "https"
-
-    response.set_cookie(
-        key=settings.SESSION_COOKIE_NAME,
-        value=session_token,
-        max_age=settings.SESSION_EXPIRE_HOURS * 3600,
-        httponly=True,
-        samesite="lax",
-        secure=is_https,
-        path="/"
-    )
-
-    response.set_cookie(
-        key=settings.CSRF_COOKIE_NAME,
-        value=csrf_token,
-        max_age=settings.SESSION_EXPIRE_HOURS * 3600,
-        httponly=False,
-        samesite="lax",
-        secure=is_https,
-        path="/"
-    )
-
-    logger.info("Pengguna baru '%s' (ID: %s) berhasil mendaftar dan login otomatis", candidate_username, new_user_id)
+    logger.info("Pengguna baru '%s' (ID: %s) berhasil mendaftar", candidate_username, new_user_id)
 
     user_profile = UserProfile(
         id=new_user_id,
@@ -376,11 +343,11 @@ def register(reg_data: RegisterRequest, request: Request, response: Response):
     )
     return LoginResponse(
         success=True,
-        message="Akun berhasil dibuat! Selamat datang di Finance AI Agent.",
+        message="Akun berhasil dibuat! Silakan masuk menggunakan email atau nama dan kata sandi Anda.",
         user=user_profile,
         data=user_profile,
-        csrf_token=csrf_token,
-        token=session_token
+        csrf_token="",
+        token=None
     )
 
 @router.post("/logout", response_model=BaseResponse)
