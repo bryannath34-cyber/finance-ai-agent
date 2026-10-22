@@ -20,13 +20,14 @@ logger = logging.getLogger("personal_finance.email")
 def _build_email_templates(name: str, reset_link: str, expire_minutes: int, subject: str) -> Tuple[str, str]:
     """
     Menghasilkan HTML dan Plain Text untuk email reset password.
-    Desain 1:1 Figma Design System v2.3 (Nordic / Apple Fintech Minimalist):
-    - Background Canvas: #F2F3F1
-    - Card: #FFFFFF border #E2E5DF radius 16px
-    - Brand Tile: #252A26 dengan SVG Wallet resmi
-    - Button: #252A26 teks #FFFFFF radius 12px
-    - Warna teks: #202420, #6F7770, #959C95
-    - ZERO EMOJI (100% profesional dan elegan)
+    Desain minimalis persis referensi pengguna dengan style website Finance AI Agent:
+    - Canvas: #F6F7F5
+    - Card: #FFFFFF border #E5E7EB radius 12px
+    - Header: Icon gelombang AI di tengah + Brand uppercase + Judul tebal
+    - Garis pemisah tipis
+    - Teks sapaan & pesan ringkas langsung ke inti
+    - Tombol full-width #252A26 radius 10px
+    - Footer di luar kartu: Kontak bantuan, mini icon, copyright
     """
     html_content = f"""<!DOCTYPE html>
 <html lang="id">
@@ -36,130 +37,135 @@ def _build_email_templates(name: str, reset_link: str, expire_minutes: int, subj
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title>{subject}</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #F2F3F1; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #202420; -webkit-font-smoothing: antialiased;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #F2F3F1; width: 100%; margin: 0; padding: 40px 16px;">
+<body style="margin: 0; padding: 0; background-color: #F6F7F5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #202420; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #F6F7F5; width: 100%; margin: 0; padding: 48px 16px;">
     <tr>
       <td align="center">
-        <!-- Main Card (Figma 1:1) -->
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width: 500px; background-color: #FFFFFF; border: 1px solid #E2E5DF; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 12px rgba(32, 36, 32, 0.04);">
+        
+        <!-- Main Card Container -->
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width: 520px; background-color: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);">
           
-          <!-- Brand Header -->
+          <!-- Card Header (Centered Logo + Brand + Title) -->
           <tr>
-            <td style="padding: 24px 28px 18px 28px; background-color: #FAFAF8; border-bottom: 1px solid #E2E5DF;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+            <td align="center" style="padding: 36px 32px 28px 32px; border-bottom: 1px solid #F0F2EE;">
+              
+              <!-- Centered Soundwave AI Icon -->
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto 12px auto;">
                 <tr>
-                  <td align="left" style="vertical-align: middle;">
-                    <table role="presentation" cellspacing="0" cellpadding="0" border="0">
-                      <tr>
-                        <!-- Brand Icon Tile (#252A26 with clean vector wallet) -->
-                        <td style="width: 28px; height: 28px; background-color: #252A26; border-radius: 8px; text-align: center; vertical-align: middle; line-height: 0;">
-                          <img src="https://img.icons8.com/ios-filled/50/ffffff/wallet.png" width="14" height="14" alt="Logo" style="display: inline-block; vertical-align: middle; border: 0;" />
-                        </td>
-                        <td style="padding-left: 10px; vertical-align: middle;">
-                          <span style="font-size: 14px; font-weight: 600; color: #202420; letter-spacing: -0.2px;">Finance AI Agent</span>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                  <td align="right" style="vertical-align: middle;">
-                    <span style="font-size: 11px; font-weight: 500; color: #6F7770; background-color: #FFFFFF; border: 1px solid #E2E5DF; padding: 3px 9px; border-radius: 12px;">
-                      v2.3
-                    </span>
+                  <td align="center" style="line-height: 0;">
+                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#252A26" stroke-width="2.2" stroke-linecap="round">
+                      <line x1="4" y1="11" x2="4" y2="13" />
+                      <line x1="8" y1="7" x2="8" y2="17" />
+                      <line x1="12" y1="3" x2="12" y2="21" />
+                      <line x1="16" y1="7" x2="16" y2="17" />
+                      <line x1="20" y1="11" x2="20" y2="13" />
+                    </svg>
                   </td>
                 </tr>
               </table>
-            </td>
-          </tr>
 
-          <!-- Main Body -->
-          <tr>
-            <td style="padding: 32px 28px 24px 28px; text-align: left;">
-              <h1 style="margin: 0 0 10px 0; font-size: 19px; font-weight: 600; color: #202420; letter-spacing: -0.3px; line-height: 1.35;">
+              <!-- Brand Name (All Caps Tracking) -->
+              <div style="font-size: 13px; font-weight: 700; letter-spacing: 2px; color: #202420; text-transform: uppercase; margin-bottom: 10px;">
+                FINANCE AI AGENT
+              </div>
+
+              <!-- Main Heading -->
+              <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #202420; letter-spacing: -0.3px; line-height: 1.3;">
                 Atur ulang kata sandi
               </h1>
-              <p style="margin: 0 0 22px 0; font-size: 13.5px; line-height: 1.6; color: #6F7770;">
-                Halo <strong>{name}</strong>, kami menerima permintaan pengaturan ulang kata sandi untuk akun Anda. Silakan klik tombol di bawah untuk membuat kata sandi baru:
-              </p>
-
-              <!-- CTA Button (#252A26 matching web primary button) -->
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 24px 0;">
-                <tr>
-                  <td align="left">
-                    <table role="presentation" cellspacing="0" cellpadding="0" border="0">
-                      <tr>
-                        <td style="border-radius: 11px; background-color: #252A26;">
-                          <a href="{reset_link}" target="_blank" style="font-size: 13.5px; font-weight: 600; color: #FFFFFF; text-decoration: none; padding: 12px 26px; display: inline-block; border-radius: 11px; letter-spacing: 0.1px;">
-                            Atur Ulang Kata Sandi
-                          </a>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-              </table>
-
-              <!-- Expiration Callout Box (#F8F9F7 with #E2E5DF border) -->
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #F8F9F7; border: 1px solid #E2E5DF; border-radius: 10px; margin-bottom: 24px;">
-                <tr>
-                  <td style="padding: 12px 14px;">
-                    <div style="font-size: 12px; font-weight: 600; color: #202420; margin-bottom: 2px;">
-                      Masa berlaku tautan: {expire_minutes} menit
-                    </div>
-                    <div style="font-size: 11.5px; color: #6F7770; line-height: 1.5;">
-                      Tautan ini hanya dapat digunakan satu kali. Jika kedaluwarsa, silakan ajukan permintaan baru dari halaman login.
-                    </div>
-                  </td>
-                </tr>
-              </table>
-
-              <!-- Fallback Link -->
-              <div style="border-top: 1px solid #E2E5DF; padding-top: 18px; margin-top: 8px;">
-                <p style="margin: 0 0 6px 0; font-size: 11.5px; color: #959C95;">
-                  Jika tombol di atas tidak dapat diklik, buka tautan berikut di peramban Anda:
-                </p>
-                <div style="background-color: #F8F9F7; border: 1px solid #E2E5DF; border-radius: 6px; padding: 8px 10px; font-family: -apple-system-ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 10.5px; color: #486F95; word-break: break-all; line-height: 1.45;">
-                  {reset_link}
-                </div>
-              </div>
-
-              <!-- Security Disclaimer -->
-              <div style="margin-top: 18px; padding-top: 14px;">
-                <p style="margin: 0; font-size: 11.5px; line-height: 1.5; color: #6F7770;">
-                  Jika Anda tidak merasa mengajukan permintaan ini, abaikan pesan ini. Kata sandi akun Anda tidak akan berubah tanpa konfirmasi Anda.
-                </p>
-              </div>
             </td>
           </tr>
 
-          <!-- Footer Area -->
+          <!-- Card Body -->
           <tr>
-            <td style="padding: 16px 28px; background-color: #FAFAF8; border-top: 1px solid #E2E5DF; text-align: left;">
-              <p style="margin: 0; font-size: 11px; color: #959C95; line-height: 1.5;">
-                Finance AI Agent &bull; Sistem Keuangan Pribadi Mandiri
+            <td style="padding: 32px 36px 36px 36px; text-align: left;">
+              
+              <!-- Greeting -->
+              <div style="font-size: 14px; font-weight: 700; color: #202420; margin-bottom: 14px;">
+                Halo {name},
+              </div>
+
+              <!-- Concise Message -->
+              <p style="margin: 0 0 28px 0; font-size: 13.5px; line-height: 1.65; color: #4B524B;">
+                Perlu mengatur ulang kata sandi Anda? Cukup klik tombol di bawah ini untuk membuat kata sandi baru akun Anda. Jika Anda tidak merasa melakukan permintaan ini, abaikan email ini dengan aman.
               </p>
+
+              <!-- Full-Width Action Button -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom: 24px;">
+                <tr>
+                  <td align="center" style="border-radius: 10px; background-color: #252A26;">
+                    <a href="{reset_link}" target="_blank" style="display: block; width: 100%; padding: 14px 24px; font-size: 14px; font-weight: 600; color: #FFFFFF; text-decoration: none; text-align: center; border-radius: 10px; box-sizing: border-box; letter-spacing: 0.1px;">
+                      Atur ulang kata sandi
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Subtle Fallback Link -->
+              <div style="font-size: 11px; color: #959C95; line-height: 1.45; word-break: break-all;">
+                Jika tombol di atas tidak dapat diklik, salin tautan berikut:<br>
+                <a href="{reset_link}" target="_blank" style="color: #486F95; text-decoration: underline;">{reset_link}</a>
+              </div>
+
             </td>
           </tr>
 
         </table>
+        <!-- End Main Card -->
+
+        <!-- Outside Footer (Directly Matching Reference) -->
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width: 520px; margin-top: 28px;">
+          <tr>
+            <td align="center" style="text-align: center;">
+              
+              <!-- Support Contacts -->
+              <p style="margin: 0 0 16px 0; font-size: 12px; color: #8A928A; line-height: 1.5;">
+                Ada pertanyaan atau kendala? Hubungi tim bantuan kami<br>
+                atau email <a href="mailto:support@financeai.id" style="color: #6F7770; text-decoration: underline;">support@financeai.id</a>
+              </p>
+
+              <!-- Mini Wave Icon -->
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto 10px auto;">
+                <tr>
+                  <td align="center" style="line-height: 0;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9AA29A" stroke-width="2" stroke-linecap="round">
+                      <line x1="4" y1="11" x2="4" y2="13" />
+                      <line x1="8" y1="7" x2="8" y2="17" />
+                      <line x1="12" y1="3" x2="12" y2="21" />
+                      <line x1="16" y1="7" x2="16" y2="17" />
+                      <line x1="20" y1="11" x2="20" y2="13" />
+                    </svg>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Copyright -->
+              <div style="font-size: 11px; color: #9AA29A; text-transform: uppercase; letter-spacing: 1px; line-height: 1.5;">
+                2026 FINANCE AI AGENT<br>
+                <span style="text-transform: lowercase; font-size: 10.5px; letter-spacing: 0;">all right reserved</span>
+              </div>
+
+            </td>
+          </tr>
+        </table>
+
       </td>
     </tr>
   </table>
 </body>
 </html>"""
 
-    text_content = f"""Atur Ulang Kata Sandi - Finance AI Agent
+    text_content = f"""Atur ulang kata sandi - FINANCE AI AGENT
 
 Halo {name},
 
-Kami menerima permintaan pengaturan ulang kata sandi untuk akun Finance AI Agent Anda.
-
-Kunjungi tautan berikut untuk membuat kata sandi baru (berlaku selama {expire_minutes} menit):
+Perlu mengatur ulang kata sandi Anda? Cukup buka tautan di bawah ini untuk membuat kata sandi baru:
 {reset_link}
 
-Tautan ini hanya dapat digunakan satu kali. Jika Anda tidak merasa mengajukan permintaan ini, abaikan pesan ini. Akun Anda tetap aman.
+Tautan ini berlaku selama {expire_minutes} menit. Jika Anda tidak meminta perubahan ini, abaikan email ini dengan aman.
 
-Salam,
-Tim Finance AI Agent
+2026 FINANCE AI AGENT
+all right reserved
 """
     return html_content, text_content
 
