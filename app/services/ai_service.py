@@ -209,11 +209,27 @@ class AIService:
             except Exception as e:
                 logger.warning("Gagal memproses purchase decision via PlanningService: %s", e)
 
-        # 3. TANYA SALDO & LAPORAN KEUANGAN (FINANCIAL INQUIRY)
-        is_question_word = any(q in t_lower for q in ("berapa", "cek", "lihat", "gimana", "status", "kondisi", "posisi", "total saldo", "total uang", "total kekayaan"))
-        has_financial_entity = any(f in t_lower for f in ("saldo", "uang", "duit", "dana", "pengeluaran", "anggaran", "budget", "rekening", "kas", "dompet", "bank", "wallet"))
+        # 3. KONSULTASI KEUANGAN MENYELURUH BERBASIS DATABASE (FULL FINANCIAL COPILOT)
+        consultation_triggers = (
+            "paling boros", "paling besar", "terbesar", "terbanyak", "habis di mana",
+            "kategori apa", "kenapa", "mengapa", "gimana cara", "bagaimana cara", "saran",
+            "rekomendasi", "konsultasi", "evaluasi", "analisa", "analisis", "tips",
+            "trik", "pola", "kebiasaan", "bandingkan", "perbandingan", "bulan lalu",
+            "tahun lalu", "minggu lalu", "riwayat", "histori", "sering beli",
+            "sering jajan", "sering makan", "kondisi keuangan", "kesehatan keuangan",
+            "posisi keuangan", "arus kas", "cashflow", "status keuangan",
+            "bisa nabung", "cara hemat", "solusi keuangan", "rekap keuangan",
+            "uang gua habis buat apa", "uangku habis untuk apa"
+        )
         has_action_verb = any(v in t_lower for v in ("beli", "bayar", "transfer", "tf ", " tf", "setor", "simpan", "masuk", "terima", "tarik", "top up", "isi saldo"))
         has_amount_specified = parse_indonesian_amount(raw_text) is not None
+
+        if any(trig in t_lower for trig in consultation_triggers) and not has_action_verb:
+            return AIService.consult_financial_copilot(user_id, raw_text)
+
+        # 4. TANYA SALDO & LAPORAN KEUANGAN (FINANCIAL INQUIRY)
+        is_question_word = any(q in t_lower for q in ("berapa", "cek", "lihat", "gimana", "status", "kondisi", "posisi", "total saldo", "total uang", "total kekayaan"))
+        has_financial_entity = any(f in t_lower for f in ("saldo", "uang", "duit", "dana", "pengeluaran", "anggaran", "budget", "rekening", "kas", "dompet", "bank", "wallet"))
 
         if (is_question_word and has_financial_entity and not has_action_verb and (not has_amount_specified or "berapa" in t_lower or "cek" in t_lower)):
             accounts = FinanceService.get_accounts_with_balance(user_id)
@@ -366,6 +382,67 @@ class AIService:
             "items_count": items_count,
             "drafts": drafts,
             "ai_response": ai_msg
+        }
+
+    @staticmethod
+    def consult_financial_copilot(user_id: int, user_input: str) -> Dict[str, Any]:
+        """
+        Konsultasi Finansial Menyeluruh Berbasis Database (Full Financial Context AI Copilot):
+        1. Menarik seluruh data keuangan dari database: rekening, saldo, histori arus kas seumur hidup,
+           tren bulanan, kategori pengeluaran terbesar, transaksi riil, budget, dan tabungan.
+        2. Mengirim prompt kaya data ke OCI GenAI (Cohere Command di Osaka).
+        3. Menjalankan fallback analitis berbasis database jika OCI GenAI offline / tidak tersedia.
+        """
+        from app.services.ai_context_service import AIContextService
+        ctx = AIContextService.get_user_financial_context(user_id)
+        prompt_context = AIContextService.format_context_for_prompt(ctx)
+
+        full_prompt = f"""Kamu adalah Personal Finance AI Copilot & Penasihat Keuangan Pribadi yang cerdas, objektif, empatik, dan berwawasan luas.
+Kamu memiliki akses PENUH ke seluruh database keuangan pengguna berikut secara real-time dari buku besar resmi:
+
+{prompt_context}
+
+INSTRUKSI PENTING UNTUK ASISTEN:
+1. Jawab pertanyaan pengguna secara akurat berdasarkan angka, kategori, dan transaksi riil dari database di atas.
+2. Jika pengguna bertanya tentang kebiasaan, pemborosan, atau kategori tertentu, sebutkan nama kategori dan nominal Rp secara spesifik.
+3. Berikan saran yang solutif, terukur, dan realistis sesuai kondisi keuangannya.
+4. Format jawaban dengan markdown rapi (bullet points, bold untuk angka penting).
+5. Jangan berasumsi atau mengarang data transaksi di luar database yang diberikan.
+
+PERTANYAAN PENGGUNA:
+"{user_input}"
+"""
+        client = get_genai_client()
+        ai_reply = ""
+        if client and settings.OCI_COMPARTMENT_OCID and oci is not None:
+            try:
+                chat_models = oci.generative_ai_inference.models
+                chat_req = chat_models.CohereChatRequest(
+                    api_format=chat_models.BaseChatRequest.API_FORMAT_COHERE,
+                    message=full_prompt,
+                    max_tokens=1000,
+                    temperature=0.3
+                )
+                chat_details = chat_models.ChatDetails(
+                    compartment_id=settings.OCI_COMPARTMENT_OCID,
+                    serving_mode=chat_models.OnDemandServingMode(model_id=settings.OCI_GENAI_MODEL_ID),
+                    chat_request=chat_req
+                )
+                res = client.chat(chat_details)
+                ai_reply = res.data.chat_response.text.strip()
+            except Exception as e:
+                logger.warning("Panggilan OCI GenAI untuk konsultasi gagal: %s", e)
+                ai_reply = ""
+
+        if not ai_reply:
+            ai_reply = AIContextService.generate_rule_based_financial_analysis(ctx, user_input)
+
+        return {
+            "intent": "FINANCIAL_CONSULTATION",
+            "ai_response": ai_reply,
+            "items_count": 0,
+            "drafts": [],
+            "financial_context": ctx
         }
 
     @staticmethod
