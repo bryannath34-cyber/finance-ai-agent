@@ -55,10 +55,15 @@ def verify_totp(secret: str, code: str, last_counter: Optional[int] = None) -> O
             return counter
     return None
 
-pwd_context = CryptContext(
-    schemes=["argon2", "pbkdf2_sha256", "bcrypt"],
-    deprecated="auto"
-)
+def _init_pwd_context() -> CryptContext:
+    try:
+        ctx = CryptContext(schemes=["argon2", "pbkdf2_sha256", "bcrypt"], deprecated="auto")
+        ctx.hash("test_argon2")
+        return ctx
+    except Exception:
+        return CryptContext(schemes=["pbkdf2_sha256", "bcrypt", "argon2"], deprecated="auto")
+
+pwd_context = _init_pwd_context()
 
 def hash_password(password: str) -> str:
     """Mengenkripsi password menggunakan algoritma hashing standar (Argon2id default)."""
