@@ -18,7 +18,16 @@ logger = logging.getLogger("personal_finance.email")
 
 
 def _build_email_templates(name: str, reset_link: str, expire_minutes: int, subject: str) -> Tuple[str, str]:
-    """Menghasilkan HTML dan Plain Text untuk email reset password dengan standar Stripe/Linear minimalist."""
+    """
+    Menghasilkan HTML dan Plain Text untuk email reset password.
+    Desain 1:1 Figma Design System v2.3 (Nordic / Apple Fintech Minimalist):
+    - Background Canvas: #F2F3F1
+    - Card: #FFFFFF border #E2E5DF radius 16px
+    - Brand Tile: #252A26 dengan SVG Wallet resmi
+    - Button: #252A26 teks #FFFFFF radius 12px
+    - Warna teks: #202420, #6F7770, #959C95
+    - ZERO EMOJI (100% profesional dan elegan)
+    """
     html_content = f"""<!DOCTYPE html>
 <html lang="id">
 <head>
@@ -27,32 +36,35 @@ def _build_email_templates(name: str, reset_link: str, expire_minutes: int, subj
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title>{subject}</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #F8F9FA; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1A1A1A; -webkit-font-smoothing: antialiased;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #F8F9FA; width: 100%; margin: 0; padding: 48px 16px;">
+<body style="margin: 0; padding: 0; background-color: #F2F3F1; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #202420; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #F2F3F1; width: 100%; margin: 0; padding: 40px 16px;">
     <tr>
       <td align="center">
-        <!-- Main Card -->
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width: 520px; background-color: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 10px 25px -5px rgba(0, 0, 0, 0.04);">
+        <!-- Main Card (Figma 1:1) -->
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width: 500px; background-color: #FFFFFF; border: 1px solid #E2E5DF; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 12px rgba(32, 36, 32, 0.04);">
           
-          <!-- Brand Bar -->
+          <!-- Brand Header -->
           <tr>
-            <td style="padding: 28px 36px 20px 36px; border-bottom: 1px solid #F3F4F6;">
+            <td style="padding: 24px 28px 18px 28px; background-color: #FAFAF8; border-bottom: 1px solid #E2E5DF;">
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
                 <tr>
                   <td align="left" style="vertical-align: middle;">
                     <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                       <tr>
-                        <td style="width: 32px; height: 32px; background: #111827; border-radius: 8px; text-align: center; vertical-align: middle;">
-                          <span style="color: #10B981; font-size: 16px; font-weight: 700; line-height: 1;">&bull;</span>
+                        <!-- Brand Icon Tile (#252A26 with clean vector wallet) -->
+                        <td style="width: 28px; height: 28px; background-color: #252A26; border-radius: 8px; text-align: center; vertical-align: middle; line-height: 0;">
+                          <img src="https://img.icons8.com/ios-filled/50/ffffff/wallet.png" width="14" height="14" alt="Logo" style="display: inline-block; vertical-align: middle; border: 0;" />
                         </td>
-                        <td style="padding-left: 12px; vertical-align: middle;">
-                          <span style="font-size: 15px; font-weight: 600; color: #111827; letter-spacing: -0.3px;">Finance AI Agent</span>
+                        <td style="padding-left: 10px; vertical-align: middle;">
+                          <span style="font-size: 14px; font-weight: 600; color: #202420; letter-spacing: -0.2px;">Finance AI Agent</span>
                         </td>
                       </tr>
                     </table>
                   </td>
                   <td align="right" style="vertical-align: middle;">
-                    <span style="font-size: 12px; color: #6B7280; font-weight: 500;">Keamanan</span>
+                    <span style="font-size: 11px; font-weight: 500; color: #6F7770; background-color: #FFFFFF; border: 1px solid #E2E5DF; padding: 3px 9px; border-radius: 12px;">
+                      v2.3
+                    </span>
                   </td>
                 </tr>
               </table>
@@ -61,23 +73,23 @@ def _build_email_templates(name: str, reset_link: str, expire_minutes: int, subj
 
           <!-- Main Body -->
           <tr>
-            <td style="padding: 36px 36px 28px 36px; text-align: left;">
-              <h1 style="margin: 0 0 12px 0; font-size: 20px; font-weight: 600; color: #111827; letter-spacing: -0.4px; line-height: 1.3;">
-                Atur ulang kata sandi Anda
+            <td style="padding: 32px 28px 24px 28px; text-align: left;">
+              <h1 style="margin: 0 0 10px 0; font-size: 19px; font-weight: 600; color: #202420; letter-spacing: -0.3px; line-height: 1.35;">
+                Atur ulang kata sandi
               </h1>
-              <p style="margin: 0 0 20px 0; font-size: 14px; line-height: 1.6; color: #4B5563;">
-                Halo <strong>{name}</strong>, kami menerima permintaan untuk mengatur ulang kata sandi akun Finance AI Agent Anda. Silakan klik tombol di bawah untuk membuat kata sandi baru:
+              <p style="margin: 0 0 22px 0; font-size: 13.5px; line-height: 1.6; color: #6F7770;">
+                Halo <strong>{name}</strong>, kami menerima permintaan pengaturan ulang kata sandi untuk akun Anda. Silakan klik tombol di bawah untuk membuat kata sandi baru:
               </p>
 
-              <!-- CTA Button -->
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 28px 0;">
+              <!-- CTA Button (#252A26 matching web primary button) -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 24px 0;">
                 <tr>
                   <td align="left">
                     <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                       <tr>
-                        <td style="border-radius: 8px; background-color: #111827;">
-                          <a href="{reset_link}" target="_blank" style="font-size: 14px; font-weight: 500; color: #FFFFFF; text-decoration: none; padding: 12px 24px; display: inline-block; border-radius: 8px; letter-spacing: 0.1px;">
-                            Atur Ulang Kata Sandi &rarr;
+                        <td style="border-radius: 11px; background-color: #252A26;">
+                          <a href="{reset_link}" target="_blank" style="font-size: 13.5px; font-weight: 600; color: #FFFFFF; text-decoration: none; padding: 12px 26px; display: inline-block; border-radius: 11px; letter-spacing: 0.1px;">
+                            Atur Ulang Kata Sandi
                           </a>
                         </td>
                       </tr>
@@ -86,35 +98,44 @@ def _build_email_templates(name: str, reset_link: str, expire_minutes: int, subj
                 </tr>
               </table>
 
-              <!-- Notice -->
-              <p style="margin: 0 0 24px 0; font-size: 13px; line-height: 1.6; color: #6B7280;">
-                Tautan ini berlaku selama <strong>{expire_minutes} menit</strong> dan hanya dapat digunakan satu kali.
-              </p>
+              <!-- Expiration Callout Box (#F8F9F7 with #E2E5DF border) -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #F8F9F7; border: 1px solid #E2E5DF; border-radius: 10px; margin-bottom: 24px;">
+                <tr>
+                  <td style="padding: 12px 14px;">
+                    <div style="font-size: 12px; font-weight: 600; color: #202420; margin-bottom: 2px;">
+                      Masa berlaku tautan: {expire_minutes} menit
+                    </div>
+                    <div style="font-size: 11.5px; color: #6F7770; line-height: 1.5;">
+                      Tautan ini hanya dapat digunakan satu kali. Jika kedaluwarsa, silakan ajukan permintaan baru dari halaman login.
+                    </div>
+                  </td>
+                </tr>
+              </table>
 
               <!-- Fallback Link -->
-              <div style="border-top: 1px solid #F3F4F6; padding-top: 20px; margin-top: 24px;">
-                <p style="margin: 0 0 8px 0; font-size: 12px; color: #9CA3AF;">
-                  Jika tombol di atas tidak berfungsi, salin dan buka tautan berikut di peramban Anda:
+              <div style="border-top: 1px solid #E2E5DF; padding-top: 18px; margin-top: 8px;">
+                <p style="margin: 0 0 6px 0; font-size: 11.5px; color: #959C95;">
+                  Jika tombol di atas tidak dapat diklik, buka tautan berikut di peramban Anda:
                 </p>
-                <p style="margin: 0; font-size: 12px; line-height: 1.5; color: #2563EB; word-break: break-all;">
-                  <a href="{reset_link}" target="_blank" style="color: #2563EB; text-decoration: underline;">{reset_link}</a>
-                </p>
+                <div style="background-color: #F8F9F7; border: 1px solid #E2E5DF; border-radius: 6px; padding: 8px 10px; font-family: -apple-system-ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 10.5px; color: #486F95; word-break: break-all; line-height: 1.45;">
+                  {reset_link}
+                </div>
               </div>
 
-              <!-- Security Advice -->
-              <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid #F3F4F6;">
-                <p style="margin: 0; font-size: 12px; line-height: 1.5; color: #9CA3AF;">
-                  Jika Anda tidak meminta perubahan kata sandi ini, abaikan email ini dengan aman. Akun Anda tetap terlindungi.
+              <!-- Security Disclaimer -->
+              <div style="margin-top: 18px; padding-top: 14px;">
+                <p style="margin: 0; font-size: 11.5px; line-height: 1.5; color: #6F7770;">
+                  Jika Anda tidak merasa mengajukan permintaan ini, abaikan pesan ini. Kata sandi akun Anda tidak akan berubah tanpa konfirmasi Anda.
                 </p>
               </div>
             </td>
           </tr>
 
-          <!-- Footer -->
+          <!-- Footer Area -->
           <tr>
-            <td style="padding: 24px 36px; background-color: #FAFAFA; border-top: 1px solid #F3F4F6; text-align: left;">
-              <p style="margin: 0; font-size: 12px; color: #9CA3AF; line-height: 1.5;">
-                Finance AI Agent &bull; Asisten Keuangan Pribadi Mandiri
+            <td style="padding: 16px 28px; background-color: #FAFAF8; border-top: 1px solid #E2E5DF; text-align: left;">
+              <p style="margin: 0; font-size: 11px; color: #959C95; line-height: 1.5;">
+                Finance AI Agent &bull; Sistem Keuangan Pribadi Mandiri
               </p>
             </td>
           </tr>
@@ -130,12 +151,12 @@ def _build_email_templates(name: str, reset_link: str, expire_minutes: int, subj
 
 Halo {name},
 
-Kami menerima permintaan untuk mengatur ulang kata sandi akun Finance AI Agent Anda.
+Kami menerima permintaan pengaturan ulang kata sandi untuk akun Finance AI Agent Anda.
 
 Kunjungi tautan berikut untuk membuat kata sandi baru (berlaku selama {expire_minutes} menit):
 {reset_link}
 
-Tautan ini hanya dapat digunakan satu kali. Jika Anda tidak meminta pengaturan ulang ini, abaikan email ini. Akun Anda tetap aman.
+Tautan ini hanya dapat digunakan satu kali. Jika Anda tidak merasa mengajukan permintaan ini, abaikan pesan ini. Akun Anda tetap aman.
 
 Salam,
 Tim Finance AI Agent
