@@ -45,10 +45,12 @@ for mod in [
                     self.PASSWORD_RESET_EXPIRE_MINUTES = 60
                     self.SESSION_EXPIRE_HOURS = 24
                     self.ALLOWED_HOSTS = "*"
-                    self.OCI_COMPARTMENT_OCID = None
-                    self.OCI_REGION_GENAI = "ap-osaka-1"
-                    self.OCI_GENAI_ENDPOINT = "https://inference.generativeai.ap-osaka-1.oci.oraclecloud.com"
-                    self.OCI_GENAI_MODEL_ID = "cohere.command-a-03-2025"
+                    self.SECRET_KEY = "mock_secret_key"
+                    self.DB_HOST = "127.0.0.1"
+                    self.DB_PORT = 3306
+                    self.DB_USER = "mock_user"
+                    self.DB_PASSWORD = "mock_password"
+                    self.DB_NAME = "mock_db"
                     for k, v in kwargs.items():
                         setattr(self, k, v)
             m.BaseSettings = MockBaseSettings
@@ -105,7 +107,8 @@ def get_mock_database_context():
             {"category": "Transportasi", "total_spent": Decimal("6500000"), "formatted": "Rp 6.500.000", "percentage": 22.3, "tx_count": 60}
         ],
         "recent_transactions": [
-            {"id": 101, "date": "2026-10-22", "type": "EXPENSE", "amount": Decimal("45000"), "category": "Makanan & Minuman", "source_account": "GoPay", "destination_account": None, "description": "Makan siang ayam geprek", "is_reversal": False},
+            {"id": 102, "date": "2026-10-22", "type": "EXPENSE", "amount": Decimal("17000"), "category": "Makanan & Minuman", "source_account": "Kas Tunai", "destination_account": None, "description": "Beli jus alpukat", "is_reversal": False},
+            {"id": 101, "date": "2026-10-22", "type": "EXPENSE", "amount": Decimal("25000"), "category": "Makanan & Minuman", "source_account": "Kas Tunai", "destination_account": None, "description": "Beli nasi padang", "is_reversal": False},
             {"id": 100, "date": "2026-10-21", "type": "EXPENSE", "amount": Decimal("150000"), "category": "Transportasi", "source_account": "Bank BCA", "destination_account": None, "description": "Bensin mobil Pertamax", "is_reversal": False},
             {"id": 99, "date": "2026-10-20", "type": "INCOME", "amount": Decimal("12000000"), "category": "Gaji", "source_account": None, "destination_account": "Bank BCA", "description": "Gaji Bulanan", "is_reversal": False}
         ],
@@ -150,7 +153,7 @@ def test_ai_database_consultation():
     assert "Makanan & Minuman: Rp 3.200.000 (49.2%" in prompt_context
     assert "Batas Anggaran Total: Rp 8.000.000" in prompt_context
     assert "Dana Darurat 6 Bulan" in prompt_context
-    assert "Makan siang ayam geprek" in prompt_context
+    assert "Beli jus alpukat" in prompt_context
     print(" [PASS] Prompt context successfully includes all accounts, budgets, categories, and real transactions.")
 
     # -----------------------------------------------------------------
@@ -186,11 +189,39 @@ def test_ai_database_consultation():
     assert "50.0%" in res_goals
     print(" [PASS] Test 2d: Savings goal progress retrieved with exact percentage and dedicated account.")
 
+    # 2e: Specific Date Transaction Query (22 Oktober 2026 -> 2 expenses totaling Rp 42.000)
+    res_date = AIContextService.generate_rule_based_financial_analysis(mock_ctx, "khusus tanggal 22 oktober aja berapa pengeluaran gua?")
+    assert "22 Oktober 2026" in res_date
+    assert "Rp 42.000" in res_date
+    assert "2 transaksi" in res_date
+    assert "Beli jus alpukat" in res_date
+    assert "Rp 17.000" in res_date
+    assert "Beli nasi padang" in res_date
+    assert "Rp 25.000" in res_date
+    print(" [PASS] Test 2e: Date-specific query for 22 Oktober returns exact Rp 42.000 sum and 2 items.")
+
+    # 2f: Date Parsing Variations
+    from datetime import date
+    d1 = AIContextService.parse_date_from_text("khusus tanggal 22 oktober aja berapa pengeluaran gua?")
+    assert d1 == date(2026, 10, 22), f"Expected 2026-10-22, got {d1}"
+    d2 = AIContextService.parse_date_from_text("beli 2 burger tanggal 22 oktober")
+    assert d2 == date(2026, 10, 22), f"Expected 2026-10-22, got {d2}"
+    d3 = AIContextService.parse_date_from_text("pengeluaran 22 okt 2026")
+    assert d3 == date(2026, 10, 22), f"Expected 2026-10-22, got {d3}"
+    d4 = AIContextService.parse_date_from_text("transaksi 22/10/2026")
+    assert d4 == date(2026, 10, 22), f"Expected 2026-10-22, got {d4}"
+    print(" [PASS] Test 2f: Date parser handles various natural language formats accurately.")
+
     # -----------------------------------------------------------------
     # TEST 3: AIService.process_command Full Consultation Routing
     # -----------------------------------------------------------------
     print("\n=== TEST 3: AIService.process_command Omnichannel Routing ===")
-    with patch.object(AIContextService, "get_user_financial_context", return_value=mock_ctx):
+    mock_accounts = [
+        {"id": 1, "name": "Kas Tunai", "type": "CASH", "current_balance": Decimal("350000"), "is_active": True},
+        {"id": 2, "name": "Bank BCA", "type": "BANK", "current_balance": Decimal("15000000"), "is_active": True}
+    ]
+    with patch.object(AIContextService, "get_user_financial_context", return_value=mock_ctx), \
+         patch("app.services.finance_service.FinanceService.get_accounts_with_balance", return_value=mock_accounts):
         # 3a: Broad consultation question
         res_cmd1 = AIService.process_command(1, "kategori apa yang paling boros bulan ini?")
         assert res_cmd1["intent"] == "FINANCIAL_CONSULTATION"
@@ -210,6 +241,14 @@ def test_ai_database_consultation():
         assert "Kekayaan Bersih" in res_cmd3["ai_response"] or "Arus Kas" in res_cmd3["ai_response"]
         print(" [PASS] Test 3c: Savings advice query routed to full database consultation.")
 
+        # 3d: Date-specific inquiry via main command
+        res_cmd4 = AIService.process_command(1, "khusus tanggal 22 oktober aja berapa pengeluaran gua?")
+        assert res_cmd4["intent"] == "FINANCIAL_INQUIRY"
+        assert "Rp 42.000" in res_cmd4["ai_response"]
+        assert "Beli jus alpukat" in res_cmd4["ai_response"]
+        assert "Beli nasi padang" in res_cmd4["ai_response"]
+        print(" [PASS] Test 3d: Date query via omnibar returns exact Rp 42.000 and itemized transactions.")
+
     # -----------------------------------------------------------------
     # TEST 4: PlanningService.analyze_purchase_decision Context Integration
     # -----------------------------------------------------------------
@@ -223,11 +262,30 @@ def test_ai_database_consultation():
          patch.object(PlanningService, "get_budget_overview", return_value={"total_limit": Decimal("8000000"), "total_spent": Decimal("6500000"), "total_remaining": Decimal("1500000")}), \
          patch.object(PlanningService, "get_savings_goals", return_value=mock_ctx["savings_goals"]):
         
-        # General strategy conversation in copilot tab
-        adv = PlanningService.analyze_purchase_decision(1, "bagaimana evaluasi keuangan gua secara menyeluruh?")
-        assert adv["is_purchase"] is False
-        assert "Makanan & Minuman" in adv["advice"] or "Kekayaan Bersih" in adv["advice"]
-        print(" [PASS] Test 4: PlanningService incorporates full database context in copilot advisory conversations.")
+        # 4a: General strategy conversation in copilot tab
+        adv1 = PlanningService.analyze_purchase_decision(1, "bagaimana evaluasi keuangan gua secara menyeluruh?")
+        assert adv1["is_purchase"] is False
+        assert "Makanan & Minuman" in adv1["advice"] or "Kekayaan Bersih" in adv1["advice"]
+        print(" [PASS] Test 4a: PlanningService incorporates full database context in copilot advisory conversations.")
+
+        # 4b: Date-specific expense query in copilot tab (Must NOT be treated as purchase Rp 22!)
+        adv2 = PlanningService.analyze_purchase_decision(1, "khusus tanggal 22 oktober aja berapa pengeluaran gua?")
+        assert adv2["is_purchase"] is False, "Date query must NOT be classified as a purchase decision!"
+        assert adv2["estimated_cost"] == Decimal("0.00"), f"Cost should be 0, got {adv2['estimated_cost']}"
+        assert adv2["verdict"] == "INFORMASI_DATABASE", f"Expected INFORMASI_DATABASE, got {adv2['verdict']}"
+        assert adv2["verdict_badge"] == "📊 Riwayat Transaksi Database", f"Expected Riwayat Transaksi Database, got {adv2['verdict_badge']}"
+        assert adv2["scenario_id"] is None, "Inquiry must not be recorded as purchase scenario in DB!"
+        assert "Rp 42.000" in adv2["advice"], f"Expected Rp 42.000 in advice, got: {adv2['advice']}"
+        assert "Beli jus alpukat" in adv2["advice"], f"Expected Beli jus alpukat in advice, got: {adv2['advice']}"
+        assert "Beli nasi padang" in adv2["advice"], f"Expected Beli nasi padang in advice, got: {adv2['advice']}"
+        print(" [PASS] Test 4b: Date query in copilot tab correctly classified as INFORMASI_DATABASE with Rp 42.000 and 2 items.")
+
+        # 4c: Real purchase intent remains correctly classified as purchase
+        adv3 = PlanningService.analyze_purchase_decision(1, "bisa beli sepatu 750rb gak?")
+        assert adv3["is_purchase"] is True
+        assert adv3["estimated_cost"] == Decimal("750000")
+        assert "Aman" in adv3["verdict_badge"] or "Relatif" in adv3["verdict_badge"]
+        print(" [PASS] Test 4c: Real purchase request correctly classified as purchase with exact Rp 750.000.")
 
     print("\n" + "=" * 70)
     print("ALL 4 FULL DATABASE CONSULTATION TEST SUITES PASSED (100% GREEN)!")

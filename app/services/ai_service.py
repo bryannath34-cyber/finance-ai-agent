@@ -61,7 +61,16 @@ def parse_indonesian_amount(text: str) -> Optional[Decimal]:
             pass
 
     # 2. Angka berformat perbankan: 8,637,518.23 atau 8.637.518,23 atau 8,637,518 atau 8.637.518 atau 35000
-    num_matches = re.finditer(r"(?:\b|\s|^)(\d{1,3}(?:[.,]\d{3})+(?:[.,]\d+)?|\d+(?:[.,]\d+)?)(?:\b|\s|$)", t)
+    # Hapus terlebih dahulu pola tanggal & waktu agar angka tanggal/tahun tidak keliru dianggap nominal uang:
+    # Contoh: "tanggal 22", "22 oktober", "22 okt", "tahun 2026", "22/10/2026", "jam 10"
+    t_no_dates = re.sub(r"\b(?:tanggal|tgl)\s+\d{1,2}\b", " ", t)
+    t_no_dates = re.sub(r"\b\d{1,2}\s+(?:januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember|jan|feb|mar|apr|jun|jul|agu|ags|sep|okt|nov|des)\b", " ", t_no_dates)
+    t_no_dates = re.sub(r"\b(?:tahun|thn)\s+\d{4}\b", " ", t_no_dates)
+    t_no_dates = re.sub(r"\b20\d{2}\b", " ", t_no_dates)
+    t_no_dates = re.sub(r"\b\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?\b", " ", t_no_dates)
+    t_no_dates = re.sub(r"\b(?:jam|pukul)\s+\d{1,2}(?::\d{2})?\b", " ", t_no_dates)
+
+    num_matches = re.finditer(r"(?:\b|\s|^)(\d{1,3}(?:[.,]\d{3})+(?:[.,]\d+)?|\d+(?:[.,]\d+)?)(?:\b|\s|$)", t_no_dates)
     candidates = []
     for m in num_matches:
         s = m.group(1).strip()
@@ -232,12 +241,21 @@ class AIService:
         has_financial_entity = any(f in t_lower for f in ("saldo", "uang", "duit", "dana", "pengeluaran", "anggaran", "budget", "rekening", "kas", "dompet", "bank", "wallet"))
 
         if (is_question_word and has_financial_entity and not has_action_verb and (not has_amount_specified or "berapa" in t_lower or "cek" in t_lower)):
-            accounts = FinanceService.get_accounts_with_balance(user_id)
-            total_net_worth = sum(Decimal(str(a.get("current_balance", 0))) for a in accounts if a.get("is_active"))
-
-            # Menanyakan pengeluaran / anggaran
+            # Menanyakan pengeluaran / anggaran / tanggal spesifik
             if any(w in t_lower for w in ("pengeluaran", "keluar", "habis", "anggaran", "budget", "serapan", "boros")):
                 try:
+                    from app.services.ai_context_service import AIContextService
+                    target_date = AIContextService.parse_date_from_text(raw_text)
+                    if target_date:
+                        ctx = AIContextService.get_user_financial_context(user_id)
+                        ai_msg = AIContextService.generate_rule_based_financial_analysis(ctx, raw_text)
+                        return {
+                            "intent": "FINANCIAL_INQUIRY",
+                            "ai_response": ai_msg,
+                            "items_count": 0,
+                            "drafts": []
+                        }
+
                     from app.services.planning_service import PlanningService
                     overview = PlanningService.get_budget_overview(user_id)
                     total_spent = Decimal(str(overview.get("total_spent", 0)))
@@ -259,7 +277,10 @@ class AIService:
                         "drafts": []
                     }
                 except Exception as e:
-                    logger.warning("Gagal mengambil budget overview untuk query AI: %s", e)
+                    logger.warning("Gagal mengambil budget/spending overview untuk query AI: %s", e)
+
+            accounts = FinanceService.get_accounts_with_balance(user_id)
+            total_net_worth = sum(Decimal(str(a.get("current_balance", 0))) for a in accounts if a.get("is_active"))
 
             # Menanyakan saldo rekening tertentu
             is_bank_query = any(w in t_lower for w in ("rekening", "bank", "bca", "mandiri", "bri", "bni", "jago"))
@@ -393,18 +414,48 @@ class AIService:
         2. Mengirim prompt kaya data ke OCI GenAI (Cohere Command di Osaka).
         3. Menjalankan fallback analitis berbasis database jika OCI GenAI offline / tidak tersedia.
         """
-        from app.services.ai_context_service import AIContextService
+        from app.services.ai_context_service import AIContextService, _format_idr
         ctx = AIContextService.get_user_financial_context(user_id)
         prompt_context = AIContextService.format_context_for_prompt(ctx)
+
+        target_date = AIContextService.parse_date_from_text(user_input)
+        date_section = ""
+        if target_date:
+            date_txs = []
+            try:
+                date_txs = AIContextService.get_transactions_by_date(user_id, target_date)
+            except Exception:
+                date_txs = []
+            if not date_txs and ctx.get("recent_transactions"):
+                target_iso = target_date.strftime("%Y-%m-%d")
+                date_txs = [
+                    t for t in ctx["recent_transactions"]
+                    if t.get("date") == target_iso and not t.get("is_reversal")
+                ]
+            expense_txs = [t for t in date_txs if t.get("type") in ("EXPENSE", "PENGELUARAN")]
+            income_txs = [t for t in date_txs if t.get("type") in ("INCOME", "PEMASUKAN")]
+            tot_exp = sum(Decimal(str(t["amount"])) for t in expense_txs)
+            tot_inc = sum(Decimal(str(t["amount"])) for t in income_txs)
+            fmt_date = f"{target_date.day} {AIContextService.MONTH_NAMES.get(target_date.month, '')} {target_date.year}".strip()
+
+            tx_lines = [f"- {t.get('description', t.get('category'))} ({t.get('category')}): {_format_idr(t['amount'])} [{t.get('type')}]" for t in date_txs]
+            tx_str = "\n".join(tx_lines) if tx_lines else "Tidak ada transaksi tercatat."
+            date_section = f"""
+[DATA MUTASI SPESIFIK TANGGAL YANG DITANYAKAN: {fmt_date}]
+• Total Pengeluaran: {_format_idr(tot_exp)} ({len(expense_txs)} transaksi)
+• Total Pemasukan: {_format_idr(tot_inc)} ({len(income_txs)} transaksi)
+Rincian Mutasi:
+{tx_str}
+"""
 
         full_prompt = f"""Kamu adalah Personal Finance AI Copilot & Penasihat Keuangan Pribadi yang cerdas, objektif, empatik, dan berwawasan luas.
 Kamu memiliki akses PENUH ke seluruh database keuangan pengguna berikut secara real-time dari buku besar resmi:
 
 {prompt_context}
-
+{date_section}
 INSTRUKSI PENTING UNTUK ASISTEN:
 1. Jawab pertanyaan pengguna secara akurat berdasarkan angka, kategori, dan transaksi riil dari database di atas.
-2. Jika pengguna bertanya tentang kebiasaan, pemborosan, atau kategori tertentu, sebutkan nama kategori dan nominal Rp secara spesifik.
+2. Jika pengguna menanyakan tanggal tertentu, sebutkan total pengeluaran dan rincian transaksi riil pada tanggal tersebut secara spesifik.
 3. Berikan saran yang solutif, terukur, dan realistis sesuai kondisi keuangannya.
 4. Format jawaban dengan markdown rapi (bullet points, bold untuk angka penting).
 5. Jangan berasumsi atau mengarang data transaksi di luar database yang diberikan.

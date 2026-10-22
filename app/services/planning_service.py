@@ -272,6 +272,27 @@ class PlanningService:
         # Ekstraksi nominal angka jika ada (misal: "350rb", "1,5jt", "500000")
         cost = parse_indonesian_amount(query_clean) or Decimal("0.00")
 
+        # Cek apakah pengguna mengindikasikan pertanyaan database historis / tanggal spesifik
+        from app.services.ai_context_service import AIContextService, _format_idr
+        target_date = AIContextService.parse_date_from_text(query_clean)
+        is_date_inquiry = target_date is not None
+
+        # Cek apakah pengguna menanyakan riwayat / mutasi masa lalu
+        is_past_inquiry = (
+            is_date_inquiry or
+            any(w in query_lower for w in (
+                "berapa pengeluaran", "berapa keluar", "keluar berapa", "habis berapa",
+                "uang habis", "ada pengeluaran apa", "beli apa aja", "beli apa saja",
+                "transaksi apa", "riwayat", "histori", "catatan", "rekap", "cek transaksi",
+                "lihat transaksi", "daftar transaksi", "pengeluaran kemarin", "pengeluaran hari ini"
+            ))
+        )
+        is_explicit_future_purchase = any(p in query_lower for p in (
+            "mau beli", "pengen beli", "bisa beli", "boleh beli", "layak beli",
+            "aman gak beli", "aman ga beli", "apakah aman beli", "rencana beli",
+            "bisa gak beli", "bisa ga beli", "mampu beli", "checkout", "order sekarang"
+        ))
+
         # Cek apakah pengguna mengindikasikan pembelian barang/jasa spesifik (bukan sekadar kata umum "belanja")
         purchase_intent = bool(re.search(r'\b(beli|membeli|pembelian|checkout|bayar|order|sewa|borong|biaya|tarif|ongkos|harga)\b', query_lower))
 
@@ -279,7 +300,16 @@ class PlanningService:
         item_name = ""
         is_purchase = False
 
-        if cost > 0 or purchase_intent:
+        if is_past_inquiry and not is_explicit_future_purchase:
+            # Skenario Pertanyaan Database Riwayat Transaksi / Tanggal Spesifik
+            is_purchase = False
+            cost = Decimal("0.00")
+            if target_date:
+                fmt_d = f"{target_date.day} {AIContextService.MONTH_NAMES.get(target_date.month, '')} {target_date.year}".strip()
+                item_name = f"Laporan Transaksi Database: {fmt_d}"
+            else:
+                item_name = "Laporan Transaksi Database"
+        elif cost > 0 or purchase_intent:
             # Skenario Pembelian Barang / Jasa
             if client and settings.OCI_COMPARTMENT_OCID:
                 try:
@@ -368,6 +398,9 @@ Hanya balas dengan JSON."""
             else:
                 verdict = "AMAN"
                 verdict_badge = "🟢 Relatif Aman untuk Dibeli"
+        elif is_past_inquiry and not is_explicit_future_purchase:
+            verdict = "INFORMASI_DATABASE"
+            verdict_badge = "📊 Riwayat Transaksi Database"
         else:
             # Mode Konsultasi Finansial Umum
             negative_accs = [a for a in accounts if a["current_balance"] < 0]
@@ -407,7 +440,6 @@ Hanya balas dengan JSON."""
         goals_summary = "\n".join(goals_summary_lines) if goals_summary_lines else "Belum ada target tabungan aktif yang diset."
 
         # 5. Full Database Context & Penalaran Analitis OCI GenAI
-        from app.services.ai_context_service import AIContextService
         full_ctx = AIContextService.get_user_financial_context(user_id)
         full_context_str = AIContextService.format_context_for_prompt(full_ctx)
 
@@ -440,6 +472,62 @@ Berikan analisis keuangan yang objektif dalam 2-3 paragraf berbahasa Indonesia y
 2. Jelaskan dampaknya secara nyata terhadap arus kas dan batas pengeluaran bulanannya.
 3. Berikan saran taktis atau alternatif opsi bijak bagi pengguna.
 Gunakan bahasa Indonesia yang mengalir alami, rapi, dan profesional. JANGAN gunakan tanda bintang asteris (** atau *) untuk penekanan kata agar kalimat terbaca bersih dan normal."""
+        elif target_date is not None:
+            # Ambil transaksi pada tanggal spesifik
+            date_txs = []
+            try:
+                date_txs = AIContextService.get_transactions_by_date(user_id, target_date)
+            except Exception as e:
+                logger.warning("Gagal query transactions by date %s: %s", target_date, e)
+
+            if not date_txs and full_ctx.get("recent_transactions"):
+                target_iso = target_date.strftime("%Y-%m-%d")
+                date_txs = [
+                    t for t in full_ctx["recent_transactions"]
+                    if t.get("date") == target_iso and not t.get("is_reversal")
+                ]
+
+            expense_txs = [t for t in date_txs if t.get("type") in ("EXPENSE", "PENGELUARAN")]
+            income_txs = [t for t in date_txs if t.get("type") in ("INCOME", "PEMASUKAN")]
+            total_expense = sum(Decimal(str(t["amount"])) for t in expense_txs)
+            total_income = sum(Decimal(str(t["amount"])) for t in income_txs)
+            formatted_date = f"{target_date.day} {AIContextService.MONTH_NAMES.get(target_date.month, '')} {target_date.year}".strip()
+
+            tx_detail_lines = []
+            for idx, t in enumerate(date_txs, 1):
+                t_type = "Pengeluaran" if t.get("type") in ("EXPENSE", "PENGELUARAN") else "Pemasukan"
+                desc = t.get("description") if t.get("description") and t.get("description") != "-" else t.get("category", "Transaksi")
+                cat = t.get("category", "")
+                acc = t.get("source_account") or t.get("destination_account") or "Akun"
+                tx_detail_lines.append(f"- {desc} ({cat}): {_format_idr(t['amount'])} [{t_type}] via {acc}")
+            tx_details_str = "\n".join(tx_detail_lines) if tx_detail_lines else "Tidak ada transaksi tercatat pada tanggal ini."
+
+            advice_prompt = f"""Kamu adalah Personal Finance AI Copilot cerdas yang memiliki akses penuh ke database buku besar keuangan pengguna.
+Riwayat chat sebelumnya:
+<riwayat>
+{conversation_context}
+</riwayat>
+
+Pertanyaan pengguna:
+"{query_clean}"
+
+Data mutasi transaksi riil dari database pada tanggal {formatted_date}:
+- Total Transaksi: {len(date_txs)} transaksi
+- Total Pengeluaran: {_format_idr(total_expense)} ({len(expense_txs)} transaksi)
+- Total Pemasukan: {_format_idr(total_income)} ({len(income_txs)} transaksi)
+
+Rincian mutasi pada {formatted_date}:
+{tx_details_str}
+
+DATA KEUANGAN LENGKAP PENGGUNA (BUKU BESAR):
+{full_context_str}
+
+Instruksi Penting:
+1. Jawab pertanyaan pengguna secara LANGSUNG, AKURAT, dan LENGKAP mengacu pada data transaksi tanggal {formatted_date} di atas.
+2. Sebutkan secara eksplisit total pengeluaran ({_format_idr(total_expense)}) dan rincian transaksi masing-masing ({len(expense_txs)} pengeluaran).
+3. Jika ada pemasukan atau mutasi lain pada tanggal tersebut, jelaskan juga secara singkat.
+4. JANGAN pernah berasumsi atau mengarang data transaksi/angka di luar data di atas.
+5. Sampaikan dalam 1-2 paragraf bahasa Indonesia yang ramah, sopan, dan jelas. Tulis kalimat secara mengalir alami dan rapi. JANGAN gunakan tanda bintang asteris (** atau *) untuk penekanan kata agar teks tampak bersih dan normal."""
         else:
             advice_prompt = f"""Kamu adalah Penasihat Keuangan Pribadi (Financial Copilot AI) yang cerdas, solutif, dan profesional.
 Riwayat chat sebelumnya:

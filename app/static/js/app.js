@@ -4715,7 +4715,7 @@ class App {
       : (data?.verdict === 'PERLU_PERTIMBANGAN' ? 'is-caution' : 'is-safe');
     verdict.className = `copilot-verdict-chip ${verdictClass}`;
     verdict.textContent = String(data?.verdict_badge || 'Panduan keuangan')
-      .replace(/^[🟢🟡🔴⚠️💡]\s*/, '').trim();
+      .replace(/^[🟢🟡🔴⚠️💡📊]\s*/, '').trim();
 
     const answer = document.createElement('div');
     answer.className = 'copilot-answer-copy';

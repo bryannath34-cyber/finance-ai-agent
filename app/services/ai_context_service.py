@@ -22,6 +22,18 @@ from app.core.database import get_db_cursor
 
 logger = logging.getLogger("personal_finance.ai_context_service")
 
+MONTH_MAP = {
+    "januari": 1, "jan": 1, "februari": 2, "feb": 2, "maret": 3, "mar": 3,
+    "april": 4, "apr": 4, "mei": 5, "juni": 6, "jun": 6, "juli": 7, "jul": 7,
+    "agustus": 8, "agu": 8, "ags": 8, "september": 9, "sep": 9,
+    "oktober": 10, "okt": 10, "november": 11, "nov": 11, "desember": 12, "des": 12
+}
+
+MONTH_NAMES = {
+    1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni",
+    7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"
+}
+
 
 def _format_idr(amt: Any) -> str:
     """Format nominal angka ke representasi Rupiah Indonesia yang rapi."""
@@ -35,6 +47,94 @@ def _format_idr(amt: Any) -> str:
 
 
 class AIContextService:
+    MONTH_NAMES = MONTH_NAMES
+
+    @staticmethod
+    def parse_date_from_text(text: str) -> Optional[date]:
+        """
+        Mengekstrak tanggal spesifik dari pertanyaan pengguna bahasa Indonesia.
+        Contoh yang didukung:
+        - "khusus tanggal 22 oktober", "22 okt", "tanggal 5 mei 2026", "22/10/2026"
+        - "hari ini", "kemarin", "kemarin lusa"
+        """
+        import re
+        if not text:
+            return None
+        t = text.lower().strip()
+        today = date.today()
+
+        if "hari ini" in t:
+            return today
+        if "kemarin lusa" in t:
+            return today - timedelta(days=2)
+        if "kemarin" in t:
+            return today - timedelta(days=1)
+
+        # 1. Format kata bulan: "tanggal 22 oktober", "22 okt 2026", "22 oktober"
+        for m in re.finditer(r"(?:tanggal|tgl\b)?\s*(\d{1,2})\s+([a-z]+)(?:\s+(\d{4}))?", t):
+            month_str = m.group(2)
+            if month_str in MONTH_MAP:
+                day = int(m.group(1))
+                year = int(m.group(3)) if m.group(3) else today.year
+                if 1 <= day <= 31:
+                    try:
+                        return date(year, MONTH_MAP[month_str], day)
+                    except ValueError:
+                        pass
+
+        # 2. Format numerik: "22/10/2026", "22-10-2026", "22/10"
+        for m_num in re.finditer(r"\b(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?\b", t):
+            day = int(m_num.group(1))
+            month = int(m_num.group(2))
+            raw_yr = m_num.group(3)
+            if raw_yr:
+                year = int(raw_yr) if len(raw_yr) == 4 else (2000 + int(raw_yr))
+            else:
+                year = today.year
+            if 1 <= month <= 12 and 1 <= day <= 31:
+                try:
+                    return date(year, month, day)
+                except ValueError:
+                    pass
+
+        return None
+
+    @staticmethod
+    def get_transactions_by_date(user_id: int, target_date: date) -> List[Dict[str, Any]]:
+        """Mengambil seluruh transaksi sah pada tanggal spesifik dari database."""
+        with get_db_cursor(commit=False) as cur:
+            cur.execute("""
+                SELECT 
+                    t.id, t.transaction_date, t.type, t.amount, t.description, t.is_reversal,
+                    COALESCE(c.name, 'Tanpa Kategori') as category_name,
+                    sa.name as source_account_name,
+                    da.name as destination_account_name
+                FROM transactions t
+                LEFT JOIN categories c ON t.category_id = c.id
+                LEFT JOIN accounts sa ON t.source_account_id = sa.id
+                LEFT JOIN accounts da ON t.destination_account_id = da.id
+                WHERE t.user_id = %s AND t.transaction_date = %s AND t.is_reversal = FALSE
+                ORDER BY t.id ASC
+            """, (user_id, target_date))
+            rows = cur.fetchall() or []
+
+        results = []
+        for r in rows:
+            amt = Decimal(str(r["amount"]))
+            results.append({
+                "id": r["id"],
+                "date": target_date.strftime("%Y-%m-%d"),
+                "type": r["type"],
+                "amount": amt,
+                "amount_formatted": _format_idr(amt),
+                "category": r["category_name"],
+                "source_account": r["source_account_name"],
+                "destination_account": r["destination_account_name"],
+                "description": r["description"] or "-",
+                "is_reversal": bool(r["is_reversal"]),
+            })
+        return results
+
     @staticmethod
     def get_user_financial_context(user_id: int) -> Dict[str, Any]:
         """
@@ -498,6 +598,50 @@ TOTAL KEKAYAAN BERSIH (NET WORTH): {_format_idr(ctx.get('total_net_worth', 0))}
         bg = ctx.get("budget_overview", {})
         goals = ctx.get("savings_goals", [])
         txs = ctx.get("recent_transactions", [])
+
+        # 0. Pertanyaan Mengenai Tanggal Tertentu (Riwayat Mutasi Harian Database)
+        target_date = AIContextService.parse_date_from_text(query)
+        if target_date:
+            user_id = ctx.get("user_id")
+            date_txs = []
+            if user_id:
+                try:
+                    date_txs = AIContextService.get_transactions_by_date(user_id, target_date)
+                except Exception as e:
+                    logger.warning("Gagal mengambil transaksi tanggal %s: %s", target_date, e)
+
+            # Fallback jika get_transactions_by_date kosong (misal data mock di unit test)
+            if not date_txs and txs:
+                target_iso = target_date.strftime("%Y-%m-%d")
+                date_txs = [
+                    t for t in txs
+                    if t.get("date") == target_iso and not t.get("is_reversal")
+                ]
+
+            expense_txs = [t for t in date_txs if t.get("type") in ("EXPENSE", "PENGELUARAN")]
+            income_txs = [t for t in date_txs if t.get("type") in ("INCOME", "PEMASUKAN")]
+            total_expense = sum(Decimal(str(t["amount"])) for t in expense_txs)
+            total_income = sum(Decimal(str(t["amount"])) for t in income_txs)
+            formatted_date = f"{target_date.day} {MONTH_NAMES.get(target_date.month, '')} {target_date.year}".strip()
+
+            lines = [
+                f"Berdasarkan database transaksi Anda pada tanggal **{formatted_date}**:\n",
+                f"• Total Pengeluaran: **{_format_idr(total_expense)}** ({len(expense_txs)} transaksi)",
+            ]
+            if total_income > 0:
+                lines.append(f"• Total Pemasukan: **{_format_idr(total_income)}** ({len(income_txs)} transaksi)")
+
+            if date_txs:
+                lines.append("\nRincian transaksi pada tanggal tersebut:")
+                for idx, t in enumerate(date_txs, 1):
+                    t_type = "Pengeluaran" if t.get("type") in ("EXPENSE", "PENGELUARAN") else "Pemasukan"
+                    desc = t.get("description") if t.get("description") and t.get("description") != "-" else t.get("category", "Transaksi")
+                    cat = t.get("category", "")
+                    lines.append(f"{idx}. **{desc}** ({cat}) - **{_format_idr(t['amount'])}** [{t_type}]")
+            else:
+                lines.append("\nTidak ditemukan transaksi pengeluaran maupun pemasukan pada tanggal tersebut di database Anda.")
+
+            return "\n".join(lines)
 
         # 1. Kategori Paling Boros / Pengeluaran Terbesar
         if any(w in q_lower for w in ("paling boros", "paling besar", "terbesar", "terbanyak", "banyak keluar", "habis di mana", "kategori apa")):
