@@ -292,17 +292,20 @@ def test_long_text_limits_and_error_handling():
     assert "max_length=10000" in planning_schema_code, "PurchaseAdviceRequest must permit query up to 10000 chars"
     assert "max_length=5000" in planning_schema_code, "AdvisorConversationMessage must permit content up to 5000 chars"
 
-    # 3. ai_service max_tokens verification
+    # 3. ai_service max_tokens and timeout safety verification
     with open("app/services/ai_service.py", "r", encoding="utf-8") as f:
         ai_service_code = f.read()
-    assert "max_tokens=4000" in ai_service_code, "AIService must request up to 4000 tokens for long batches"
+    assert "max_tokens=2500" in ai_service_code, "AIService must request up to 2500 tokens for fast long batches"
+    assert "concurrent.futures.ThreadPoolExecutor" in ai_service_code, "AIService must wrap OCI call in ThreadPoolExecutor for timeout safety"
 
-    # 4. api.js array error handling verification
+    # 4. api.js array error handling and 120s timeout verification
     with open("app/static/js/api.js", "r", encoding="utf-8") as f:
         api_js_code = f.read()
     assert "Array.isArray(data.detail)" in api_js_code, "api.js must parse validation error array detail"
     assert "data.detail.map(" in api_js_code, "api.js must format validation error details into readable strings"
-    print(" [PASS] Test 11: Long text input limits (20k chars) and array validation error formatting verified")
+    assert "timeout: 120000" in api_js_code, "api.ai.parse must configure 120000ms timeout for long text AI processing"
+    assert "options.timeout || 60000" in api_js_code, "api.js default request timeout must be at least 60000ms"
+    print(" [PASS] Test 11: Long text input limits (20k chars), array validation error, and 120s AI timeout verified")
 
 if __name__ == "__main__":
     print("\n================== RUNNING UNIT & INTEGRATION TESTS ==================")

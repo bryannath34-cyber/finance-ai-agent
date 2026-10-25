@@ -5,7 +5,7 @@
  * Financial Planning, and AI Advisory Copilot.
  */
 
-import { api } from './api.js?v=2.8.14';
+import { api } from './api.js?v=2.8.15';
 import { AudioRecorder } from './audio_recorder.js';
 
 const Icons = {
@@ -3333,9 +3333,15 @@ class App {
       this.dashboardAiButton.disabled = true;
       this.dashboardAiButton.innerHTML = `<span class="loading-spinner"></span> Memproses…`;
     }
-    const stageTimer = setTimeout(() => this.setAIProcessState(
+    const stageTimer1 = setTimeout(() => this.setAIProcessState(
       'AI sedang membaca transaksi…', 'Memeriksa jenis, nominal, tanggal, rekening, dan kategori.', 'loading'
     ), 900);
+    const stageTimer2 = setTimeout(() => this.setAIProcessState(
+      'Menyusun draft transaksi…', 'Memproses kalimat mutasi dan menyelaraskan ke buku besar rekening.', 'loading'
+    ), 10000);
+    const stageTimer3 = setTimeout(() => this.setAIProcessState(
+      'Merapikan rincian draft…', 'Hampir selesai, memformat tabel verifikasi.', 'loading'
+    ), 25000);
 
     try {
       const res = await api.ai.parse(text);
@@ -3384,7 +3390,9 @@ class App {
       this.setAIProcessState('Analisis belum berhasil', `${err.message || 'Koneksi ke AI terputus.'} Teks kamu tetap tersimpan; coba lagi.`, 'error');
       this.showAlert('Analisis gagal. Teks tetap tersimpan dan bisa dicoba lagi.', 'error');
     } finally {
-      clearTimeout(stageTimer);
+      clearTimeout(stageTimer1);
+      clearTimeout(stageTimer2);
+      clearTimeout(stageTimer3);
       this.aiRequestBusy = false;
       if (this.btnParse) {
         this.btnParse.disabled = false;

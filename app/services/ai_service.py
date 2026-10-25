@@ -30,7 +30,8 @@ def get_genai_client():
             _genai_client = oci.generative_ai_inference.GenerativeAiInferenceClient(
                 config={"region": settings.OCI_REGION_GENAI},
                 signer=_signer,
-                service_endpoint=settings.OCI_GENAI_ENDPOINT
+                service_endpoint=settings.OCI_GENAI_ENDPOINT,
+                timeout=(10.0, 50.0)
             )
             logger.info("OCI GenAI Client terhubung ke %s", settings.OCI_GENAI_ENDPOINT)
         except Exception as e:
@@ -479,8 +480,13 @@ PERTANYAAN PENGGUNA:
                     serving_mode=chat_models.OnDemandServingMode(model_id=settings.OCI_GENAI_MODEL_ID),
                     chat_request=chat_req
                 )
-                res = client.chat(chat_details)
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                    future = executor.submit(client.chat, chat_details)
+                    res = future.result(timeout=40.0)
                 ai_reply = res.data.chat_response.text.strip()
+            except concurrent.futures.TimeoutError:
+                logger.warning("Panggilan OCI GenAI konsultasi timeout (>40 detik). Mengalihkan ke analisis rule-based.")
+                ai_reply = ""
             except Exception as e:
                 logger.warning("Panggilan OCI GenAI untuk konsultasi gagal: %s", e)
                 ai_reply = ""
@@ -537,6 +543,7 @@ Setiap elemen objek dalam array wajib memiliki properti:
 - "category_name": nama kategori (wajib ada untuk INCOME dan EXPENSE, cocokkan dengan kategori sah).
 - "description": catatan ringkas mutasi.
 - "transaction_date": format YYYY-MM-DD. Jika pengguna menyebutkan tanggal spesifik (misal "tanggal 1 Oktober 2026", "2 Oktober", "kemarin"), sesuaikan tanggalnya ke format ISO YYYY-MM-DD. Jika tidak ada tanggal disebutkan, gunakan {today_str}.
+- Abaikan kalimat judul, salam, atau pengantar tanpa nominal (misal: "recap pengeluaran...", "catatan bulan oktober..."). Hanya proses mutasi yang memiliki nominal riil.
 
 ATURAN DETEKSI INTENT BAHASA INDONESIA:
 1. PENCATATAN SALDO / SALDO AWAL / SIMPANAN (SANGAT PENTING):
@@ -581,11 +588,12 @@ KALIMAT PENGGUNA YANG HARUS DIPROSES:
 
         if client and settings.OCI_COMPARTMENT_OCID and oci is not None:
             try:
+                import concurrent.futures
                 chat_models = oci.generative_ai_inference.models
                 chat_req = chat_models.CohereChatRequest(
                     api_format=chat_models.BaseChatRequest.API_FORMAT_COHERE,
                     message=prompt,
-                    max_tokens=4000,
+                    max_tokens=2500,
                     temperature=0.1
                 )
                 chat_details = chat_models.ChatDetails(
@@ -593,9 +601,14 @@ KALIMAT PENGGUNA YANG HARUS DIPROSES:
                     serving_mode=chat_models.OnDemandServingMode(model_id=settings.OCI_GENAI_MODEL_ID),
                     chat_request=chat_req
                 )
-                res = client.chat(chat_details)
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                    future = executor.submit(client.chat, chat_details)
+                    res = future.result(timeout=45.0)
                 raw_reply = res.data.chat_response.text.strip()
                 logger.info("Respon GenAI OCI diterima (%s karakter)", len(raw_reply))
+            except concurrent.futures.TimeoutError:
+                logger.warning("Panggilan OCI GenAI timeout (>45 detik). Mengalihkan ke fallback parser.")
+                raw_reply = ""
             except Exception as e:
                 logger.error("Panggilan OCI GenAI error: %s", e)
                 raw_reply = ""

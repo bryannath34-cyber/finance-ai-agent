@@ -51,7 +51,7 @@ async function request(endpoint, options = {}) {
   }
 
   const controller = new AbortController();
-  const timeoutMs = options.timeout || 30000;
+  const timeoutMs = options.timeout || 60000;
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   const config = {
@@ -210,6 +210,7 @@ export const api = {
       request('/ai/parse', {
         method: 'POST',
         body: JSON.stringify({ text }),
+        timeout: 120000,
       }),
   },
 
@@ -373,12 +374,13 @@ export const api = {
           target_account_id: targetAccountId,
           conversation_history: conversationHistory,
         }),
+        timeout: 90000,
       }),
     getScenarios: (limit = 10) =>
       request(`/planning/advisory/scenarios?limit=${limit}`),
     getSpendingPatterns: () =>
-      request('/planning/advisory/spending-patterns'),
+      request('/planning/advisory/spending-patterns', { timeout: 60000 }),
     getReports: (year = null, month = null) =>
-      request(`/planning/reports${year && month ? `?year=${year}&month=${month}` : ''}`),
+      request(`/planning/reports${year && month ? `?year=${year}&month=${month}` : ''}`, { timeout: 60000 }),
   },
 };
