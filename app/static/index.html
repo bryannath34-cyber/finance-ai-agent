@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=2.8.17">
+  <link rel="stylesheet" href="css/style.css?v=2.8.18">
   <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
   <link rel="shortcut icon" type="image/svg+xml" href="favicon.svg?v=3">
   <link rel="apple-touch-icon" href="favicon.svg?v=3">
@@ -586,44 +586,12 @@
           </div>
         </div>
 
-        <section class="dashboard-ai-entry" aria-labelledby="dashboard-ai-entry-title">
-          <div class="dashboard-ai-entry-heading">
-            <div class="dashboard-ai-entry-title-group">
-              <span class="dashboard-ai-entry-icon" aria-hidden="true">✦</span>
-              <div>
-                <h2 id="dashboard-ai-entry-title">Catat transaksi pakai bahasa sehari-hari</h2>
-                <p>Contoh: “Baru beli nasgor Rp25.000 hari ini.”</p>
-              </div>
-            </div>
-            <span class="dashboard-ai-entry-badge">Draft dulu · kamu tetap cek</span>
-          </div>
-          <div class="dashboard-ai-entry-compose">
-            <textarea id="dashboard-ai-input" rows="2" aria-label="Tulis transaksi untuk dicatat dengan AI"
-              placeholder="Tulis transaksi, misalnya: Baru beli nasgor 25rb hari ini"></textarea>
-            <button type="button" id="dashboard-ai-process" class="dashboard-ai-entry-submit">
-              <span aria-hidden="true">✦</span> Buat draft
-            </button>
-          </div>
-          <div class="dashboard-ai-entry-footer">
-            <span>Draft belum mengubah saldo. Periksa rekening dan detailnya, lalu konfirmasi untuk mencatat.</span>
-            <button type="button" class="dashboard-ai-example" data-ai-example="Baru beli nasgor 25rb hari ini" data-ai-target="dashboard-ai-input">Isi contoh</button>
-          </div>
-        </section>
-
         <!-- 4 KPI Metrics Top Row (Matching Reference 4-Card Grid) -->
         <div class="dashboard-kpi-row">
           <!-- 1. Revenue / Pemasukan -->
           <div class="kpi-stat-card">
             <div class="kpi-card-header">
               <span class="kpi-card-label">Pemasukan</span>
-              <span class="kpi-badge kpi-badge-green" title="Tren pemasukan">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="7" y1="17" x2="17" y2="7" />
-                  <polyline points="7 7 17 7 17 17" />
-                </svg>
-                <span>+12%</span>
-              </span>
             </div>
             <div class="kpi-card-amount green" id="summary-income-val">Rp 0</div>
           </div>
@@ -632,14 +600,6 @@
           <div class="kpi-stat-card">
             <div class="kpi-card-header">
               <span class="kpi-card-label">Pengeluaran</span>
-              <span class="kpi-badge kpi-badge-rose" title="Realisasi belanja">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="7" y1="7" x2="17" y2="17" />
-                  <polyline points="17 7 17 17 7 17" />
-                </svg>
-                <span>-2%</span>
-              </span>
             </div>
             <div class="kpi-card-amount" id="summary-expense-val">Rp 0</div>
           </div>
@@ -648,16 +608,9 @@
           <div class="kpi-stat-card">
             <div class="kpi-card-header">
               <span class="kpi-card-label">Surplus Bersih</span>
-              <span class="kpi-badge kpi-badge-green" title="Laba bersih bulan berjalan">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="7" y1="17" x2="17" y2="7" />
-                  <polyline points="7 7 17 7 17 17" />
-                </svg>
-                <span>+20%</span>
-              </span>
             </div>
             <div class="kpi-card-amount bold" id="summary-surplus-val">Rp 0</div>
+            <div class="daily-spend-note" id="dash-daily-safe-spend" style="font-size: 11.5px; color: #2D7653; font-weight: 600; margin-top: 6px;">Aman belanja: Rp 0 / hari</div>
           </div>
 
           <!-- 4. Cash Balance / Kekayaan Bersih -->
@@ -777,7 +730,21 @@
               </div>
             </div>
 
-            <!-- Card 2: Recent Transactions Table -->
+            <!-- Card 2: Kategori Pengeluaran Terbesar (NEW! IN LEFT MAIN COLUMN) -->
+            <div class="figma-card top-spending-card">
+              <div class="card-header-row" style="margin-bottom: 8px;">
+                <div class="card-title-group">
+                  <span class="card-section-title">Kategori Pengeluaran Terbesar</span>
+                </div>
+                <button type="button" class="card-action-link" id="btn-dash-view-all-categories">Lihat laporan →</button>
+              </div>
+              <div class="card-subtitle-text">Alokasi belanja terbesar dari transaksi buku besar bulan ini</div>
+              <div class="top-spending-list" id="dashboard-top-spending-list" style="margin-top: 14px;">
+                <div style="color: var(--text-muted); font-size: 12px; padding: 12px 0;">Memuat alokasi pengeluaran...</div>
+              </div>
+            </div>
+
+            <!-- Card 3: Recent Transactions Table -->
             <div class="figma-card recent-tx-card">
               <div class="card-header-row">
                 <div class="card-title-group">
@@ -991,10 +958,6 @@
               </button>
             </div>
             <div class="mobile-net-worth-amount" id="mobile-total-net-worth">Rp 0</div>
-            <div class="mobile-delta-badge">
-              <span class="mobile-delta-arrow">↑</span>
-              <span id="mobile-networth-delta-text">8,2% dari bulan lalu</span>
-            </div>
             <div class="mobile-net-worth-sub">Pembaruan terakhir · <span id="mobile-networth-period-text">Oktober 2026</span></div>
           </div>
 
@@ -1009,50 +972,7 @@
             </div>
           </div>
 
-          <!-- AI entry is available in the Transaksi tab on both screen sizes. -->
-          <div class="mobile-fcard mobile-ai-entry-card">
-            <div class="mobile-fcard-top-row">
-              <div class="mobile-title-with-icon">
-                <svg class="ui-icon ui-icon-spark" width="15" height="15" viewBox="0 0 24 24"><path d="M12 2C12 7.5 7.5 12 2 12C7.5 12 12 16.5 12 22C12 16.5 16.5 12 22 12C16.5 12 12 7.5 12 2Z"/></svg>
-                <span class="mobile-fcard-title">Asisten AI</span>
-              </div>
-              <button type="button" class="mobile-fcard-link" id="mobile-btn-dash-jump-mutasi">Buka</button>
-            </div>
-            <div class="mobile-fcard-desc">Tulis seperti biasa. AI menyiapkan draft untuk kamu periksa sebelum dicatat.</div>
-            <textarea id="mobile-dash-ai-input" class="mobile-ai-textarea" placeholder="Contoh: Baru beli nasgor 25rb hari ini"></textarea>
-            <button type="button" class="mobile-ai-example" data-ai-example="Baru beli nasgor 25rb hari ini" data-ai-target="mobile-dash-ai-input">Isi contoh transaksi</button>
-            <div class="mobile-ai-actions-row">
-              <button type="button" id="mobile-dash-btn-record" class="mobile-btn-voice">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="22" />
-                </svg>
-                <span>Rekam suara</span>
-              </button>
-              <button type="button" id="mobile-dash-btn-parse" class="mobile-btn-process">
-                <span>Proses AI</span>
-              </button>
-            </div>
-            <!-- Mobile AI Copilot Response Box -->
-            <div id="mobile-ai-response-box" class="ai-response-box mobile-ai-response-box" style="display: none;">
-              <div class="ai-response-header">
-                <div class="ai-response-title">
-                  <svg class="ui-icon ui-icon-spark" width="13" height="13" viewBox="0 0 24 24">
-                    <path d="M12 2C12 7.5 7.5 12 2 12C7.5 12 12 16.5 12 22C12 16.5 16.5 12 22 12C16.5 12 12 7.5 12 2Z" />
-                  </svg>
-                  <span>Jawaban AI</span>
-                </div>
-                <button type="button" id="mobile-btn-close-ai-response" class="btn-close-ai-msg" title="Tutup Tanggapan">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                  </svg>
-                </button>
-              </div>
-              <div id="mobile-ai-response-body" class="ai-response-body"></div>
-            </div>
-          </div>
-
-          <!-- 4. Bulan (Oktober 2026) Summary Card -->
+          <!-- 3. Bulan (Oktober 2026) Summary Card -->
           <div class="mobile-fcard">
             <div class="mobile-month-heading" id="mobile-summary-card-month">Oktober 2026</div>
             <div class="mobile-3kpi-grid">
@@ -1068,6 +988,18 @@
                 <span class="mobile-kpi-label">Sisa</span>
                 <span class="mobile-kpi-val" id="mobile-kpi-surplus">Rp 0</span>
               </div>
+            </div>
+            <div class="mobile-daily-spend-note" id="mobile-daily-safe-spend" style="font-size: 11.5px; color: #2D7653; font-weight: 600; margin-top: 10px; text-align: center; border-top: 1px dashed var(--border-main); padding-top: 8px;">Aman belanja: Rp 0 / hari</div>
+          </div>
+
+          <!-- 4. Kategori Pengeluaran Terbesar (Mobile) -->
+          <div class="mobile-fcard">
+            <div class="mobile-fcard-top-row">
+              <span class="mobile-fcard-title">Kategori terbesar</span>
+              <button type="button" class="mobile-fcard-link" id="mobile-btn-dash-reports">Laporan →</button>
+            </div>
+            <div id="mobile-top-spending-list" style="margin-top: 8px;">
+              <div style="color: var(--text-muted); font-size: 11px;">Memuat kategori...</div>
             </div>
           </div>
 
@@ -3834,7 +3766,7 @@
       </div>
     </div>
 
-  <script type="module" src="js/app.js?v=2.8.17"></script>
+  <script type="module" src="js/app.js?v=2.8.18"></script>
 </body>
 
 </html>

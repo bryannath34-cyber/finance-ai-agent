@@ -7431,9 +7431,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .btn-dash-action:hover { background: #F5F7F1; border-color: #C9D8CB; color: var(--brand-dark); box-shadow: none; }
 .dashboard-main-grid, .dashboard-major-col, .dashboard-side-col { display: contents; }
 .dashboard-main-grid { grid-column: 1 / -1; grid-row: 5; }
-.cashflow-chart-card { grid-column: 1 / 9; grid-row: 5 / 7; min-height: 250px; }
+.cashflow-chart-card { grid-column: 1 / 8; grid-row: 5; min-height: 250px; }
+.top-spending-card { grid-column: 1 / 8; grid-row: 6; min-height: 180px; }
 .recent-tx-card { grid-column: 1 / -1; grid-row: 7; }
-.dashboard-side-col > .side-kpi-card:nth-child(1) { grid-column: 9 / -1; grid-row: 5; }
+.dashboard-side-col > .side-kpi-card:nth-child(1) { grid-column: 8 / -1; grid-row: 5; }
 .dashboard-side-col > .side-kpi-card:nth-child(2) {
   grid-column: 8 / -1;
   grid-row: 2;
@@ -7441,7 +7442,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   border-color: #E4E9DC;
   background: radial-gradient(ellipse at 100% 0%, rgba(214,236,154,.25), transparent 15rem), #F4F6EA;
 }
-.dashboard-side-col > .side-kpi-card:nth-child(3) { grid-column: 9 / -1; grid-row: 6; }
+.dashboard-side-col > .side-kpi-card:nth-child(3) { grid-column: 8 / -1; grid-row: 6; }
 .cashflow-chart-card { background: radial-gradient(ellipse at 100% 0%, rgba(230,239,218,.5), transparent 20rem), var(--bg-card); }
 .figma-card, .side-kpi-card { padding: 18px 19px; }
 .cashflow-chart-card { padding: 19px 20px; }
@@ -7608,10 +7609,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   #tab-dashboard .dashboard-main-grid { display: contents; grid-column: auto; grid-row: auto; }
   #tab-dashboard .dashboard-major-col, #tab-dashboard .dashboard-side-col { display: contents; }
   #tab-dashboard .cashflow-chart-card { order: 5; grid-column: auto; grid-row: auto; min-height: 0; }
-  #tab-dashboard .dashboard-side-col > .side-kpi-card:nth-child(2) { order: 6; grid-column: auto; grid-row: auto; min-height: 0; }
-  #tab-dashboard .recent-tx-card { order: 7; grid-column: auto; grid-row: auto; }
-  #tab-dashboard .dashboard-side-col > .side-kpi-card:nth-child(1) { order: 8; grid-column: auto; grid-row: auto; }
-  #tab-dashboard .dashboard-side-col > .side-kpi-card:nth-child(3) { order: 9; grid-column: auto; grid-row: auto; }
+  #tab-dashboard .top-spending-card { order: 6; grid-column: auto; grid-row: auto; }
+  #tab-dashboard .dashboard-side-col > .side-kpi-card:nth-child(2) { order: 7; grid-column: auto; grid-row: auto; min-height: 0; }
+  #tab-dashboard .recent-tx-card { order: 8; grid-column: auto; grid-row: auto; }
+  #tab-dashboard .dashboard-side-col > .side-kpi-card:nth-child(1) { order: 9; grid-column: auto; grid-row: auto; }
+  #tab-dashboard .dashboard-side-col > .side-kpi-card:nth-child(3) { order: 10; grid-column: auto; grid-row: auto; }
   #tab-dashboard .figma-card, #tab-dashboard .side-kpi-card { padding: 15px 14px; border-radius: 14px; }
   #tab-dashboard .card-section-title, #tab-dashboard .side-card-title { font-size: 12px; }
   #tab-dashboard .card-subtitle-text { font-size: 10px; }
@@ -9075,4 +9077,22 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
+}
+
+/* Dashboard Top Spending & Daily Spend Styles */
+.top-spending-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.top-spending-card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-card-hover, 0 6px 16px rgba(0, 0, 0, 0.05));
+}
+
+.daily-spend-note,
+.mobile-daily-spend-note {
+  font-family: inherit;
+  letter-spacing: -0.01em;
 }
