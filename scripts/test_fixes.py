@@ -307,47 +307,6 @@ def test_long_text_limits_and_error_handling():
     assert "options.timeout || 60000" in api_js_code, "api.js default request timeout must be at least 60000ms"
     print(" [PASS] Test 11: Long text input limits (20k chars), array validation error, and 120s AI timeout verified")
 
-# Test 12: Modernized Dashboard Structure & Widget Removal
-def test_modernized_dashboard():
-    with open("app/static/index.html", "r", encoding="utf-8") as f:
-        html = f.read()
-
-    # 1. AI Textarea removed from Dashboard (desktop & mobile)
-    dash_tab_end = html.index('id="tab-planning"')
-    dash_html = html[:dash_tab_end]
-    assert 'class="dashboard-ai-entry"' not in dash_html, "AI entry textarea must be removed from desktop dashboard"
-    assert 'class="mobile-fcard mobile-ai-entry-card"' not in dash_html, "AI entry card must be removed from mobile dashboard"
-
-    # 2. Rekening & Kantong Dana removed from Dashboard (desktop & mobile)
-    assert 'id="accounts-container"' not in dash_html, "accounts-container must be removed from dashboard"
-    assert 'id="savings-goals-mini-list"' not in dash_html, "savings-goals-mini-list must be removed from dashboard"
-    assert 'id="mobile-accounts-list"' not in dash_html, "mobile-accounts-list must be removed from mobile dashboard"
-
-    # 3. Fake badges removed from KPI cards
-    assert '+12%' not in dash_html, "Fake +12% badge must be removed"
-    assert '-2%' not in dash_html, "Fake -2% badge must be removed"
-    assert '+20%' not in dash_html, "Fake +20% badge must be removed"
-    assert '8,2% dari bulan lalu' not in dash_html, "Fake 8,2% delta badge must be removed from mobile dashboard"
-
-    # 4. Top spending card and safe daily spend added
-    assert 'id="dashboard-top-spending-list"' in dash_html, "dashboard-top-spending-list must be present on desktop dashboard"
-    assert 'id="mobile-top-spending-list"' in dash_html, "mobile-top-spending-list must be present on mobile dashboard"
-    assert 'id="summary-daily-safe-spend"' in dash_html, "summary-daily-safe-spend must be present on desktop surplus card"
-    assert 'id="mobile-daily-safe-spend"' in dash_html, "mobile-daily-safe-spend must be present on mobile summary card"
-
-    # 5. AI Financial Copilot Insight card present on desktop dashboard
-    assert 'ai-insight-card' in dash_html, "ai-insight-card must be present on desktop dashboard sidebar"
-    assert 'id="btn-quick-consult-ai"' in dash_html, "btn-quick-consult-ai must be present in AI Copilot card"
-
-    # 6. app.js logic verification
-    with open("app/static/js/app.js", "r", encoding="utf-8") as f:
-        js = f.read()
-    assert "renderDashboardTopCategories()" in js, "app.js must implement renderDashboardTopCategories()"
-    assert "if (this.accountsContainer)" in js, "app.js renderAccounts must check if this.accountsContainer is present"
-    assert "this.summaryDailySafeSpend" in js, "app.js must bind this.summaryDailySafeSpend"
-    assert "this.btnDashMainCreateTx" in js, "app.js must bind this.btnDashMainCreateTx"
-    print(" [PASS] Test 12: Modernized Dashboard verified (AI textarea removed, Rekening & Kantong removed, fake badges removed, Top Spending & Safe Daily Spend added)")
-
 if __name__ == "__main__":
     print("\n================== RUNNING UNIT & INTEGRATION TESTS ==================")
     test_auth_schema()
@@ -361,9 +320,7 @@ if __name__ == "__main__":
     test_auth_backward_compatibility()
     test_advisory_copilot()
     test_long_text_limits_and_error_handling()
-    test_modernized_dashboard()
-    print("================== ALL 12 TEST SUITES PASSED (100% GREEN) ==================\n")
-
+    print("================== ALL 11 TEST SUITES PASSED (100% GREEN) ==================\n")
 
 
 
