@@ -9076,3 +9076,31 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     -webkit-backdrop-filter: none;
   }
 }
+
+/* ==========================================================================
+   Dashboard Modernization & Refined UI
+   ========================================================================== */
+.btn-dash-primary-create:hover {
+  background: #235d41 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(45, 118, 83, 0.25);
+}
+
+.top-spending-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.top-spending-card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-card-hover, 0 6px 16px rgba(0, 0, 0, 0.05));
+}
+
+.ai-insight-card {
+  border-left: 3px solid #2D7653 !important;
+}
+
+.mobile-daily-spend-note {
+  font-family: inherit;
+  letter-spacing: -0.01em;
+}
+

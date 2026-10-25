@@ -235,10 +235,17 @@ class App {
     this.btnJumpToMutasi = document.getElementById('btn-jump-to-mutasi');
     this.btnDashOpenAi = document.getElementById('btn-dash-open-ai');
     this.btnDashViewReports = document.getElementById('btn-dash-view-reports');
-    this.btnDashGotoPlanning = document.getElementById('btn-dash-goto-planning');
-    this.btnAddAccountDash = document.getElementById('btn-add-account-dash');
     this.btnDashPeriodDay = document.getElementById('btn-dash-period-day');
     this.btnDashPeriodMonth = document.getElementById('btn-dash-period-month');
+    this.summaryDailySafeSpend = document.getElementById('summary-daily-safe-spend');
+    this.mobileDailySafeSpend = document.getElementById('mobile-daily-safe-spend');
+    this.dashboardTopSpendingList = document.getElementById('dashboard-top-spending-list');
+    this.mobileTopSpendingList = document.getElementById('mobile-top-spending-list');
+    this.btnDashMainCreateTx = document.getElementById('btn-dash-main-create-tx');
+    this.btnDashViewAllCategories = document.getElementById('btn-dash-view-all-categories');
+    this.btnQuickConsultAi = document.getElementById('btn-quick-consult-ai');
+    this.mobileBtnDashReports = document.getElementById('mobile-btn-dash-reports');
+    this.dashPeriodMonthLabel = document.getElementById('dash-period-month-label');
 
     // Tab 3: Planning & Budgets (Screen 03)
     this.statPaguBulanan = document.getElementById('stat-pagu-bulanan');
@@ -637,6 +644,18 @@ class App {
     }
     if (this.btnDashGotoPlanning) {
       this.btnDashGotoPlanning.addEventListener('click', () => this.switchTab('tab-planning'));
+    }
+    if (this.btnDashMainCreateTx) {
+      bindOpenModal(this.btnDashMainCreateTx, this.modalCreateTx);
+    }
+    if (this.btnDashViewAllCategories) {
+      this.btnDashViewAllCategories.addEventListener('click', () => this.switchTab('tab-reports'));
+    }
+    if (this.btnQuickConsultAi) {
+      this.btnQuickConsultAi.addEventListener('click', () => this.switchTab('tab-copilot'));
+    }
+    if (this.mobileBtnDashReports) {
+      this.mobileBtnDashReports.addEventListener('click', () => this.switchTab('tab-reports'));
     }
     if (this.btnDashPeriodDay && this.btnDashPeriodMonth) {
       this.btnDashPeriodDay.addEventListener('click', () => {
@@ -2275,10 +2294,99 @@ class App {
       this.mobileKpiSurplus.textContent = this.formatCompactIDR(surplus);
       this.mobileKpiSurplus.style.color = surplus < 0 ? 'var(--accent-rose)' : 'var(--text-primary)';
     }
+
+    const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    const curMonthName = `${monthNames[now.getMonth()]} ${curY}`;
+
     if (this.mobileSummaryCardMonth) {
-      const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-      this.mobileSummaryCardMonth.textContent = `${monthNames[now.getMonth()]} ${curY}`;
+      this.mobileSummaryCardMonth.textContent = curMonthName;
     }
+    if (this.dashPeriodMonthLabel) {
+      this.dashPeriodMonthLabel.textContent = curMonthName;
+    }
+
+    // Safe Daily Spend Calculation
+    const daysInMonth = new Date(curY, now.getMonth() + 1, 0).getDate();
+    const remainingDays = Math.max(1, daysInMonth - now.getDate() + 1);
+
+    let dailySafe = 0;
+    if (this.currentBudgetOverview && parseFloat(this.currentBudgetOverview.remaining) > 0) {
+      dailySafe = Math.round(parseFloat(this.currentBudgetOverview.remaining) / remainingDays);
+    } else if (surplus > 0) {
+      dailySafe = Math.round(surplus / remainingDays);
+    }
+
+    const dailySafeText = dailySafe > 0
+      ? `Aman belanja: ${this.formatCompactIDR(dailySafe)} / hari`
+      : `Sisa ${remainingDays} hari di bulan ini`;
+
+    if (this.summaryDailySafeSpend) {
+      this.summaryDailySafeSpend.textContent = dailySafeText;
+    }
+    if (this.mobileDailySafeSpend) {
+      this.mobileDailySafeSpend.textContent = dailySafeText;
+    }
+
+    this.renderDashboardTopCategories();
+  }
+
+  renderDashboardTopCategories() {
+    const containers = [this.dashboardTopSpendingList, this.mobileTopSpendingList].filter(Boolean);
+    if (containers.length === 0) return;
+
+    const now = new Date();
+    const curY = now.getFullYear();
+    const curM = String(now.getMonth() + 1).padStart(2, '0');
+    const curKey = `${curY}-${curM}`;
+
+    const catTotals = {};
+    let totalExpense = 0;
+
+    (this.transactions || []).forEach((tx) => {
+      if (tx.is_reversal || tx.type !== 'EXPENSE') return;
+      if (!tx.transaction_date || !tx.transaction_date.startsWith(curKey)) return;
+      const amt = parseFloat(tx.amount) || 0;
+      const catName = tx.category_name || 'Lain-lain';
+      catTotals[catName] = (catTotals[catName] || 0) + amt;
+      totalExpense += amt;
+    });
+
+    const sortedCats = Object.entries(catTotals)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3);
+
+    const colors = ['#2D7653', '#4E9F6E', '#8FBC94'];
+
+    containers.forEach((container) => {
+      if (sortedCats.length === 0 || totalExpense === 0) {
+        container.innerHTML = `
+          <div style="color: var(--text-muted); font-size: 12px; padding: 12px 0; text-align: center;">
+            Belum ada catatan pengeluaran di bulan ini.
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          ${sortedCats.map(([name, amt], idx) => {
+            const pct = Math.round((amt / totalExpense) * 100);
+            const color = colors[idx % colors.length];
+            return `
+              <div>
+                <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px;">
+                  <span style="font-weight: 500; color: var(--text-primary);">${name}</span>
+                  <span style="font-weight: 600; color: var(--text-primary);">${pct}% <span style="font-weight: 400; color: var(--text-muted); font-size: 11px;">(${this.formatIDR(amt)})</span></span>
+                </div>
+                <div style="background: var(--bg-surface, #F1F3EE); height: 8px; border-radius: 999px; overflow: hidden;">
+                  <div style="background: ${color}; width: ${pct}%; height: 100%; border-radius: 999px; transition: width 0.3s ease;"></div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    });
   }
 
   renderSummaryCards() {
@@ -2287,14 +2395,15 @@ class App {
 
   // Render Accounts in Figma Style (Monograms KT, BK, EW)
   renderAccounts() {
-    this.accountsContainer.innerHTML = '';
     let totalBal = 0;
 
-    if (this.accounts.length === 0) {
-      this.accountsContainer.innerHTML = `
-        <div style="color: var(--text-muted); font-size: 9px; padding: 10px 0;">Belum ada rekening aktif.</div>
-      `;
-      return;
+    if (this.accountsContainer) {
+      this.accountsContainer.innerHTML = '';
+      if (this.accounts.length === 0) {
+        this.accountsContainer.innerHTML = `
+          <div style="color: var(--text-muted); font-size: 9px; padding: 10px 0;">Belum ada rekening aktif.</div>
+        `;
+      }
     }
 
     this.accounts.forEach((acc) => {
@@ -2318,23 +2427,24 @@ class App {
         monogramText = acc.name.substring(0, 3).toUpperCase();
       }
 
-      const isNegative = bal < 0;
-      const row = document.createElement('div');
-      row.className = 'account-row';
-
-      row.innerHTML = `
-        <div class="account-left-side">
-          <div class="account-monogram ${monogramClass}">${monogramText}</div>
-          <div class="account-info-col">
-            <span class="acc-title">${acc.name}</span>
-            <span class="acc-subtitle">${acc.type}</span>
+      if (this.accountsContainer && this.accounts.length > 0) {
+        const isNegative = bal < 0;
+        const row = document.createElement('div');
+        row.className = 'account-item-row';
+        row.innerHTML = `
+          <div class="account-left-group">
+            <div class="account-monogram ${monogramClass}">${monogramText}</div>
+            <div class="account-name-block">
+              <span class="account-title-text">${acc.name}</span>
+              <span class="account-type-sub">${acc.type}</span>
+            </div>
           </div>
-        </div>
-        <div class="acc-balance-num ${isNegative ? 'negative' : ''} ${this.isBalanceHidden ? 'is-hidden-mask' : ''}" data-real-balance="${this.formatIDR(bal)}">
-          ${this.isBalanceHidden ? 'Rp ••••••••' : this.formatIDR(bal)}
-        </div>
-      `;
-      this.accountsContainer.appendChild(row);
+          <div class="account-balance-text ${isNegative ? 'negative' : ''}">
+            ${this.formatIDR(bal)}
+          </div>
+        `;
+        this.accountsContainer.appendChild(row);
+      }
     });
 
     // Render Grid Kartu Uang di Bank pada Tab Mutasi AI
