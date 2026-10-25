@@ -66,10 +66,10 @@ class UpdateGoalStatusRequest(BaseModel):
 # ==========================================
 class AdvisorConversationMessage(BaseModel):
     role: Literal["user", "assistant"]
-    content: str = Field(..., min_length=1, max_length=1200)
+    content: str = Field(..., min_length=1, max_length=5000)
 
 class PurchaseAdviceRequest(BaseModel):
-    query: str = Field(..., min_length=2, max_length=1000, description="Pertanyaan konsultasi atau pembelian, misal: 'Gue mau beli keyboard Rp760rb pake Bank, aman gak?'")
+    query: str = Field(..., min_length=1, max_length=10000, description="Pertanyaan konsultasi atau pembelian, misal: 'Gue mau beli keyboard Rp760rb pake Bank, aman gak?'")
     target_account_id: Optional[int] = None
     conversation_history: List[AdvisorConversationMessage] = Field(default_factory=list, max_length=6)
 

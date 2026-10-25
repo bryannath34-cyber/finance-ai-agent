@@ -164,6 +164,23 @@ def test_ai_service_commands():
         assert res_llm["drafts"][0]["amount"] == Decimal("35000")
         print(" [PASS] Test 4d: OCI-style LLM response becomes a validated transaction draft")
 
+        # Test 4e: Multi-clause fallback parser with explicit dates
+        long_multi_text = (
+            "Pada tanggal 1 Oktober 2026 gue mengeluarkan duit untuk Shopee PayLater sebesar 16.320.000 "
+            "dan tanggal 2 Oktober gue menggunakan pengeluaran flash card sebesar 10.000, "
+            "terus tanggal 3 Oktober kebab 25.000"
+        )
+        parsed_clauses = AIService._fallback_regex_parser(long_multi_text, mock_accounts, mock_categories)
+        assert len(parsed_clauses) == 3, f"Expected 3 drafts from multi-clause input, got {len(parsed_clauses)}: {parsed_clauses}"
+        assert parsed_clauses[0]["amount"] == Decimal("16320000"), f"Clause 1 amount mismatch: {parsed_clauses[0]}"
+        assert parsed_clauses[0]["transaction_date"] == "2026-10-01", f"Clause 1 date mismatch: {parsed_clauses[0]}"
+        assert parsed_clauses[1]["amount"] == Decimal("10000"), f"Clause 2 amount mismatch: {parsed_clauses[1]}"
+        assert parsed_clauses[1]["transaction_date"] == "2026-10-02", f"Clause 2 date mismatch: {parsed_clauses[1]}"
+        assert parsed_clauses[2]["amount"] == Decimal("25000"), f"Clause 3 amount mismatch: {parsed_clauses[2]}"
+        assert parsed_clauses[2]["transaction_date"] == "2026-10-03", f"Clause 3 date mismatch: {parsed_clauses[2]}"
+        print(" [PASS] Test 4e: Multi-clause fallback parser splits long texts and extracts distinct dates")
+
+
 # Test 5: index.html DOM structure check
 def test_index_html_dom():
     with open("app/static/index.html", "r", encoding="utf-8") as f:
@@ -262,6 +279,31 @@ def test_advisory_copilot():
     assert "if cost > 0 and target_acc" in plan_py, "planning_service must check cost > 0 and target_acc to avoid DB check constraint violation"
     print(" [PASS] Test 10: AI Financial Copilot and Advisory resilience verified")
 
+# Test 11: Long Text Input Limits & Error Handling
+def test_long_text_limits_and_error_handling():
+    # 1. ai schema max_length verification
+    with open("app/schemas/ai.py", "r", encoding="utf-8") as f:
+        ai_schema_code = f.read()
+    assert "max_length=20000" in ai_schema_code, "ParseTextRequest must permit texts up to 20000 chars"
+
+    # 2. planning schema max_length verification
+    with open("app/schemas/planning.py", "r", encoding="utf-8") as f:
+        planning_schema_code = f.read()
+    assert "max_length=10000" in planning_schema_code, "PurchaseAdviceRequest must permit query up to 10000 chars"
+    assert "max_length=5000" in planning_schema_code, "AdvisorConversationMessage must permit content up to 5000 chars"
+
+    # 3. ai_service max_tokens verification
+    with open("app/services/ai_service.py", "r", encoding="utf-8") as f:
+        ai_service_code = f.read()
+    assert "max_tokens=4000" in ai_service_code, "AIService must request up to 4000 tokens for long batches"
+
+    # 4. api.js array error handling verification
+    with open("app/static/js/api.js", "r", encoding="utf-8") as f:
+        api_js_code = f.read()
+    assert "Array.isArray(data.detail)" in api_js_code, "api.js must parse validation error array detail"
+    assert "data.detail.map(" in api_js_code, "api.js must format validation error details into readable strings"
+    print(" [PASS] Test 11: Long text input limits (20k chars) and array validation error formatting verified")
+
 if __name__ == "__main__":
     print("\n================== RUNNING UNIT & INTEGRATION TESTS ==================")
     test_auth_schema()
@@ -274,6 +316,8 @@ if __name__ == "__main__":
     test_config_requires_secrets()
     test_auth_backward_compatibility()
     test_advisory_copilot()
-    print("================== ALL 10 TEST SUITES PASSED (100% GREEN) ==================\n")
+    test_long_text_limits_and_error_handling()
+    print("================== ALL 11 TEST SUITES PASSED (100% GREEN) ==================\n")
+
 
 

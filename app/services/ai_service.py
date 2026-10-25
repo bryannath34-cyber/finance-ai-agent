@@ -536,7 +536,7 @@ Setiap elemen objek dalam array wajib memiliki properti:
 - "destination_account_name": nama rekening tujuan (wajib ada untuk INCOME dan TRANSFER, null untuk EXPENSE).
 - "category_name": nama kategori (wajib ada untuk INCOME dan EXPENSE, cocokkan dengan kategori sah).
 - "description": catatan ringkas mutasi.
-- "transaction_date": format YYYY-MM-DD (jika ada kata "kemarin", "tadi pagi", sesuaikan dari tanggal hari ini).
+- "transaction_date": format YYYY-MM-DD. Jika pengguna menyebutkan tanggal spesifik (misal "tanggal 1 Oktober 2026", "2 Oktober", "kemarin"), sesuaikan tanggalnya ke format ISO YYYY-MM-DD. Jika tidak ada tanggal disebutkan, gunakan {today_str}.
 
 ATURAN DETEKSI INTENT BAHASA INDONESIA:
 1. PENCATATAN SALDO / SALDO AWAL / SIMPANAN (SANGAT PENTING):
@@ -585,7 +585,7 @@ KALIMAT PENGGUNA YANG HARUS DIPROSES:
                 chat_req = chat_models.CohereChatRequest(
                     api_format=chat_models.BaseChatRequest.API_FORMAT_COHERE,
                     message=prompt,
-                    max_tokens=1500,
+                    max_tokens=4000,
                     temperature=0.1
                 )
                 chat_details = chat_models.ChatDetails(
@@ -801,10 +801,8 @@ KALIMAT PENGGUNA YANG HARUS DIPROSES:
         }
 
     @staticmethod
-    def _fallback_regex_parser(text: str, accounts: list, categories: list) -> List[Dict[str, Any]]:
-        """Parser fallback deterministik cerdas jika koneksi LLM gagal/offline."""
-        results = []
-        today_str = datetime.now(ZoneInfo("Asia/Jakarta")).date().isoformat()
+    def _parse_single_clause(text: str, accounts: list, categories: list, default_date_str: str) -> Optional[Dict[str, Any]]:
+        """Mengekstrak satu klausa kalimat menjadi satu objek mutasi transaksi."""
         text_lower = text.lower()
 
         # 1. Deteksi Rekening Cerdas dari Teks
@@ -835,10 +833,19 @@ KALIMAT PENGGUNA YANG HARUS DIPROSES:
         # 2. Cek Nominal
         amt = parse_indonesian_amount(text)
         if amt is None or amt <= 0:
-            logger.info("Fallback AI tidak membuat draft karena nominal tidak terdeteksi")
-            return results
+            return None
 
-        # 3. Klasifikasi Intent / Tipe Mutasi
+        # 3. Deteksi Tanggal Klausa
+        from app.services.ai_context_service import AIContextService
+        parsed_dt = AIContextService.parse_date_from_text(text)
+        tx_date_str = parsed_dt.strftime("%Y-%m-%d") if parsed_dt else default_date_str
+
+        # 4. Bersihkan Deskripsi
+        desc_clean = text.strip()
+        desc_clean = re.sub(r'^(?:dan|terus|lalu|kemudian|serta|juga|pada)\s+', '', desc_clean, flags=re.IGNORECASE).strip()
+        final_desc = desc_clean[:100] if desc_clean else text[:100]
+
+        # 5. Klasifikasi Intent / Tipe Mutasi
         is_transfer = any(w in text_lower for w in ["transfer", "tf ", " tf", "pindah dana", "kirim uang"])
         expense_terms = (
             "beli", "bayar", "belanja", "pengeluaran", "makan", "minum", "ongkir",
@@ -863,16 +870,16 @@ KALIMAT PENGGUNA YANG HARUS DIPROSES:
             ]
             source_acc = mentioned_accounts[0]["name"] if mentioned_accounts else matched_acc_name
             dest_acc = mentioned_accounts[1]["name"] if len(mentioned_accounts) > 1 else None
-            results.append({
+            return {
                 "type": "TRANSFER",
                 "amount": amt,
                 "admin_fee": Decimal("0.00"),
                 "source_account_name": source_acc,
                 "destination_account_name": dest_acc,
                 "category_name": None,
-                "description": text[:100],
-                "transaction_date": today_str
-            })
+                "description": final_desc,
+                "transaction_date": tx_date_str
+            }
         elif is_income:
             if is_balance_stmt:
                 cat_name = "Saldo Awal"
@@ -882,19 +889,18 @@ KALIMAT PENGGUNA YANG HARUS DIPROSES:
                 if inc_cats:
                     cat_name = inc_cats[0]
 
-            desc = f"Saldo {matched_acc_name}" if is_balance_stmt else text[:100]
-
-            results.append({
+            desc_title = f"Saldo {matched_acc_name}" if is_balance_stmt else final_desc
+            return {
                 "type": "INCOME",
                 "amount": amt,
                 "admin_fee": Decimal("0.00"),
                 "source_account_name": None,
                 "destination_account_name": matched_acc_name,
                 "category_name": cat_name,
-                "description": desc,
-                "transaction_date": today_str
-            })
-        elif is_expense:
+                "description": desc_title,
+                "transaction_date": tx_date_str
+            }
+        else: # EXPENSE
             cat_name = "Makanan & Minuman"
             if any(w in text_lower for w in ["bensin", "bbm", "pertamax", "pertalite", "tol", "parkir", "ojol", "grab", "gojek", "kereta"]):
                 cat_name = "Transportasi"
@@ -904,23 +910,45 @@ KALIMAT PENGGUNA YANG HARUS DIPROSES:
                 cat_name = "Kesehatan"
             elif any(w in text_lower for w in ["nasgor", "nasi goreng", "makan", "minum", "bakso", "mie", "mi ayam", "soto", "kopi", "teh", "roti", "gorengan", "cemilan", "jajanan"]):
                 cat_name = "Makanan & Minuman"
-            elif any(w in text_lower for w in ["beli", "belanja", "shopee", "tokped", "baju", "sepatu"]):
+            elif any(w in text_lower for w in ["beli", "belanja", "shopee", "tokped", "baju", "sepatu", "flash card", "paylater"]):
                 cat_name = "Belanja Kebutuhan"
 
             exp_cats = [c["name"] for c in categories if c.get("type") == "EXPENSE" and c.get("is_active")]
             if cat_name not in exp_cats and exp_cats:
                 cat_name = exp_cats[0]
 
-            results.append({
+            return {
                 "type": "EXPENSE",
                 "amount": amt,
                 "admin_fee": Decimal("0.00"),
                 "source_account_name": matched_acc_name,
                 "destination_account_name": None,
                 "category_name": cat_name,
-                "description": text[:100],
-                "transaction_date": today_str
-            })
-        else:
-            logger.info("Fallback AI tidak membuat draft karena jenis transaksi tidak jelas")
+                "description": final_desc,
+                "transaction_date": tx_date_str
+            }
+
+    @staticmethod
+    def _fallback_regex_parser(text: str, accounts: list, categories: list) -> List[Dict[str, Any]]:
+        """Parser fallback deterministik cerdas jika koneksi LLM gagal/offline."""
+        results = []
+        today_str = datetime.now(ZoneInfo("Asia/Jakarta")).date().isoformat()
+
+        # Deteksi apakah teks memuat multi-transaksi (dipisah baris baru, titik koma, koma antar transaksi, atau kata sambung)
+        pattern = r"\n+|;\s*|,\s*(?=(?:dan\s+|terus\s+|lalu\s+|pada\s+)?tanggal|\b(?:beli|bayar|tf|transfer)\b)|\b(?:dan|terus|lalu|kemudian)\s+(?=(?:pada\s+)?tanggal|\b(?:beli|bayar|tf|transfer)\b)"
+        segments = [s.strip() for s in re.split(pattern, text, flags=re.IGNORECASE) if s.strip()]
+
+        valid_segments = [s for s in segments if parse_indonesian_amount(s) is not None]
+        if len(valid_segments) > 1:
+            for s in valid_segments:
+                parsed = AIService._parse_single_clause(s, accounts, categories, today_str)
+                if parsed:
+                    results.append(parsed)
+            if results:
+                return results
+
+        # Fallback single clause
+        single_res = AIService._parse_single_clause(text, accounts, categories, today_str)
+        if single_res:
+            results.append(single_res)
         return results

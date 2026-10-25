@@ -68,7 +68,18 @@ async function request(endpoint, options = {}) {
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      const errorMsg = (typeof data.detail === 'string' ? data.detail : data.detail?.message) || data.message || `HTTP Error ${res.status}`;
+      let errorMsg = '';
+      if (typeof data.detail === 'string') {
+        errorMsg = data.detail;
+      } else if (Array.isArray(data.detail) && data.detail.length > 0) {
+        errorMsg = data.detail.map((d) => d.msg || (typeof d === 'string' ? d : JSON.stringify(d))).join(', ');
+      } else if (data.detail?.message) {
+        errorMsg = data.detail.message;
+      } else if (data.message) {
+        errorMsg = data.message;
+      } else {
+        errorMsg = `HTTP Error ${res.status}`;
+      }
       const err = new Error(errorMsg);
       err.status = res.status;
       err.data = data;

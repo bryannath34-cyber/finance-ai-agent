@@ -3,7 +3,7 @@ from decimal import Decimal
 from pydantic import BaseModel, Field
 
 class ParseTextRequest(BaseModel):
-    text: str = Field(..., min_length=2, max_length=1000, description="Kalimat mutasi keuangan")
+    text: str = Field(..., min_length=1, max_length=20000, description="Kalimat mutasi keuangan")
 
 class ParsedDraftItem(BaseModel):
     type: str = Field(..., pattern="^(INCOME|EXPENSE|TRANSFER)$")
